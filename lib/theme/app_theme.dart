@@ -1,0 +1,153 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+class AppTheme {
+  AppTheme._();
+
+  static const Color background = Color(0xFFFFFFFF);
+  static const Color surface = Color(0xFFF7F8FA);
+  static const Color divider = Color(0xFFE5E7EB);
+  static const Color textPrimary = Color(0xFF111827);
+  static const Color textSecondary = Color(0xFF6B7280);
+  static const Color textTertiary = Color(0xFF9CA3AF);
+  static const Color buttonPrimary = Color(0xFF000000);
+  static const Color buttonSecondary = Color(0xFFF3F4F6);
+  static const Color accent = Color(0xFF06B6D4);
+
+  static final RoundedRectangleBorder pillShape = RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(999),
+  );
+
+  static ThemeData lightTheme = _buildLightTheme();
+
+  static ThemeData _buildLightTheme() {
+    final baseColorScheme = ColorScheme.fromSeed(
+      seedColor: accent,
+      brightness: Brightness.light,
+    );
+
+    final base = ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: background,
+      colorScheme: baseColorScheme.copyWith(
+        surface: surface,
+        onSurface: textPrimary,
+        primary: accent,
+        secondary: accent,
+        tertiary: accent,
+        onPrimary: Colors.white,
+      ),
+      textTheme: GoogleFonts.interTextTheme(),
+    );
+
+    final headline = GoogleFonts.spaceGrotesk(
+      fontWeight: FontWeight.w700,
+      color: textPrimary,
+    );
+
+    final body = GoogleFonts.inter(
+      color: textSecondary,
+      height: 1.5,
+    );
+
+    return base.copyWith(
+      appBarTheme: AppBarTheme(
+        backgroundColor: background,
+        elevation: 0,
+        titleTextStyle: headline.copyWith(fontSize: 24),
+        surfaceTintColor: Colors.transparent,
+      ),
+      textTheme: base.textTheme.copyWith(
+        headlineLarge: headline.copyWith(fontSize: 44, letterSpacing: -1.2),
+        headlineMedium: headline.copyWith(fontSize: 32, letterSpacing: -0.5),
+        headlineSmall: headline.copyWith(fontSize: 24),
+        bodyLarge: body.copyWith(fontSize: 16, color: textSecondary),
+        bodyMedium: body.copyWith(fontSize: 14, color: textSecondary),
+        bodySmall: body.copyWith(fontSize: 13, color: textTertiary),
+        labelLarge: GoogleFonts.inter(
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+          color: textPrimary,
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: background,
+        hintStyle: GoogleFonts.inter(color: textTertiary),
+        labelStyle: GoogleFonts.inter(color: textSecondary),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(999),
+          borderSide: const BorderSide(color: divider),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(999),
+          borderSide: const BorderSide(color: divider),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(999),
+          borderSide: const BorderSide(color: accent, width: 1.5),
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          elevation: 0,
+          backgroundColor: buttonPrimary,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
+          shape: pillShape,
+          textStyle: GoogleFonts.inter(
+            fontWeight: FontWeight.w600,
+            fontSize: 15,
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          elevation: 0,
+          backgroundColor: buttonSecondary,
+          foregroundColor: textPrimary,
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
+          shape: pillShape,
+          side: const BorderSide(color: divider),
+          textStyle: GoogleFonts.inter(
+            fontWeight: FontWeight.w600,
+            fontSize: 15,
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: textPrimary,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          textStyle: GoogleFonts.inter(
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+          ),
+        ),
+      ),
+      chipTheme: base.chipTheme.copyWith(
+        backgroundColor: accent.withValues(alpha: 0.12),
+        labelStyle: GoogleFonts.inter(
+          fontWeight: FontWeight.w500,
+          fontSize: 13,
+          color: accent,
+        ),
+        shape: const StadiumBorder(),
+        side: BorderSide.none,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      ),
+      cardTheme: CardThemeData(
+        color: surface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(28),
+        ),
+        margin: EdgeInsets.zero,
+        surfaceTintColor: Colors.transparent,
+      ),
+      dividerColor: divider,
+    );
+  }
+}
