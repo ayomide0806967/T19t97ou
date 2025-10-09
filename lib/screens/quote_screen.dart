@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/hexagon_avatar.dart';
 import '../widgets/tweet_shell.dart';
+import 'package:provider/provider.dart';
+import '../services/data_service.dart';
+import '../services/simple_auth_service.dart';
 
 class QuoteScreen extends StatefulWidget {
   const QuoteScreen({
@@ -44,8 +47,8 @@ class _QuoteScreenState extends State<QuoteScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
+appBar: AppBar(
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.close, color: Color(0xFF64748B)),
@@ -122,13 +125,17 @@ class _QuoteScreenState extends State<QuoteScreen> {
                       color: const Color(0xFF1E293B),
                       height: 1.4,
                     ),
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
+                      filled: false,
+                      isDense: true,
                       hintText: 'Add a comment...',
                       hintStyle: TextStyle(
-                        color: const Color(0xFF94A3B8),
+                        color: Color(0xFF94A3B8),
                         fontSize: 18,
                       ),
                       border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
                       contentPadding: EdgeInsets.zero,
                     ),
                   ),
@@ -321,13 +328,23 @@ class _QuoteScreenState extends State<QuoteScreen> {
     await Future.delayed(const Duration(seconds: 1));
 
     if (mounted) {
+      final auth = SimpleAuthService();
+      final email = auth.currentUserEmail ?? 'your@institution.edu';
+
+      await context.read<DataService>().addQuote(
+        author: 'You',
+        handle: '@yourprofile',
+        comment: _controller.text.trim(),
+        original: PostSnapshot(
+          author: widget.author,
+          handle: widget.handle,
+          timeAgo: widget.timeAgo,
+          body: widget.body,
+          tags: widget.tags,
+        ),
+      );
+
       Navigator.pop(context);
-
-      // Call the callback to add the post to the timeline
-      if (widget.onPostQuote != null) {
-        widget.onPostQuote!(_controller.text.trim());
-      }
-
       _showToast('Quote posted successfully!');
     }
   }

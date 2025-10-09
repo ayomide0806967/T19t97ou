@@ -1,16 +1,21 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
 import '../services/simple_auth_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/hexagon_avatar.dart';
 import '../widgets/tweet_shell.dart';
+import '../widgets/simple_comment_section.dart';
+import '../state/app_settings.dart';
+import '../services/data_service.dart';
 import 'profile_screen.dart';
 import 'explore_screen.dart';
 import 'chat_screen.dart';
 import 'quote_screen.dart';
 import 'compose_screen.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -21,7 +26,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  bool _darkMode = false;
+// Theme is now controlled globally via AppSettings; keeping local field removed.
   int _selectedBottomNavIndex = 0;
   List<_Post> _posts = List.from(_demoPosts);
 
@@ -73,13 +78,41 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final posts = _posts;
+final dataService = context.watch<DataService>();
+    final posts = dataService.posts
+        .map((p) => _Post(
+              author: p.author,
+              handle: p.handle,
+              timeAgo: p.timeAgo,
+              body: p.body,
+              replies: p.replies,
+              reposts: p.reposts,
+              likes: p.likes,
+              views: p.views,
+              bookmarks: p.bookmarks,
+              tags: p.tags,
+              quotedPost: p.quoted != null
+                  ? _Post(
+                      author: p.quoted!.author,
+                      handle: p.quoted!.handle,
+                      timeAgo: p.quoted!.timeAgo,
+                      body: p.quoted!.body,
+                      replies: 0,
+                      reposts: 0,
+                      likes: 0,
+                      views: 0,
+                      bookmarks: 0,
+                      tags: p.quoted!.tags,
+                    )
+                  : null,
+            ))
+        .toList();
     final initials = _initialsFrom(_authService.currentUserEmail);
 
     return Scaffold(
       key: _scaffoldKey,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
+appBar: AppBar(
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         elevation: 0,
         shadowColor: Colors.black.withValues(alpha: 0.05),
         leading: IconButton(
@@ -179,22 +212,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(height: 24),
                         RepaintBoundary(
-                          child: _ComposeCard(onTap: () {
+child: _ComposeCard(onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (context) => ComposeScreen(
-                          onPostCreated: (content, tags, media) {
-                            _addNewPost(
-                              type: 'Compose',
-                              comment: content,
-                              postTags: tags,
-                              postMedia: media,
-                            );
-                          },
-                        ),
+                        builder: (context) => const ComposeScreen(),
                       ),
                     );
-                  }),
+                  })
                         ),
                         const SizedBox(height: 32),
                       ],
@@ -216,15 +240,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Center(
                         child: ConstrainedBox(
                           constraints: const BoxConstraints(maxWidth: 720),
-                          child: _PostCard(
+child: _PostCard(
                             post: post,
-                            onQuoteCreated: (comment) {
-                              _addNewPost(
-                                type: 'Quote',
-                                originalPost: post,
-                                comment: comment,
-                              );
-                            },
                           ),
                         ),
                       ),
@@ -245,16 +262,7 @@ class _HomeScreenState extends State<HomeScreen> {
           onPressed: () {
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (context) => ComposeScreen(
-                  onPostCreated: (content, tags, media) {
-                    _addNewPost(
-                      type: 'Compose',
-                      comment: content,
-                      postTags: tags,
-                      postMedia: media,
-                    );
-                  },
-                ),
+builder: (context) => const ComposeScreen(),
               ),
             );
           },
@@ -271,82 +279,53 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildBottomNavigationBar() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
-            blurRadius: 40,
-            offset: const Offset(0, -4),
-          ),
-          BoxShadow(
-            color: Colors.white,
-            blurRadius: 0,
-            offset: const Offset(0, -1),
-            spreadRadius: 2,
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        child: BackdropFilter(
-          filter: ui.ImageFilter.blur(sigmaX: 40, sigmaY: 40),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.95),
-              border: Border(
-                top: BorderSide(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  width: 1,
-                ),
-              ),
+    final platform = Theme.of(context).platform;
+    final isMobile = platform == TargetPlatform.android || platform == TargetPlatform.iOS;
+
+    final barContent = SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _ModernBottomBarItem(
+              icon: Icons.home_outlined,
+              activeIcon: Icons.home_rounded,
+              label: 'Home',
+              isActive: _selectedBottomNavIndex == 0,
+              onTap: () {
+                setState(() {
+                  _selectedBottomNavIndex = 0;
+                });
+              },
+              isFirst: true,
             ),
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
+            _ModernBottomBarItem(
+              icon: Icons.explore_outlined,
+              activeIcon: Icons.explore,
+              label: 'Explore',
+              isActive: _selectedBottomNavIndex == 1,
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => const ExploreScreen()),
+                );
+              },
+            ),
+            _ModernBottomBarItem(
+              icon: Icons.add_circle_outline,
+              activeIcon: Icons.add_circle,
+              label: 'Create',
+              isActive: _selectedBottomNavIndex == 2,
+              onTap: () {
+                setState(() {
+                  _selectedBottomNavIndex = 2;
+                });
+              },
+              isCreate: true,
+            ),
                     _ModernBottomBarItem(
-                      icon: Icons.home_outlined,
-                      activeIcon: Icons.home_rounded,
-                      label: 'Home',
-                      isActive: _selectedBottomNavIndex == 0,
-                      onTap: () {
-                        setState(() {
-                          _selectedBottomNavIndex = 0;
-                        });
-                      },
-                      isFirst: true,
-                    ),
-                    _ModernBottomBarItem(
-                      icon: Icons.explore_outlined,
-                      activeIcon: Icons.explore,
-                      label: 'Explore',
-                      isActive: _selectedBottomNavIndex == 1,
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (context) => const ExploreScreen()),
-                        );
-                      },
-                    ),
-                    _ModernBottomBarItem(
-                      icon: Icons.add_circle_outline,
-                      activeIcon: Icons.add_circle,
-                      label: 'Create',
-                      isActive: _selectedBottomNavIndex == 2,
-                      onTap: () {
-                        setState(() {
-                          _selectedBottomNavIndex = 2;
-                        });
-                      },
-                      isCreate: true,
-                    ),
-                    _ModernBottomBarItem(
-                      icon: Icons.chat_bubble_outline_rounded,
-                      activeIcon: Icons.chat_bubble_rounded,
+                      icon: Icons.mark_chat_unread_outlined,
+                      activeIcon: Icons.mark_chat_unread_rounded,
                       label: 'Chat',
                       isActive: _selectedBottomNavIndex == 3,
                       onTap: () {
@@ -356,51 +335,95 @@ class _HomeScreenState extends State<HomeScreen> {
                       },
                       badge: '12',
                     ),
-                    _ModernBottomBarItem(
-                      icon: Icons.person_outline_rounded,
-                      activeIcon: Icons.person_rounded,
-                      label: 'Profile',
-                      isActive: _selectedBottomNavIndex == 4,
-                      onTap: () {
-                        setState(() {
-                          _selectedBottomNavIndex = 4;
-                        });
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (context) => const ProfileScreen()),
-                        );
-                      },
-                      isLast: true,
+            _ModernBottomBarItem(
+              icon: Icons.person_outline_rounded,
+              activeIcon: Icons.person_rounded,
+              label: 'Profile',
+              isActive: _selectedBottomNavIndex == 4,
+              onTap: () {
+                setState(() {
+                  _selectedBottomNavIndex = 4;
+                });
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                );
+              },
+              isLast: true,
+            ),
+          ],
+        ),
+      ),
+    );
+
+    return RepaintBoundary(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        child: Builder(builder: (context) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+
+          return Container(
+            decoration: BoxDecoration(
+              color: Colors.transparent,
+              borderRadius: const BorderRadius.all(Radius.circular(24)),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withOpacity(0.15)
+                    : Colors.black.withValues(alpha: 0.1),
+                width: 1,
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: const BorderRadius.all(Radius.circular(24)),
+              child: BackdropFilter(
+                filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.white.withOpacity(0.08)
+                        : Colors.white.withValues(alpha: 0.7),
+                    borderRadius: const BorderRadius.all(Radius.circular(24)),
+                    border: Border.all(
+                      color: isDark
+                          ? Colors.white.withOpacity(0.1)
+                          : Colors.white.withValues(alpha: 0.3),
+                      width: 1,
                     ),
-                  ],
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                      BoxShadow(
+                        color: isDark
+                            ? Colors.white.withOpacity(0.05)
+                            : Colors.white.withValues(alpha: 0.8),
+                        blurRadius: 0,
+                        offset: const Offset(0, -1),
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                  child: barContent,
                 ),
               ),
             ),
-          ),
-        ),
+          );
+        }),
       ),
     );
   }
 
   Widget _buildNavigationDrawer() {
     return Drawer(
-      backgroundColor: const Color(0xFFF8F9FA),
-      child: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFF8F9FA),
-              Color(0xFFF1F3F4),
-            ],
-          ),
-        ),
+      backgroundColor: Colors.white,
+      child: RepaintBoundary(
         child: SafeArea(
           child: Column(
             children: [
               const SizedBox(height: 20),
               _buildSearchBar(),
-              const SizedBox(height: 32),
+              const SizedBox(height: 16),
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -408,7 +431,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildNavigationItems(),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 24),
                       _buildSection('Your Pages', [
                         _NavigationItem(
                           icon: Icons.pages_outlined,
@@ -426,7 +449,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           color: const Color(0xFF9F7AEA),
                         ),
                       ]),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
                       _buildSection('Trending', [
                         _NavigationItem(
                           icon: Icons.tag_outlined,
@@ -444,7 +467,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           color: const Color(0xFF718096),
                         ),
                       ]),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
                       _buildSection('Events', [
                         _NavigationItem(
                           icon: Icons.event_outlined,
@@ -462,7 +485,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           color: const Color(0xFF718096),
                         ),
                       ]),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 24),
                     ],
                   ),
                 ),
@@ -481,19 +504,7 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-          BoxShadow(
-            color: Colors.white,
-            blurRadius: 0,
-            offset: const Offset(0, -1),
-            spreadRadius: 1,
-          ),
-        ],
+        boxShadow: const [],
       ),
       child: TextField(
         decoration: InputDecoration(
@@ -583,11 +594,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildUserProfileCard() {
     final initials = _initialsFrom(_authService.currentUserEmail);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppTheme.darkSurface : Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -596,7 +608,7 @@ class _HomeScreenState extends State<HomeScreen> {
             offset: const Offset(0, 4),
           ),
           BoxShadow(
-            color: Colors.white,
+            color: isDark ? AppTheme.darkSurface : Colors.white,
             blurRadius: 0,
             offset: const Offset(0, -2),
             spreadRadius: 1,
@@ -649,10 +661,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Alex Rivera',
                         style: TextStyle(
-                          color: Color(0xFF2D3748),
+                          color: isDark ? AppTheme.darkTextPrimary : const Color(0xFF2D3748),
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                         ),
@@ -660,8 +672,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 2),
                       Text(
                         '@productlead • ${_authService.currentUserEmail?.toLowerCase() ?? 'user@institution.edu'}',
-                        style: const TextStyle(
-                          color: Color(0xFF718096),
+                        style: TextStyle(
+                          color: isDark ? AppTheme.darkTextSecondary : const Color(0xFF718096),
                           fontSize: 12,
                         ),
                       ),
@@ -729,16 +741,13 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
-                  _buildDropdownItem(
-                    icon: _darkMode ? Icons.dark_mode : Icons.light_mode,
+_buildDropdownItem(
+                    icon: Theme.of(context).brightness == Brightness.dark ? Icons.dark_mode : Icons.light_mode,
                     title: 'Dark Mode',
                     trailing: Switch(
-                      value: _darkMode,
+                      value: Theme.of(context).brightness == Brightness.dark,
                       onChanged: (value) {
-                        setState(() {
-                          _darkMode = value;
-                        });
-                        Navigator.pop(context);
+                        context.read<AppSettings>().toggleDarkMode(value);
                       },
                       activeColor: const Color(0xFF4299E1),
                     ),
@@ -746,7 +755,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   _buildDropdownItem(
                     icon: Icons.settings_outlined,
                     title: 'Settings',
-                    onTap: () => Navigator.pop(context),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                      );
+                    },
                   ),
                   _buildDropdownItem(
                     icon: Icons.language_outlined,
@@ -887,7 +901,8 @@ class _ModernBottomBarItemState extends State<_ModernBottomBarItem>
   @override
   void didUpdateWidget(_ModernBottomBarItem oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.isActive != widget.isActive) {
+    // Only trigger animation if the active state actually changed
+    if (oldWidget.isActive != widget.isActive && _controller.status != AnimationStatus.forward && _controller.status != AnimationStatus.reverse) {
       if (widget.isActive) {
         _controller.forward();
       } else {
@@ -904,7 +919,10 @@ class _ModernBottomBarItemState extends State<_ModernBottomBarItem>
 
   @override
   Widget build(BuildContext context) {
-    final color = widget.isActive ? AppTheme.accent : const Color(0xFF64748B);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final inactive = isDark ? Colors.white.withValues(alpha: 0.6) : const Color(0xFF64748B);
+    final color = widget.isActive ? AppTheme.accent : inactive;
+    final borderColor = isDark ? Colors.black.withValues(alpha: 0.6) : Colors.white;
 
     return Expanded(
       child: GestureDetector(
@@ -960,41 +978,41 @@ class _ModernBottomBarItemState extends State<_ModernBottomBarItem>
                           ),
                           if (widget.badge != null && !widget.isCreate)
                             Positioned(
-                              right: widget.isCreate ? 2 : -2,
-                              top: widget.isCreate ? 2 : -2,
+                              right: widget.isCreate ? 2 : -4,
+                              top: widget.isCreate ? 2 : -6,
                               child: Container(
-                                constraints: const BoxConstraints(
-                                  minWidth: 18,
-                                  minHeight: 18,
-                                ),
-                                padding: const EdgeInsets.symmetric(horizontal: 5),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFEF4444),
-                                  borderRadius: BorderRadius.circular(9),
-                                  border: Border.all(
-                                    color: widget.isCreate ? Colors.black : Colors.white,
-                                    width: 2,
+                                  constraints: const BoxConstraints(
+                                    minWidth: 20,
+                                    minHeight: 20,
                                   ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.1),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 1),
+                                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.accent,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: borderColor,
+                                      width: 2,
                                     ),
-                                  ],
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    widget.badge!,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: -0.2,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.15),
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      widget.badge!,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: -0.2,
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
                             ),
                         ],
                       ),
@@ -1172,17 +1190,25 @@ class _ComposeCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(28),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-        decoration: BoxDecoration(
-          color: Colors.white,
+decoration: BoxDecoration(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white.withOpacity(0.06)
+              : Colors.white,
           borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: AppTheme.divider),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 28,
-              offset: const Offset(0, 12),
-            ),
-          ],
+          border: Border.all(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white.withOpacity(0.08)
+                : AppTheme.divider,
+          ),
+          boxShadow: Theme.of(context).brightness == Brightness.dark
+              ? const []
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 28,
+                    offset: const Offset(0, 12),
+                  ),
+                ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1276,7 +1302,7 @@ class _PostCardState extends State<_PostCard> {
     switch (type) {
       case _MetricType.reply:
         setState(() => replies += 1);
-        _showToast(context, 'Reply composer coming soon');
+        _showCommentBottomSheet();
         break;
       case _MetricType.rein:
         _showReinDropdown();
@@ -1392,6 +1418,100 @@ class _PostCardState extends State<_PostCard> {
     );
   }
 
+  void _showCommentBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.8,
+          ),
+          margin: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.15),
+                blurRadius: 30,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE2E8F0),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Expanded(
+                child: SimpleCommentSection(
+                  postAuthor: widget.post.author,
+                  postBody: widget.post.body,
+                  postTime: widget.post.timeAgo,
+                  comments: _getSimpleDemoComments(),
+                  onAddComment: (content) {
+                    Navigator.pop(context);
+                    _showToast(context, 'Reply posted successfully!');
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  
+  List<SimpleComment> _getSimpleDemoComments() {
+    return [
+      SimpleComment(
+        author: 'Sarah Johnson',
+        timeAgo: '2h',
+        body: 'This is exactly what our campus needs! Looking forward to seeing the impact on student innovation.',
+        avatarColors: [const Color(0xFF667EEA), const Color(0xFF764BA2)],
+        likes: 12,
+        isLiked: false,
+      ),
+      SimpleComment(
+        author: 'Mike Chen',
+        timeAgo: '1h',
+        body: 'Completely agree! The interdisciplinary approach will be game-changing.',
+        avatarColors: [const Color(0xFFF093FB), const Color(0xFFF5576C)],
+        likes: 3,
+        isLiked: true,
+      ),
+      SimpleComment(
+        author: 'Dr. Emily Watson',
+        timeAgo: '45m',
+        body: 'As a faculty member, I\'m excited about the collaboration opportunities this will create.',
+        avatarColors: [const Color(0xFF4FACFE), const Color(0xFF00F2FE)],
+        likes: 28,
+        isLiked: true,
+      ),
+      SimpleComment(
+        author: 'Alex Rivera',
+        timeAgo: '30m',
+        body: 'The timing is perfect for this initiative. Students have been asking for more collaborative spaces.',
+        avatarColors: [const Color(0xFFFA709A), const Color(0xFFFEE140)],
+        likes: 8,
+        isLiked: false,
+      ),
+    ];
+  }
+
   Widget _buildReinDropdownItem({
     required IconData icon,
     required String title,
@@ -1440,9 +1560,9 @@ class _PostCardState extends State<_PostCard> {
       _TweetMetricData(type: _MetricType.reply, icon: Icons.mode_comment_outlined, count: replies),
       _TweetMetricData(type: _MetricType.rein, icon: Icons.swap_vertical_circle, count: reposts, isActive: reposted),
       _TweetMetricData(type: _MetricType.like, icon: liked ? Icons.favorite : Icons.favorite_border, count: likes, isActive: liked),
-      _TweetMetricData(type: _MetricType.view, icon: Icons.bar_chart_rounded, count: views),
+      _TweetMetricData(type: _MetricType.view, icon: Icons.trending_up_rounded, count: views),
       _TweetMetricData(type: _MetricType.bookmark, icon: bookmarked ? Icons.bookmark : Icons.bookmark_border, count: bookmarks, isActive: bookmarked),
-      const _TweetMetricData(type: _MetricType.share, icon: Icons.open_in_new_outlined),
+      const _TweetMetricData(type: _MetricType.share, icon: Icons.send_rounded),
     ];
 
     return TweetShell(
@@ -1482,7 +1602,10 @@ class _PostCardState extends State<_PostCard> {
           if (widget.post.body.isNotEmpty)
             Text(
               widget.post.body,
-              style: theme.textTheme.bodyLarge?.copyWith(color: AppTheme.textPrimary, height: 1.6),
+              style: theme.textTheme.bodyLarge?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface,
+                height: 1.6,
+              ),
             ),
           if (widget.post.quotedPost != null) ...[
             const SizedBox(height: 16),
@@ -1500,12 +1623,24 @@ class _PostCardState extends State<_PostCard> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _TweetMetric(data: metrics[0], onTap: () => _handleAction(metrics[0].type)),
-              _TweetMetric(data: metrics[1], onTap: () => _handleAction(metrics[1].type)),
-              _TweetMetric(data: metrics[2], onTap: () => _handleAction(metrics[2].type)),
-              _TweetMetric(data: metrics[3], onTap: () => _handleAction(metrics[3].type)),
-              _TweetMetric(data: metrics[4], onTap: () => _handleAction(metrics[4].type)),
-              _TweetMetric(data: metrics[5], onTap: () => _handleAction(metrics[5].type)),
+              Expanded(
+                child: _TweetMetric(data: metrics[0], onTap: () => _handleAction(metrics[0].type)),
+              ),
+              Expanded(
+                child: _TweetMetric(data: metrics[1], onTap: () => _handleAction(metrics[1].type)),
+              ),
+              Expanded(
+                child: _TweetMetric(data: metrics[2], onTap: () => _handleAction(metrics[2].type)),
+              ),
+              Expanded(
+                child: _TweetMetric(data: metrics[3], onTap: () => _handleAction(metrics[3].type)),
+              ),
+              Expanded(
+                child: _TweetMetric(data: metrics[4], onTap: () => _handleAction(metrics[4].type)),
+              ),
+              Expanded(
+                child: _TweetMetric(data: metrics[5], onTap: () => _handleAction(metrics[5].type)),
+              ),
             ],
           ),
         ],
@@ -1639,19 +1774,7 @@ class _NavigationItem extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-          BoxShadow(
-            color: Colors.white,
-            blurRadius: 0,
-            offset: const Offset(0, -1),
-            spreadRadius: 1,
-          ),
-        ],
+        boxShadow: const [],
       ),
       child: Material(
         color: Colors.transparent,
@@ -1806,11 +1929,15 @@ class _QuoteCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(left: 16),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+decoration: BoxDecoration(
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.white.withOpacity(0.06)
+            : const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFFE2E8F0),
+border: Border.all(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white.withOpacity(0.08)
+              : const Color(0xFFE2E8F0),
           width: 1,
         ),
       ),
@@ -1886,7 +2013,7 @@ class _QuoteCard extends StatelessWidget {
               ? '${post.body.substring(0, 200)}...'
               : post.body,
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: const Color(0xFF475569),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.85),
               height: 1.5,
             ),
             maxLines: 6,

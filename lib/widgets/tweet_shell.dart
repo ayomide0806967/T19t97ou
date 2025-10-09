@@ -11,18 +11,28 @@ class TweetShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color bg = isDark
+        ? Colors.white.withOpacity(0.06)
+        : Colors.white;
+    final Color border = isDark
+        ? Colors.white.withOpacity(0.08)
+        : AppTheme.accent.withValues(alpha: 0.3);
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: bg,
         borderRadius: _radius,
-        border: Border.all(color: AppTheme.accent.withValues(alpha: 0.3)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 28,
-            offset: const Offset(0, 14),
-          ),
-        ],
+        border: Border.all(color: border),
+        boxShadow: isDark
+            ? const []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 28,
+                  offset: const Offset(0, 14),
+                ),
+              ],
       ),
       child: ClipRRect(
         borderRadius: _radius,
@@ -35,7 +45,7 @@ class TweetShell extends StatelessWidget {
                 width: 96,
                 height: 96,
                 decoration: BoxDecoration(
-                  color: AppTheme.accent.withValues(alpha: 0.12),
+                  color: AppTheme.accent.withValues(alpha: isDark ? 0.08 : 0.12),
                   borderRadius: const BorderRadius.only(
                     topRight: Radius.circular(28),
                     bottomLeft: Radius.circular(36),

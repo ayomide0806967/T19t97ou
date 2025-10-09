@@ -1,8 +1,13 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
 import '../widgets/hexagon_avatar.dart';
 import '../widgets/tweet_shell.dart';
+import 'home_screen.dart';
+import 'explore_screen.dart';
+import 'profile_screen.dart';
+import 'compose_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -157,6 +162,7 @@ class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateM
           },
         ),
       ),
+      bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
 
@@ -306,6 +312,344 @@ class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateM
         final chat = groupChats[index];
         return _ChatTile(chat: chat);
       },
+    );
+  }
+
+  Widget _buildBottomNavigationBar() {
+    final platform = Theme.of(context).platform;
+    final isMobile = platform == TargetPlatform.android || platform == TargetPlatform.iOS;
+
+    final barContent = SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _ModernBottomBarItem(
+              icon: Icons.home_outlined,
+              activeIcon: Icons.home_rounded,
+              label: 'Home',
+              isActive: false,
+              onTap: () {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => const HomeScreen()),
+                  (route) => false,
+                );
+              },
+              isFirst: true,
+            ),
+            _ModernBottomBarItem(
+              icon: Icons.explore_outlined,
+              activeIcon: Icons.explore,
+              label: 'Explore',
+              isActive: false,
+              onTap: () {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (context) => const ExploreScreen()),
+                );
+              },
+            ),
+            _ModernBottomBarItem(
+              icon: Icons.add_circle_outline,
+              activeIcon: Icons.add_circle,
+              label: 'Create',
+              isActive: false,
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => const ComposeScreen()),
+                );
+              },
+              isCreate: true,
+            ),
+            _ModernBottomBarItem(
+              icon: Icons.mark_chat_unread_outlined,
+              activeIcon: Icons.mark_chat_unread_rounded,
+              label: 'Chat',
+              isActive: true,
+              onTap: () {},
+              badge: '16',
+            ),
+            _ModernBottomBarItem(
+              icon: Icons.person_outline_rounded,
+              activeIcon: Icons.person_rounded,
+              label: 'Profile',
+              isActive: false,
+              onTap: () {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                );
+              },
+              isLast: true,
+            ),
+          ],
+        ),
+      ),
+    );
+
+    return RepaintBoundary(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        child: Builder(builder: (context) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+
+          return Container(
+            decoration: BoxDecoration(
+              color: Colors.transparent,
+              borderRadius: const BorderRadius.all(Radius.circular(24)),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withOpacity(0.15)
+                    : Colors.black.withValues(alpha: 0.1),
+                width: 1,
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: const BorderRadius.all(Radius.circular(24)),
+              child: BackdropFilter(
+                filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.white.withOpacity(0.08)
+                        : Colors.white.withValues(alpha: 0.7),
+                    borderRadius: const BorderRadius.all(Radius.circular(24)),
+                    border: Border.all(
+                      color: isDark
+                          ? Colors.white.withOpacity(0.1)
+                          : Colors.white.withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                      BoxShadow(
+                        color: isDark
+                            ? Colors.white.withOpacity(0.05)
+                            : Colors.white.withValues(alpha: 0.8),
+                        blurRadius: 0,
+                        offset: const Offset(0, -1),
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                  child: barContent,
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+}
+
+class _ModernBottomBarItem extends StatefulWidget {
+  const _ModernBottomBarItem({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+    this.badge,
+    this.isFirst = false,
+    this.isLast = false,
+    this.isCreate = false,
+  });
+
+  final IconData icon;
+  final IconData activeIcon;
+  final String label;
+  final bool isActive;
+  final VoidCallback onTap;
+  final String? badge;
+  final bool isFirst;
+  final bool isLast;
+  final bool isCreate;
+
+  @override
+  State<_ModernBottomBarItem> createState() => _ModernBottomBarItemState();
+}
+
+class _ModernBottomBarItemState extends State<_ModernBottomBarItem>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<Color?> _colorAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    );
+
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.1,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+    ));
+
+    _colorAnimation = ColorTween(
+      begin: Colors.transparent,
+      end: AppTheme.accent.withValues(alpha: 0.1),
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+    ));
+
+    if (widget.isActive) {
+      _controller.value = 1.0;
+    }
+  }
+
+  @override
+  void didUpdateWidget(_ModernBottomBarItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isActive != widget.isActive) {
+      if (widget.isActive) {
+        _controller.forward();
+      } else {
+        _controller.reverse();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final inactive = isDark ? Colors.white.withOpacity(0.6) : const Color(0xFF64748B);
+    final color = widget.isActive ? AppTheme.accent : inactive;
+
+    return Expanded(
+      child: GestureDetector(
+          onTap: widget.onTap,
+          child: Container(
+            margin: EdgeInsets.symmetric(
+              horizontal: widget.isFirst || widget.isLast ? 8 : 4,
+              vertical: 4,
+            ),
+            child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: widget.isCreate ? 56 : 48,
+                height: widget.isCreate ? 56 : 48,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(widget.isCreate ? 16 : 14),
+                  color: widget.isCreate
+                    ? Colors.black
+                    : _colorAnimation.value,
+                  border: widget.isCreate
+                    ? Border.all(color: Colors.black, width: 2)
+                    : null,
+                  boxShadow: [
+                    if (widget.isActive && !widget.isCreate)
+                      BoxShadow(
+                        color: AppTheme.accent.withValues(alpha: 0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    if (widget.isCreate)
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.2),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                  ],
+                ),
+                child: AnimatedBuilder(
+                  animation: _scaleAnimation,
+                  builder: (context, child) {
+                    return Transform.scale(
+                      scale: widget.isCreate ? 1.0 : _scaleAnimation.value,
+                      child: Stack(
+                        children: [
+                          Center(
+                            child: Icon(
+                              widget.isActive ? widget.activeIcon : widget.icon,
+                              color: widget.isCreate ? Colors.white : color,
+                              size: widget.isCreate ? 28 : 24,
+                              weight: widget.isCreate ? 700 : 400,
+                            ),
+                          ),
+                          if (widget.badge != null && !widget.isCreate)
+                            Positioned(
+                              right: widget.isCreate ? 2 : -4,
+                              top: widget.isCreate ? 2 : -6,
+                              child: Builder(builder: (context) {
+                                final isDark = Theme.of(context).brightness == Brightness.dark;
+                                final bg = AppTheme.accent;
+                                final borderColor = isDark ? Colors.black.withOpacity(0.6) : Colors.white;
+                                return Container(
+                                  constraints: const BoxConstraints(
+                                    minWidth: 20,
+                                    minHeight: 20,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                                  decoration: BoxDecoration(
+                                    color: bg,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: borderColor,
+                                      width: 2,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(isDark ? 0.35 : 0.15),
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      widget.badge!,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: -0.2,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              if (!widget.isCreate) ...[
+                const SizedBox(height: 6),
+                AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 200),
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 11,
+                    fontWeight: widget.isActive ? FontWeight.w700 : FontWeight.w500,
+                    letterSpacing: widget.isActive ? 0.2 : 0.1,
+                  ),
+                  child: Text(widget.label),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

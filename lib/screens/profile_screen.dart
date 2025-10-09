@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../services/simple_auth_service.dart';
+import '../services/data_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/hexagon_avatar.dart';
 import '../widgets/tweet_shell.dart';
@@ -19,7 +21,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final posts = _profilePosts;
+    final dataService = context.watch<DataService>();
+    final posts = dataService.posts
+        .where((p) => p.author == 'You' || p.handle == '@yourprofile')
+        .map((p) => _ProfilePost(
+              author: p.author,
+              meta: '${p.handle} • ${p.timeAgo}',
+              body: p.body,
+              tags: p.tags,
+              replies: p.replies,
+              reposts: p.reposts,
+              likes: p.likes,
+              views: p.views,
+              bookmarks: p.bookmarks,
+            ))
+        .toList();
 
     void showToast(String message) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -61,12 +77,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     },
                   ),
                   const SizedBox(height: 24),
-                  ...posts.map(
-                    (post) => Padding(
-                      padding: const EdgeInsets.only(bottom: 24),
-                      child: _ProfilePostCard(post: post),
+                  if (posts.isEmpty) ...[
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 48),
+                        child: Text(
+                          "You haven't posted yet.",
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                      ),
                     ),
-                  ),
+                  ] else ...[
+                    ...posts.map(
+                      (post) => Padding(
+                        padding: const EdgeInsets.only(bottom: 24),
+                        child: _ProfilePostCard(post: post),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -460,7 +488,10 @@ class _ProfilePostCardState extends State<_ProfilePostCard> {
           const SizedBox(height: 20),
           Text(
             widget.post.body,
-            style: theme.textTheme.bodyLarge?.copyWith(color: AppTheme.textPrimary, height: 1.6),
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: Theme.of(context).colorScheme.onSurface,
+              height: 1.6,
+            ),
           ),
           if (widget.post.tags.isNotEmpty) ...[
             const SizedBox(height: 20),
@@ -615,44 +646,8 @@ class _ProfilePost {
   final List<String> tags;
 }
 
-const List<_ProfilePost> _profilePosts = [
-  _ProfilePost(
-    author: 'DesignOps',
-    meta: 'Shared • 3h ago',
-    body:
-        'Kicked off our typography study group today. Loved seeing fellow students collaborate on creating scalable design systems for their labs.',
-    tags: ['Design Systems', 'Workshops'],
-    replies: 24,
-    reposts: 18,
-    likes: 204,
-    views: 15200,
-    bookmarks: 31,
-  ),
-  _ProfilePost(
-    author: 'Campus Labs',
-    meta: 'Featured • 1d ago',
-    body:
-        'Alex led the beta launch of the Research Atlas. Minimal interface, streamlined filters, and context-aware bookmarking built entirely in Flutter.',
-    tags: ['Product Launch', 'Research'],
-    replies: 38,
-    reposts: 22,
-    likes: 420,
-    views: 20100,
-    bookmarks: 46,
-  ),
-  _ProfilePost(
-    author: 'IN-Institution',
-    meta: 'Mentioned • 2d ago',
-    body:
-        'Sharing gratitude for Alex and the team for crafting a calmer, more intentional social platform. The typography-forward approach resonates across campus.',
-    tags: ['Community', 'Impact'],
-    replies: 19,
-    reposts: 14,
-    likes: 312,
-    views: 17800,
-    bookmarks: 27,
-  ),
-];
+// Note: profile posts now loaded from DataService; seed constant removed.
+const List<_ProfilePost> _profilePosts = const [];
 
 String _initialsFrom(String value) {
   final letters = value.replaceAll(RegExp('[^A-Za-z]'), '');

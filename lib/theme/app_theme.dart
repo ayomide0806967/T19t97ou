@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 class AppTheme {
   AppTheme._();
 
+  // Light palette
   static const Color background = Color(0xFFFFFFFF);
   static const Color surface = Color(0xFFF7F8FA);
   static const Color divider = Color(0xFFE5E7EB);
@@ -14,11 +15,20 @@ class AppTheme {
   static const Color buttonSecondary = Color(0xFFF3F4F6);
   static const Color accent = Color(0xFF06B6D4);
 
+  // Dark palette
+  static const Color darkBackground = Color(0xFF0B0F14);
+  static const Color darkSurface = Color(0xFF10161B);
+  static const Color darkDivider = Color(0xFF1F2A33);
+  static const Color darkTextPrimary = Color(0xFFE5E7EB);
+  static const Color darkTextSecondary = Color(0xFF9CA3AF);
+  static const Color darkTextTertiary = Color(0xFF6B7280);
+
   static final RoundedRectangleBorder pillShape = RoundedRectangleBorder(
     borderRadius: BorderRadius.circular(999),
   );
 
   static ThemeData lightTheme = _buildLightTheme();
+  static ThemeData darkTheme = _buildDarkTheme();
 
   static ThemeData _buildLightTheme() {
     final baseColorScheme = ColorScheme.fromSeed(
@@ -148,6 +158,137 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
       ),
       dividerColor: divider,
+    );
+  }
+
+  static ThemeData _buildDarkTheme() {
+    final baseColorScheme = ColorScheme.fromSeed(
+      seedColor: accent,
+      brightness: Brightness.dark,
+    );
+
+    final base = ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      scaffoldBackgroundColor: darkBackground,
+      colorScheme: baseColorScheme.copyWith(
+        surface: darkSurface,
+        onSurface: darkTextPrimary,
+        primary: accent,
+        secondary: accent,
+        tertiary: accent,
+        onPrimary: Colors.white,
+      ),
+      textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
+    );
+
+    final headline = GoogleFonts.spaceGrotesk(
+      fontWeight: FontWeight.w700,
+      color: darkTextPrimary,
+    );
+
+    final body = GoogleFonts.inter(
+      color: darkTextSecondary,
+      height: 1.5,
+    );
+
+    return base.copyWith(
+      appBarTheme: AppBarTheme(
+        backgroundColor: darkBackground,
+        elevation: 0,
+        titleTextStyle: headline.copyWith(fontSize: 24),
+        surfaceTintColor: Colors.transparent,
+      ),
+      textTheme: base.textTheme.copyWith(
+        headlineLarge: headline.copyWith(fontSize: 44, letterSpacing: -1.2),
+        headlineMedium: headline.copyWith(fontSize: 32, letterSpacing: -0.5),
+        headlineSmall: headline.copyWith(fontSize: 24),
+        bodyLarge: body.copyWith(fontSize: 16, color: darkTextSecondary),
+        bodyMedium: body.copyWith(fontSize: 14, color: darkTextSecondary),
+        bodySmall: body.copyWith(fontSize: 13, color: darkTextTertiary),
+        labelLarge: GoogleFonts.inter(
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+          color: darkTextPrimary,
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: darkBackground,
+        hintStyle: GoogleFonts.inter(color: darkTextTertiary),
+        labelStyle: GoogleFonts.inter(color: darkTextSecondary),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(999),
+          borderSide: const BorderSide(color: darkDivider),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(999),
+          borderSide: const BorderSide(color: darkDivider),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(999),
+          borderSide: const BorderSide(color: accent, width: 1.5),
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          elevation: 0,
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
+          shape: pillShape,
+          textStyle: GoogleFonts.inter(
+            fontWeight: FontWeight.w600,
+            fontSize: 15,
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          elevation: 0,
+          backgroundColor: darkSurface,
+          foregroundColor: darkTextPrimary,
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
+          shape: pillShape,
+          side: const BorderSide(color: darkDivider),
+          textStyle: GoogleFonts.inter(
+            fontWeight: FontWeight.w600,
+            fontSize: 15,
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: darkTextPrimary,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          textStyle: GoogleFonts.inter(
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+          ),
+        ),
+      ),
+      chipTheme: base.chipTheme.copyWith(
+        backgroundColor: accent.withValues(alpha: 0.18),
+        labelStyle: GoogleFonts.inter(
+          fontWeight: FontWeight.w500,
+          fontSize: 13,
+          color: accent,
+        ),
+        shape: const StadiumBorder(),
+        side: BorderSide.none,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      ),
+      cardTheme: CardThemeData(
+        color: darkSurface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(28),
+        ),
+        margin: EdgeInsets.zero,
+        surfaceTintColor: Colors.transparent,
+      ),
+      dividerColor: darkDivider,
     );
   }
 }

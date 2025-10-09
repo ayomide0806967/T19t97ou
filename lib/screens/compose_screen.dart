@@ -3,7 +3,11 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/hexagon_avatar.dart';
 import '../widgets/tweet_shell.dart';
+import '../widgets/tagged_text_input.dart';
 import 'home_screen.dart';
+import 'package:provider/provider.dart';
+import '../services/data_service.dart';
+import '../services/simple_auth_service.dart';
 
 class ComposeScreen extends StatefulWidget {
   const ComposeScreen({super.key, this.onPostCreated});
@@ -32,8 +36,8 @@ class _ComposeScreenState extends State<ComposeScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
+appBar: AppBar(
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.close, color: Color(0xFF64748B)),
@@ -107,23 +111,10 @@ class _ComposeScreenState extends State<ComposeScreen> {
                   // Content input field
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: TextField(
+                    child: TaggedTextInput(
                     controller: _controller,
                     maxLines: null,
-                    autofocus: true,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: const Color(0xFF1E293B),
-                      height: 1.4,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: 'What\'s happening at the institution?',
-                      hintStyle: TextStyle(
-                        color: const Color(0xFF94A3B8),
-                        fontSize: 18,
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
-                    ),
+                    hintText: 'What\'s happening at the institution?',
                     onChanged: (_) => setState(() {}),
                     ),
                   ),
@@ -393,17 +384,17 @@ class _ComposeScreenState extends State<ComposeScreen> {
     await Future.delayed(const Duration(seconds: 1));
 
     if (mounted) {
+      // Add to global feed
+      final auth = SimpleAuthService();
+      final email = auth.currentUserEmail ?? 'your@institution.edu';
+      await context.read<DataService>().addPost(
+        author: 'You',
+        handle: '@yourprofile',
+        body: _controller.text.trim(),
+        tags: List.of(_selectedTags),
+      );
+
       Navigator.pop(context);
-
-      // Call the callback to add the post to the timeline
-      if (widget.onPostCreated != null) {
-        widget.onPostCreated!(
-          _controller.text.trim(),
-          _selectedTags,
-          _selectedMedia,
-        );
-      }
-
       _showToast('Post published successfully!');
     }
   }
