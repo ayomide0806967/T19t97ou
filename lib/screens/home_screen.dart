@@ -9,6 +9,7 @@ import '../state/app_settings.dart';
 import '../theme/app_theme.dart';
 import '../widgets/hexagon_avatar.dart';
 import '../widgets/tweet_post_card.dart';
+import 'thread_screen.dart';
 import 'chat_screen.dart';
 import 'compose_screen.dart';
 import 'explore_screen.dart';
@@ -24,7 +25,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-// Theme is now controlled globally via AppSettings; keeping local field removed.
+  // Theme is now controlled globally via AppSettings; keeping local field removed.
   int _selectedBottomNavIndex = 0;
 
   SimpleAuthService get _authService => SimpleAuthService();
@@ -33,7 +34,11 @@ class _HomeScreenState extends State<HomeScreen> {
     if (email == null || email.isEmpty) {
       return '@yourprofile';
     }
-    final normalized = email.split('@').first.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '').toLowerCase();
+    final normalized = email
+        .split('@')
+        .first
+        .replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '')
+        .toLowerCase();
     if (normalized.isEmpty) {
       return '@yourprofile';
     }
@@ -79,15 +84,14 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: HexagonAvatar(
                 size: 40,
                 child: Center(
-                  child: Text(
-                    initials,
-                    style: theme.textTheme.labelLarge,
-                  ),
+                  child: Text(initials, style: theme.textTheme.labelLarge),
                 ),
               ),
               onPressed: () {
                 Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const ProfileScreen(),
+                  ),
                 );
               },
             ),
@@ -104,15 +108,16 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      drawer: RepaintBoundary(
-        child: _buildNavigationDrawer(),
-      ),
+      drawer: RepaintBoundary(child: _buildNavigationDrawer()),
       body: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
             child: SafeArea(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 32,
+                ),
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 720),
@@ -170,29 +175,26 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final post = posts[index];
-                return RepaintBoundary(
+            delegate: SliverChildBuilderDelegate((context, index) {
+              final post = posts[index];
+              return RepaintBoundary(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 24),
                   child: Padding(
-                    padding: const EdgeInsets.only(bottom: 24),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 720),
-                          child: _PostCard(
-                            post: post,
-                            currentUserHandle: currentUserHandle,
-                          ),
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 720),
+                        child: _PostCard(
+                          post: post,
+                          currentUserHandle: currentUserHandle,
                         ),
                       ),
                     ),
                   ),
-                );
-              },
-              childCount: posts.length,
-            ),
+                ),
+              );
+            }, childCount: posts.length),
           ),
           const SliverToBoxAdapter(
             child: SizedBox(height: 100), // Extra padding at bottom
@@ -203,9 +205,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: FloatingActionButton.extended(
           onPressed: () {
             Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const ComposeScreen(),
-              ),
+              MaterialPageRoute(builder: (context) => const ComposeScreen()),
             );
           },
           label: const Text('Compose'),
@@ -246,7 +246,9 @@ class _HomeScreenState extends State<HomeScreen> {
               isActive: _selectedBottomNavIndex == 1,
               onTap: () {
                 Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => const ExploreScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const ExploreScreen(),
+                  ),
                 );
               },
             ),
@@ -262,18 +264,18 @@ class _HomeScreenState extends State<HomeScreen> {
               },
               isCreate: true,
             ),
-                    _ModernBottomBarItem(
-                      icon: Icons.mark_chat_unread_outlined,
-                      activeIcon: Icons.mark_chat_unread_rounded,
-                      label: 'Chat',
-                      isActive: _selectedBottomNavIndex == 3,
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (context) => const ChatScreen()),
-                        );
-                      },
-                      badge: '12',
-                    ),
+            _ModernBottomBarItem(
+              icon: Icons.mark_chat_unread_outlined,
+              activeIcon: Icons.mark_chat_unread_rounded,
+              label: 'Chat',
+              isActive: _selectedBottomNavIndex == 3,
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => const ChatScreen()),
+                );
+              },
+              badge: '12',
+            ),
             _ModernBottomBarItem(
               icon: Icons.person_outline_rounded,
               activeIcon: Icons.person_rounded,
@@ -284,7 +286,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   _selectedBottomNavIndex = 4;
                 });
                 Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const ProfileScreen(),
+                  ),
                 );
               },
               isLast: true,
@@ -297,58 +301,60 @@ class _HomeScreenState extends State<HomeScreen> {
     return RepaintBoundary(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-        child: Builder(builder: (context) {
-          final isDark = Theme.of(context).brightness == Brightness.dark;
+        child: Builder(
+          builder: (context) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
 
-          return Container(
-            decoration: BoxDecoration(
-              color: Colors.transparent,
-              borderRadius: const BorderRadius.all(Radius.circular(24)),
-              border: Border.all(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.15)
-                    : Colors.black.withValues(alpha: 0.1),
-                width: 1,
-              ),
-            ),
-            child: ClipRRect(
-              borderRadius: const BorderRadius.all(Radius.circular(24)),
-              child: BackdropFilter(
-                filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.08)
-                        : Colors.white.withValues(alpha: 0.7),
-                    borderRadius: const BorderRadius.all(Radius.circular(24)),
-                    border: Border.all(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.1)
-                          : Colors.white.withValues(alpha: 0.3),
-                      width: 1,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 20,
-                        offset: const Offset(0, 8),
-                      ),
-                      BoxShadow(
-                        color: isDark
-                            ? Colors.white.withValues(alpha: 0.05)
-                            : Colors.white.withValues(alpha: 0.8),
-                        blurRadius: 0,
-                        offset: const Offset(0, -1),
-                        spreadRadius: 1,
-                      ),
-                    ],
-                  ),
-                  child: barContent,
+            return Container(
+              decoration: BoxDecoration(
+                color: Colors.transparent,
+                borderRadius: const BorderRadius.all(Radius.circular(24)),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.15)
+                      : Colors.black.withValues(alpha: 0.1),
+                  width: 1,
                 ),
               ),
-            ),
-          );
-        }),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.all(Radius.circular(24)),
+                child: BackdropFilter(
+                  filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.08)
+                          : Colors.white.withValues(alpha: 0.7),
+                      borderRadius: const BorderRadius.all(Radius.circular(24)),
+                      border: Border.all(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.1)
+                            : Colors.white.withValues(alpha: 0.3),
+                        width: 1,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                        BoxShadow(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.05)
+                              : Colors.white.withValues(alpha: 0.8),
+                          blurRadius: 0,
+                          offset: const Offset(0, -1),
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                    child: barContent,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -448,10 +454,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: TextField(
         decoration: InputDecoration(
           hintText: 'Search posts, people, tags...',
-          hintStyle: const TextStyle(
-            color: Color(0xFFA0AEC0),
-            fontSize: 16,
-          ),
+          hintStyle: const TextStyle(color: Color(0xFFA0AEC0), fontSize: 16),
           prefixIcon: const Icon(
             Icons.search,
             color: Color(0xFFA0AEC0),
@@ -523,10 +526,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
-        ...items.map((item) => Padding(
-          padding: const EdgeInsets.only(bottom: 4),
-          child: item,
-        )),
+        ...items.map(
+          (item) =>
+              Padding(padding: const EdgeInsets.only(bottom: 4), child: item),
+        ),
       ],
     );
   }
@@ -571,10 +574,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     gradient: const LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [
-                        Color(0xFF667EEA),
-                        Color(0xFF764BA2),
-                      ],
+                      colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
                     ),
                     boxShadow: [
                       BoxShadow(
@@ -603,7 +603,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       Text(
                         'Alex Rivera',
                         style: TextStyle(
-                          color: isDark ? AppTheme.darkTextPrimary : const Color(0xFF2D3748),
+                          color: isDark
+                              ? AppTheme.darkTextPrimary
+                              : const Color(0xFF2D3748),
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                         ),
@@ -612,7 +614,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       Text(
                         '@productlead • ${_authService.currentUserEmail?.toLowerCase() ?? 'user@institution.edu'}',
                         style: TextStyle(
-                          color: isDark ? AppTheme.darkTextSecondary : const Color(0xFF718096),
+                          color: isDark
+                              ? AppTheme.darkTextSecondary
+                              : const Color(0xFF718096),
                           fontSize: 12,
                         ),
                       ),
@@ -680,15 +684,19 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
-_buildDropdownItem(
-                    icon: Theme.of(context).brightness == Brightness.dark ? Icons.dark_mode : Icons.light_mode,
+                  _buildDropdownItem(
+                    icon: Theme.of(context).brightness == Brightness.dark
+                        ? Icons.dark_mode
+                        : Icons.light_mode,
                     title: 'Dark Mode',
                     trailing: Switch(
                       value: Theme.of(context).brightness == Brightness.dark,
                       onChanged: (value) {
                         context.read<AppSettings>().toggleDarkMode(value);
                       },
-                      activeTrackColor: const Color(0xFF4299E1).withValues(alpha: 0.5),
+                      activeTrackColor: const Color(
+                        0xFF4299E1,
+                      ).withValues(alpha: 0.5),
                       activeThumbColor: const Color(0xFF4299E1),
                     ),
                   ),
@@ -698,7 +706,9 @@ _buildDropdownItem(
                     onTap: () {
                       Navigator.pop(context);
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                        MaterialPageRoute(
+                          builder: (context) => const SettingsScreen(),
+                        ),
                       );
                     },
                   ),
@@ -751,11 +761,7 @@ _buildDropdownItem(
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
           child: Row(
             children: [
-              Icon(
-                icon,
-                color: itemColor,
-                size: 20,
-              ),
+              Icon(icon, color: itemColor, size: 20),
               const SizedBox(width: 16),
               Expanded(
                 child: Text(
@@ -820,18 +826,12 @@ class _ModernBottomBarItemState extends State<_ModernBottomBarItem>
     _scaleAnimation = Tween<double>(
       begin: 1.0,
       end: 1.1,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOut,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
     _colorAnimation = ColorTween(
       begin: Colors.transparent,
       end: AppTheme.accent.withValues(alpha: 0.1),
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOut,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
     if (widget.isActive) {
       _controller.value = 1.0;
@@ -842,7 +842,9 @@ class _ModernBottomBarItemState extends State<_ModernBottomBarItem>
   void didUpdateWidget(_ModernBottomBarItem oldWidget) {
     super.didUpdateWidget(oldWidget);
     // Only trigger animation if the active state actually changed
-    if (oldWidget.isActive != widget.isActive && _controller.status != AnimationStatus.forward && _controller.status != AnimationStatus.reverse) {
+    if (oldWidget.isActive != widget.isActive &&
+        _controller.status != AnimationStatus.forward &&
+        _controller.status != AnimationStatus.reverse) {
       if (widget.isActive) {
         _controller.forward();
       } else {
@@ -860,32 +862,36 @@ class _ModernBottomBarItemState extends State<_ModernBottomBarItem>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final inactive = isDark ? Colors.white.withValues(alpha: 0.6) : const Color(0xFF64748B);
+    final inactive = isDark
+        ? Colors.white.withValues(alpha: 0.6)
+        : const Color(0xFF64748B);
     final color = widget.isActive ? AppTheme.accent : inactive;
-    final borderColor = isDark ? Colors.black.withValues(alpha: 0.6) : Colors.white;
+    final borderColor = isDark
+        ? Colors.black.withValues(alpha: 0.6)
+        : Colors.white;
 
     return Expanded(
       child: GestureDetector(
-          onTap: widget.onTap,
-          child: Container(
-            margin: EdgeInsets.symmetric(
-              horizontal: widget.isFirst || widget.isLast ? 8 : 4,
-              vertical: 4,
-            ),
-            child: Column(
+        onTap: widget.onTap,
+        child: Container(
+          margin: EdgeInsets.symmetric(
+            horizontal: widget.isFirst || widget.isLast ? 8 : 4,
+            vertical: 4,
+          ),
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 width: widget.isCreate ? 56 : 48,
                 height: widget.isCreate ? 56 : 48,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(widget.isCreate ? 16 : 14),
-                  color: widget.isCreate
-                    ? Colors.black
-                    : _colorAnimation.value,
+                  borderRadius: BorderRadius.circular(
+                    widget.isCreate ? 16 : 14,
+                  ),
+                  color: widget.isCreate ? Colors.black : _colorAnimation.value,
                   border: widget.isCreate
-                    ? Border.all(color: Colors.black, width: 2)
-                    : null,
+                      ? Border.all(color: Colors.black, width: 2)
+                      : null,
                   boxShadow: [
                     if (widget.isActive && !widget.isCreate)
                       BoxShadow(
@@ -921,38 +927,42 @@ class _ModernBottomBarItemState extends State<_ModernBottomBarItem>
                               right: widget.isCreate ? 2 : -4,
                               top: widget.isCreate ? 2 : -6,
                               child: Container(
-                                  constraints: const BoxConstraints(
-                                    minWidth: 20,
-                                    minHeight: 20,
+                                constraints: const BoxConstraints(
+                                  minWidth: 20,
+                                  minHeight: 20,
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.accent,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: borderColor,
+                                    width: 2,
                                   ),
-                                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                                  decoration: BoxDecoration(
-                                    color: AppTheme.accent,
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                      color: borderColor,
-                                      width: 2,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(
+                                        alpha: isDark ? 0.35 : 0.15,
+                                      ),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
                                     ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.15),
-                                        blurRadius: 6,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      widget.badge!,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing: -0.2,
-                                      ),
+                                  ],
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    widget.badge!,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: -0.2,
                                     ),
                                   ),
                                 ),
+                              ),
                             ),
                         ],
                       ),
@@ -967,7 +977,9 @@ class _ModernBottomBarItemState extends State<_ModernBottomBarItem>
                   style: TextStyle(
                     color: color,
                     fontSize: 11,
-                    fontWeight: widget.isActive ? FontWeight.w700 : FontWeight.w500,
+                    fontWeight: widget.isActive
+                        ? FontWeight.w700
+                        : FontWeight.w500,
                     letterSpacing: widget.isActive ? 0.2 : 0.1,
                   ),
                   child: Text(widget.label),
@@ -1026,20 +1038,20 @@ class _StoryRail extends StatelessWidget {
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                           colors: story.label == 'You'
-                            ? [
-                                AppTheme.accent.withValues(alpha: 0.8),
-                                AppTheme.accent.withValues(alpha: 0.6),
-                              ]
-                            : [
-                                const Color(0xFFF8FAFC),
-                                const Color(0xFFF1F5F9),
-                              ],
+                              ? [
+                                  AppTheme.accent.withValues(alpha: 0.8),
+                                  AppTheme.accent.withValues(alpha: 0.6),
+                                ]
+                              : [
+                                  const Color(0xFFF8FAFC),
+                                  const Color(0xFFF1F5F9),
+                                ],
                         ),
                         boxShadow: [
                           BoxShadow(
                             color: story.label == 'You'
-                              ? AppTheme.accent.withValues(alpha: 0.3)
-                              : Colors.black.withValues(alpha: 0.05),
+                                ? AppTheme.accent.withValues(alpha: 0.3)
+                                : Colors.black.withValues(alpha: 0.05),
                             blurRadius: story.label == 'You' ? 12 : 6,
                             offset: const Offset(0, 4),
                           ),
@@ -1050,16 +1062,16 @@ class _StoryRail extends StatelessWidget {
                           HexagonAvatar(
                             size: 76,
                             backgroundColor: story.label == 'You'
-                              ? Colors.transparent
-                              : AppTheme.surface,
+                                ? Colors.transparent
+                                : AppTheme.surface,
                             child: Center(
                               child: Text(
                                 story.initials,
                                 style: theme.textTheme.labelLarge?.copyWith(
                                   fontWeight: FontWeight.w700,
                                   color: story.label == 'You'
-                                    ? Colors.white
-                                    : AppTheme.textPrimary,
+                                      ? Colors.white
+                                      : AppTheme.textPrimary,
                                 ),
                               ),
                             ),
@@ -1074,7 +1086,10 @@ class _StoryRail extends StatelessWidget {
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: AppTheme.accent, width: 2),
+                                  border: Border.all(
+                                    color: AppTheme.accent,
+                                    width: 2,
+                                  ),
                                 ),
                                 child: const Icon(
                                   Icons.add_rounded,
@@ -1093,11 +1108,11 @@ class _StoryRail extends StatelessWidget {
                           story.label,
                           style: theme.textTheme.bodySmall?.copyWith(
                             fontWeight: story.label == 'You'
-                              ? FontWeight.w600
-                              : FontWeight.w500,
+                                ? FontWeight.w600
+                                : FontWeight.w500,
                             color: story.label == 'You'
-                              ? AppTheme.accent
-                              : AppTheme.textSecondary,
+                                ? AppTheme.accent
+                                : AppTheme.textSecondary,
                           ),
                           textAlign: TextAlign.center,
                           maxLines: 2,
@@ -1166,7 +1181,11 @@ class _ComposeCard extends StatelessWidget {
                     style: theme.textTheme.bodyLarge,
                   ),
                 ),
-                const Icon(Icons.arrow_forward_ios_rounded, size: 18, color: AppTheme.textTertiary),
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 18,
+                  color: AppTheme.textTertiary,
+                ),
               ],
             ),
             const SizedBox(height: 18),
@@ -1176,7 +1195,10 @@ class _ComposeCard extends StatelessWidget {
                 SizedBox(width: 18),
                 _ComposerTool(icon: Icons.bar_chart_outlined, label: 'Poll'),
                 SizedBox(width: 18),
-                _ComposerTool(icon: Icons.calendar_month_outlined, label: 'Event'),
+                _ComposerTool(
+                  icon: Icons.calendar_month_outlined,
+                  label: 'Event',
+                ),
               ],
             ),
           ],
@@ -1213,9 +1235,20 @@ class _PostCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dataService = context.read<DataService>();
+
     return TweetPostCard(
       post: post,
       currentUserHandle: currentUserHandle,
+      onTap: () {
+        final thread = dataService.buildThreadForPost(post.id);
+        Navigator.of(context).push(
+          ThreadScreen.route(
+            entry: thread,
+            currentUserHandle: currentUserHandle,
+          ),
+        );
+      },
     );
   }
 }
@@ -1232,13 +1265,17 @@ class _PillTag extends StatelessWidget {
     final background = isDark
         ? Colors.white.withValues(alpha: 0.08)
         : const Color(0xFFF1F5F9);
-    final textColor = isDark ? Colors.white.withValues(alpha: 0.72) : const Color(0xFF4B5563);
+    final textColor = isDark
+        ? Colors.white.withValues(alpha: 0.72)
+        : const Color(0xFF4B5563);
 
     return Chip(
       label: Text(label),
-      labelStyle: theme.textTheme
-          .bodyMedium
-          ?.copyWith(color: textColor, fontWeight: FontWeight.w600, fontSize: 11),
+      labelStyle: theme.textTheme.bodyMedium?.copyWith(
+        color: textColor,
+        fontWeight: FontWeight.w600,
+        fontSize: 11,
+      ),
       backgroundColor: background,
       shape: const StadiumBorder(),
       side: BorderSide.none,
@@ -1277,11 +1314,7 @@ class _NavigationItem extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
               children: [
-                Icon(
-                  icon,
-                  color: color,
-                  size: 20,
-                ),
+                Icon(icon, color: color, size: 20),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(

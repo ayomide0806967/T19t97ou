@@ -9,6 +9,7 @@ import '../widgets/hexagon_avatar.dart';
 import '../widgets/brand_mark.dart';
 import '../widgets/tweet_post_card.dart';
 import 'post_detail_screen.dart';
+import 'thread_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -26,7 +27,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (email == null || email.isEmpty) {
       return '@yourprofile';
     }
-    final normalized = email.split('@').first.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '').toLowerCase();
+    final normalized = email
+        .split('@')
+        .first
+        .replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '')
+        .toLowerCase();
     if (normalized.isEmpty) {
       return '@yourprofile';
     }
@@ -37,7 +42,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final dataService = context.watch<DataService>();
-    final posts = dataService.posts.where((p) => p.author == 'You' || p.handle == '@yourprofile').toList();
+    final posts = dataService.posts
+        .where((p) => p.author == 'You' || p.handle == '@yourprofile')
+        .toList();
     final currentUserHandle = _currentUserHandle;
 
     void showToast(String message) {
@@ -45,11 +52,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         SnackBar(
           content: Text(
             message,
-            style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w600),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           backgroundColor: Colors.black,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
         ),
       );
     }
@@ -77,7 +89,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 Text(
                   'Edit Profile',
-                  style: localTheme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                  style: localTheme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 18),
                 TextFormField(
@@ -115,7 +129,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     void handleShareProfile() {
-      Clipboard.setData(const ClipboardData(text: 'https://academicnightingale.app/yourprofile'));
+      Clipboard.setData(
+        const ClipboardData(
+          text: 'https://academicnightingale.app/yourprofile',
+        ),
+      );
       showToast('Profile link copied to clipboard');
     }
 
@@ -147,7 +165,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _ProfileHeader(onEditProfile: handleEditProfile, onShareProfile: handleShareProfile),
+                  _ProfileHeader(
+                    onEditProfile: handleEditProfile,
+                    onShareProfile: handleShareProfile,
+                  ),
                   const SizedBox(height: 32),
                   _ProfileTabs(
                     selectedIndex: _selectedTab,
@@ -176,16 +197,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             TweetPostCard(
                               post: post,
                               currentUserHandle: currentUserHandle,
+                              onTap: () {
+                                final thread = dataService.buildThreadForPost(
+                                  post.id,
+                                );
+                                Navigator.of(context).push(
+                                  ThreadScreen.route(
+                                    entry: thread,
+                                    currentUserHandle: currentUserHandle,
+                                  ),
+                                );
+                              },
                             ),
                             const SizedBox(height: 12),
                             Align(
                               alignment: Alignment.centerRight,
                               child: TextButton.icon(
                                 onPressed: () => _openPostDetail(post),
-                                icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                                icon: const Icon(
+                                  Icons.open_in_new_rounded,
+                                  size: 16,
+                                ),
                                 label: const Text('View details'),
                                 style: TextButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
                                   visualDensity: VisualDensity.compact,
                                 ),
                               ),
@@ -227,17 +265,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
           : null,
     );
 
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => PostDetailScreen(post: payload),
-      ),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => PostDetailScreen(post: payload)));
   }
-
 }
 
 class _ProfileHeader extends StatelessWidget {
-  const _ProfileHeader({required this.onEditProfile, required this.onShareProfile});
+  const _ProfileHeader({
+    required this.onEditProfile,
+    required this.onShareProfile,
+  });
 
   final VoidCallback onEditProfile;
   final VoidCallback onShareProfile;
@@ -251,7 +289,9 @@ class _ProfileHeader extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final onSurface = theme.colorScheme.onSurface;
     final subtle = onSurface.withValues(alpha: isDark ? 0.7 : 0.58);
-    final containerColor = isDark ? accent.withValues(alpha: 0.18) : accent.withValues(alpha: 0.1);
+    final containerColor = isDark
+        ? accent.withValues(alpha: 0.18)
+        : accent.withValues(alpha: 0.1);
     final borderColor = accent.withValues(alpha: isDark ? 0.45 : 0.35);
 
     return Container(
@@ -273,9 +313,9 @@ class _ProfileHeader extends StatelessWidget {
                   child: Text(
                     _initialsFrom(email),
                     style: theme.textTheme.headlineMedium?.copyWith(
-                          fontSize: 36,
-                          fontWeight: FontWeight.w700,
-                        ),
+                      fontSize: 36,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ),
@@ -345,7 +385,9 @@ class _ProfileHeader extends StatelessWidget {
                   onPressed: onEditProfile,
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     backgroundColor: onSurface,
                     foregroundColor: Colors.white,
                   ),
@@ -358,7 +400,9 @@ class _ProfileHeader extends StatelessWidget {
                   onPressed: onShareProfile,
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     side: BorderSide(color: borderColor),
                     foregroundColor: onSurface,
                   ),
@@ -397,10 +441,7 @@ class _ProfileStat extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
-        Text(
-          label,
-          style: theme.textTheme.bodySmall?.copyWith(color: subtle),
-        ),
+        Text(label, style: theme.textTheme.bodySmall?.copyWith(color: subtle)),
       ],
     );
   }
@@ -421,7 +462,9 @@ class _ProfileTabs extends StatelessWidget {
     final onSurface = theme.colorScheme.onSurface;
     final inactive = onSurface.withValues(alpha: isDark ? 0.55 : 0.5);
     final selectedBg = AppTheme.accent.withValues(alpha: isDark ? 0.24 : 0.12);
-    final borderColor = theme.dividerColor.withValues(alpha: isDark ? 0.4 : 0.2);
+    final borderColor = theme.dividerColor.withValues(
+      alpha: isDark ? 0.4 : 0.2,
+    );
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: List.generate(_tabs.length, (index) {
@@ -440,7 +483,9 @@ class _ProfileTabs extends StatelessWidget {
               backgroundColor: theme.cardColor,
               selectedColor: selectedBg,
               shape: const StadiumBorder(),
-              side: BorderSide(color: isSelected ? AppTheme.accent : borderColor),
+              side: BorderSide(
+                color: isSelected ? AppTheme.accent : borderColor,
+              ),
             ),
           ),
         );
@@ -461,13 +506,17 @@ class _PillTag extends StatelessWidget {
     final background = isDark
         ? Colors.white.withValues(alpha: 0.08)
         : const Color(0xFFF1F5F9);
-    final textColor = isDark ? Colors.white.withValues(alpha: 0.72) : const Color(0xFF4B5563);
+    final textColor = isDark
+        ? Colors.white.withValues(alpha: 0.72)
+        : const Color(0xFF4B5563);
 
     return Chip(
       label: Text(label),
-      labelStyle: theme.textTheme
-          .bodyMedium
-          ?.copyWith(color: textColor, fontWeight: FontWeight.w600, fontSize: 11),
+      labelStyle: theme.textTheme.bodyMedium?.copyWith(
+        color: textColor,
+        fontWeight: FontWeight.w600,
+        fontSize: 11,
+      ),
       backgroundColor: background,
       shape: const StadiumBorder(),
       side: BorderSide.none,

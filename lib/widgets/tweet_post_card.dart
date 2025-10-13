@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 
 import '../services/data_service.dart';
 import '../theme/app_theme.dart';
-// import 'hexagon_avatar.dart'; // (unused)
 import 'simple_comment_section.dart';
 import 'tweet_shell.dart';
 
@@ -13,10 +12,20 @@ class TweetPostCard extends StatefulWidget {
     super.key,
     required this.post,
     required this.currentUserHandle,
+    this.replyContext,
+    this.backgroundColor,
+    this.cornerAccentColor,
+    this.showCornerAccent = true,
+    this.onTap,
   });
 
   final PostModel post;
   final String currentUserHandle;
+  final String? replyContext;
+  final Color? backgroundColor;
+  final Color? cornerAccentColor;
+  final bool showCornerAccent;
+  final VoidCallback? onTap;
 
   @override
   State<TweetPostCard> createState() => _TweetPostCardState();
@@ -28,7 +37,9 @@ class _TweetPostCardState extends State<TweetPostCard> {
   late int _replies = widget.post.replies;
   late int _reposts = widget.post.reposts;
   late int _likes = widget.post.likes;
-  late int _views = widget.post.views > 0 ? widget.post.views : _generateViewCount(0);
+  late int _views = widget.post.views > 0
+      ? widget.post.views
+      : _generateViewCount(0);
 
   bool _liked = false;
   bool _bookmarked = false;
@@ -42,7 +53,8 @@ class _TweetPostCardState extends State<TweetPostCard> {
   @override
   void didUpdateWidget(covariant TweetPostCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.post.id != widget.post.id || oldWidget.post.replies != widget.post.replies) {
+    if (oldWidget.post.id != widget.post.id ||
+        oldWidget.post.replies != widget.post.replies) {
       _replies = widget.post.replies;
       _reposts = widget.post.reposts;
       _likes = widget.post.likes;
@@ -71,9 +83,9 @@ class _TweetPostCardState extends State<TweetPostCard> {
     }
     final targetId = widget.post.originalId ?? widget.post.id;
     final toggled = await context.read<DataService>().toggleRepost(
-          postId: targetId,
-          userHandle: handle,
-        );
+      postId: targetId,
+      userHandle: handle,
+    );
     if (!mounted) return;
     _showToast(toggled ? 'Re-instituted!' : 'Removed re-institution');
     setState(() {});
@@ -93,7 +105,9 @@ class _TweetPostCardState extends State<TweetPostCard> {
       SnackBar(
         content: Text(
           message,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: Colors.white),
         ),
         backgroundColor: Colors.black87,
         behavior: SnackBarBehavior.floating,
@@ -157,41 +171,68 @@ class _TweetPostCardState extends State<TweetPostCard> {
     final screenW = MediaQuery.of(context).size.width;
     final isCompact = (screenW / 6) < 80;
 
-    return TweetShell(
+    final List<Widget> header = [];
+    if (widget.replyContext != null) {
+      header.add(
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Replying to ${widget.replyContext}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.secondary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      );
+    }
+    if (repostBannerHandle != null && repostBannerHandle.isNotEmpty) {
+      header.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            children: [
+              Icon(
+                Icons.import_export,
+                size: 18,
+                color: AppTheme.accent.withAlpha(200),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '$repostBannerHandle re-in',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppTheme.accent,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    Widget shell = TweetShell(
+      backgroundColor: widget.backgroundColor,
+      cornerAccentColor: widget.cornerAccentColor,
+      showCornerAccent: widget.showCornerAccent,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (repostBannerHandle != null && repostBannerHandle.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.import_export,
-                    size: 18,
-                    color: AppTheme.accent.withAlpha(200),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    '$repostBannerHandle re-in',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppTheme.accent,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          ...header,
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Rounded-rectangle avatar
               Container(
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primaryContainer.withOpacity(0.5),
+                  color: theme.colorScheme.primaryContainer.withValues(
+                    alpha: 0.5,
+                  ),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
@@ -266,19 +307,18 @@ class _TweetPostCardState extends State<TweetPostCard> {
             ),
           ],
           const SizedBox(height: 16),
-
-          // ===== Edge-to-edge actions row =====
           SizedBox(
             width: double.infinity,
             child: Row(
               mainAxisSize: MainAxisSize.max,
               children: [
-                // Left group: evenly fills remaining width (edge-to-edge)
-                ...leftMetrics.map((m) => Expanded(
-                      child: _EdgeCell(child: _buildMetricButton(m, compact: isCompact)),
-                    )),
-
-                // Share button: hugs the right edge, no outer spacing
+                ...leftMetrics.map(
+                  (m) => Expanded(
+                    child: _EdgeCell(
+                      child: _buildMetricButton(m, compact: isCompact),
+                    ),
+                  ),
+                ),
                 _EdgeCell(child: _buildMetricButton(share, compact: isCompact)),
               ],
             ),
@@ -286,6 +326,20 @@ class _TweetPostCardState extends State<TweetPostCard> {
         ],
       ),
     );
+
+    if (widget.onTap != null) {
+      shell = Material(
+        color: Colors.transparent,
+        borderRadius: const BorderRadius.all(Radius.circular(20)),
+        child: InkWell(
+          borderRadius: const BorderRadius.all(Radius.circular(20)),
+          onTap: widget.onTap,
+          child: shell,
+        ),
+      );
+    }
+
+    return shell;
   }
 
   Widget _buildMetricButton(TweetMetricData data, {required bool compact}) {
@@ -327,9 +381,13 @@ class _TweetPostCardState extends State<TweetPostCard> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
         child: Container(
-          constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.8,
+          ),
           margin: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Theme.of(context).scaffoldBackgroundColor,
@@ -374,24 +432,25 @@ class _TweetPostCardState extends State<TweetPostCard> {
   }
 
   List<SimpleComment> _demoComments() => [
-        SimpleComment(
-          author: 'Sarah Johnson',
-          timeAgo: '2h',
-          body:
-              'This is exactly what our campus needs! Looking forward to seeing the impact on student innovation.',
-          avatarColors: [const Color(0xFF667EEA), const Color(0xFF764BA2)],
-          likes: 12,
-          isLiked: false,
-        ),
-        SimpleComment(
-          author: 'Mike Chen',
-          timeAgo: '1h',
-          body: 'Completely agree! The interdisciplinary approach will be game-changing.',
-          avatarColors: [const Color(0xFFF093FB), const Color(0xFFF5576C)],
-          likes: 3,
-          isLiked: true,
-        ),
-      ];
+    SimpleComment(
+      author: 'Sarah Johnson',
+      timeAgo: '2h',
+      body:
+          'This is exactly what our campus needs! Looking forward to seeing the impact on student innovation.',
+      avatarColors: [const Color(0xFF667EEA), const Color(0xFF764BA2)],
+      likes: 12,
+      isLiked: false,
+    ),
+    SimpleComment(
+      author: 'Mike Chen',
+      timeAgo: '1h',
+      body:
+          'Completely agree! The interdisciplinary approach will be game-changing.',
+      avatarColors: [const Color(0xFFF093FB), const Color(0xFFF5576C)],
+      likes: 3,
+      isLiked: true,
+    ),
+  ];
 }
 
 class TweetMetricData {
@@ -432,16 +491,22 @@ class TweetMetric extends StatelessWidget {
     final isRein = data.type == TweetMetricType.rein;
     final isShare = data.type == TweetMetricType.share;
 
-    final double iconSize = compact ? (isShare ? 12.0 : 16.0) : (isShare ? 14.0 : 18.0);
+    final double iconSize = compact
+        ? (isShare ? 12.0 : 16.0)
+        : (isShare ? 14.0 : 18.0);
     final double labelFontSize = compact ? 11.0 : 12.0;
     final double countFontSize = compact ? 11.0 : 12.0;
     final double gap = compact ? 2.0 : 3.0;
 
-    final color = data.isActive ? accent : (isShare ? theme.colorScheme.onSurface : neutral);
+    final color = data.isActive
+        ? accent
+        : (isShare ? theme.colorScheme.onSurface : neutral);
     final hasIcon = data.icon != null;
     final metricCount = data.count;
     final bool highlightRein = isRein && data.isActive;
-    final String? displayLabel = highlightRein ? 'IN' : (data.label ?? (isRein ? 'RE-IN' : null));
+    final String? displayLabel = highlightRein
+        ? 'IN'
+        : (data.label ?? (isRein ? 'RE-IN' : null));
 
     Widget content;
 
@@ -483,7 +548,8 @@ class TweetMetric extends StatelessWidget {
         children: [
           if (hasIcon) ...[
             Icon(data.icon, size: iconSize, color: color),
-            if (displayLabel != null || metricCount != null) SizedBox(width: gap),
+            if (displayLabel != null || metricCount != null)
+              SizedBox(width: gap),
           ],
           if (displayLabel != null) ...[
             Text(
@@ -511,14 +577,21 @@ class TweetMetric extends StatelessWidget {
 
     return TextButton(
       onPressed: onTap,
-      style: TextButton.styleFrom(
-        padding: EdgeInsets.zero, // no inner horizontal padding
-        minimumSize: const Size(0, 44), // good tap target
-        alignment: Alignment.center,
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        foregroundColor: color,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero), // edge-to-edge feel
-      ).copyWith(overlayColor: MaterialStateProperty.all(color.withAlpha(20))),
+      style:
+          TextButton.styleFrom(
+            padding: EdgeInsets.zero, // no inner horizontal padding
+            minimumSize: const Size(0, 44), // good tap target
+            alignment: Alignment.center,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            foregroundColor: color,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.zero,
+            ), // edge-to-edge feel
+          ).copyWith(
+            overlayColor: WidgetStateProperty.all(
+              color.withValues(alpha: 0.08),
+            ),
+          ),
       child: FittedBox(
         fit: BoxFit.scaleDown,
         alignment: Alignment.center,
@@ -552,8 +625,12 @@ class TagChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final background = isDark ? Colors.white.withAlpha(20) : const Color(0xFFF1F5F9);
-    final textColor = isDark ? Colors.white.withAlpha(180) : const Color(0xFF4B5563);
+    final background = isDark
+        ? Colors.white.withAlpha(20)
+        : const Color(0xFFF1F5F9);
+    final textColor = isDark
+        ? Colors.white.withAlpha(180)
+        : const Color(0xFF4B5563);
 
     return Chip(
       label: Text(label),
@@ -639,7 +716,9 @@ class QuotePreview extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            snapshot.body.length > 200 ? '${snapshot.body.substring(0, 200)}...' : snapshot.body,
+            snapshot.body.length > 200
+                ? '${snapshot.body.substring(0, 200)}...'
+                : snapshot.body,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurface.withAlpha(220),
               height: 1.5,
