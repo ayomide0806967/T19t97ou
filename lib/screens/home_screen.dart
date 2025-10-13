@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:ui' as ui;
+
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
@@ -50,7 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final dataService = context.watch<DataService>();
-    final posts = dataService.posts;
+    final posts = dataService.timelinePosts;
     final initials = _initialsFrom(_authService.currentUserEmail);
     final currentUserHandle = _currentUserHandle;
 
@@ -119,9 +121,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 720),
-                    child: const Column(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [_StoryRail(), SizedBox(height: 16)],
+                      children: const [_StoryRail(), SizedBox(height: 16)],
                     ),
                   ),
                 ),
@@ -259,100 +261,132 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildNavigationDrawer() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final Color glassColor = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : Colors.white.withValues(alpha: 0.78);
+
     return Drawer(
-      backgroundColor: Colors.white,
-      child: RepaintBoundary(
-        child: SafeArea(
-          child: Column(
-            children: [
-              const SizedBox(height: 20),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Row(
-                  children: [
-                    const BrandMark(size: 26),
-                    const SizedBox(width: 10),
-                    Text(
-                      'Institution',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                  ],
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: BackdropFilter(
+            filter: ui.ImageFilter.blur(sigmaX: 26, sigmaY: 26),
+            child: Container(
+              decoration: BoxDecoration(
+                color: glassColor,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: isDark ? 0.14 : 0.22),
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.16),
+                    blurRadius: 18,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              _buildSearchBar(),
-              const SizedBox(height: 16),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: RepaintBoundary(
+                child: SafeArea(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildNavigationItems(),
-                      const SizedBox(height: 24),
-                      _buildSection('Your Pages', [
-                        _NavigationItem(
-                          icon: Icons.pages_outlined,
-                          title: 'Design Club',
-                          color: const Color(0xFF4299E1),
+                      const SizedBox(height: 20),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Row(
+                          children: [
+                            const BrandMark(size: 26),
+                            const SizedBox(width: 10),
+                            Text(
+                              'Institution',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.2,
+                              ),
+                            ),
+                          ],
                         ),
-                        _NavigationItem(
-                          icon: Icons.groups_outlined,
-                          title: 'Student Union',
-                          color: const Color(0xFF48BB78),
-                        ),
-                        _NavigationItem(
-                          icon: Icons.sports_esports_outlined,
-                          title: 'Gaming Society',
-                          color: const Color(0xFF9F7AEA),
-                        ),
-                      ]),
+                      ),
                       const SizedBox(height: 16),
-                      _buildSection('Trending', [
-                        _NavigationItem(
-                          icon: Icons.tag_outlined,
-                          title: '#CampusLife',
-                          color: const Color(0xFF718096),
-                        ),
-                        _NavigationItem(
-                          icon: Icons.tag_outlined,
-                          title: '#StudentSuccess',
-                          color: const Color(0xFF718096),
-                        ),
-                        _NavigationItem(
-                          icon: Icons.tag_outlined,
-                          title: '#InnovationHub',
-                          color: const Color(0xFF718096),
-                        ),
-                      ]),
+                      _buildSearchBar(),
                       const SizedBox(height: 16),
-                      _buildSection('Events', [
-                        _NavigationItem(
-                          icon: Icons.event_outlined,
-                          title: 'Tech Workshop',
-                          color: const Color(0xFF718096),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildNavigationItems(),
+                              const SizedBox(height: 24),
+                              _buildSection('Your Pages', [
+                                _NavigationItem(
+                                  icon: Icons.pages_outlined,
+                                  title: 'Design Club',
+                                  color: const Color(0xFF4299E1),
+                                ),
+                                _NavigationItem(
+                                  icon: Icons.groups_outlined,
+                                  title: 'Student Union',
+                                  color: const Color(0xFF48BB78),
+                                ),
+                                _NavigationItem(
+                                  icon: Icons.sports_esports_outlined,
+                                  title: 'Gaming Society',
+                                  color: const Color(0xFF9F7AEA),
+                                ),
+                              ]),
+                              const SizedBox(height: 16),
+                              _buildSection('Trending', [
+                                _NavigationItem(
+                                  icon: Icons.tag_outlined,
+                                  title: '#CampusLife',
+                                  color: const Color(0xFF718096),
+                                ),
+                                _NavigationItem(
+                                  icon: Icons.tag_outlined,
+                                  title: '#StudentSuccess',
+                                  color: const Color(0xFF718096),
+                                ),
+                                _NavigationItem(
+                                  icon: Icons.tag_outlined,
+                                  title: '#InnovationHub',
+                                  color: const Color(0xFF718096),
+                                ),
+                              ]),
+                              const SizedBox(height: 16),
+                              _buildSection('Events', [
+                                _NavigationItem(
+                                  icon: Icons.event_outlined,
+                                  title: 'Tech Workshop',
+                                  color: const Color(0xFF718096),
+                                ),
+                                _NavigationItem(
+                                  icon: Icons.event_outlined,
+                                  title: 'Study Group',
+                                  color: const Color(0xFF718096),
+                                ),
+                                _NavigationItem(
+                                  icon: Icons.event_outlined,
+                                  title: 'Career Fair',
+                                  color: const Color(0xFF718096),
+                                ),
+                              ]),
+                              const SizedBox(height: 24),
+                            ],
+                          ),
                         ),
-                        _NavigationItem(
-                          icon: Icons.event_outlined,
-                          title: 'Study Group',
-                          color: const Color(0xFF718096),
-                        ),
-                        _NavigationItem(
-                          icon: Icons.event_outlined,
-                          title: 'Career Fair',
-                          color: const Color(0xFF718096),
-                        ),
-                      ]),
-                      const SizedBox(height: 24),
+                      ),
+                      _buildUserProfileCard(),
                     ],
                   ),
                 ),
               ),
-              _buildUserProfileCard(),
-            ],
+            ),
           ),
         ),
       ),
@@ -707,126 +741,85 @@ class _StoryRail extends StatelessWidget {
     final theme = Theme.of(context);
 
     return SizedBox(
-      height: 140,
+      height: 112,
       child: NotificationListener<ScrollNotification>(
-        onNotification: (scrollNotification) {
-          // Add scroll physics feedback if needed
-          return false;
-        },
+        onNotification: (_) => false,
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           physics: const BouncingScrollPhysics(
             parent: AlwaysScrollableScrollPhysics(),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
           itemCount: stories.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 20),
+          separatorBuilder: (_, __) => const SizedBox(width: 16),
           itemBuilder: (context, index) {
             final story = stories[index];
+            final bool isSelf = story.label == 'You';
+            final Color borderColor = isSelf
+                ? AppTheme.accent
+                : const Color(0xFFB48A6B);
+            final Color background = isSelf
+                ? AppTheme.accent.withValues(alpha: 0.9)
+                : Theme.of(context).colorScheme.surface;
+
             return GestureDetector(
-              onTap: () {
-                // Add tap feedback
-                HapticFeedback.lightImpact();
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: 85,
-                height: 120,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: story.label == 'You'
-                              ? [
-                                  AppTheme.accent.withValues(alpha: 0.8),
-                                  AppTheme.accent.withValues(alpha: 0.6),
-                                ]
-                              : [
-                                  const Color(0xFFF8FAFC),
-                                  const Color(0xFFF1F5F9),
-                                ],
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: story.label == 'You'
-                                ? AppTheme.accent.withValues(alpha: 0.3)
-                                : Colors.black.withValues(alpha: 0.05),
-                            blurRadius: story.label == 'You' ? 12 : 6,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Stack(
-                        children: [
-                          HexagonAvatar(
-                            size: 76,
-                            backgroundColor: story.label == 'You'
-                                ? Colors.transparent
-                                : AppTheme.surface,
-                            child: Center(
-                              child: Text(
-                                story.initials,
-                                style: theme.textTheme.labelLarge?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  color: story.label == 'You'
-                                      ? Colors.white
-                                      : AppTheme.textPrimary,
-                                ),
-                              ),
-                            ),
-                          ),
-                          if (story.label == 'You')
-                            Positioned(
-                              bottom: -2,
-                              right: -2,
-                              child: Container(
-                                width: 24,
-                                height: 24,
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: AppTheme.accent,
-                                    width: 2,
-                                  ),
-                                ),
-                                child: const Icon(
-                                  Icons.add_rounded,
-                                  color: AppTheme.accent,
-                                  size: 16,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Expanded(
-                      child: Center(
-                        child: Text(
-                          story.label,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontWeight: story.label == 'You'
-                                ? FontWeight.w600
-                                : FontWeight.w500,
-                            color: story.label == 'You'
-                                ? AppTheme.accent
-                                : AppTheme.textSecondary,
-                          ),
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+              onTap: () => HapticFeedback.lightImpact(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  HexagonAvatar(
+                    size: 56,
+                    backgroundColor: background,
+                    borderColor: borderColor,
+                    borderWidth: isSelf ? 2 : 1.1,
+                    child: Center(
+                      child: Text(
+                        story.initials,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: isSelf ? Colors.white : AppTheme.textPrimary,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  if (isSelf)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Container(
+                        width: 20,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: AppTheme.accent,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.add_rounded,
+                          color: AppTheme.accent,
+                          size: 14,
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    width: 70,
+                    child: Text(
+                      story.label,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: isSelf ? FontWeight.w600 : FontWeight.w500,
+                        color: isSelf
+                            ? AppTheme.accent
+                            : AppTheme.textSecondary,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
               ),
             );
           },

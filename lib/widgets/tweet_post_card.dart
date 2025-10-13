@@ -6,6 +6,7 @@ import '../services/data_service.dart';
 import '../theme/app_theme.dart';
 import 'simple_comment_section.dart';
 import 'tweet_shell.dart';
+import 'hexagon_avatar.dart';
 
 class TweetPostCard extends StatefulWidget {
   const TweetPostCard({
@@ -17,6 +18,7 @@ class TweetPostCard extends StatefulWidget {
     this.cornerAccentColor,
     this.showCornerAccent = true,
     this.onTap,
+    this.showRepostBanner = false,
   });
 
   final PostModel post;
@@ -26,6 +28,7 @@ class TweetPostCard extends StatefulWidget {
   final Color? cornerAccentColor;
   final bool showCornerAccent;
   final VoidCallback? onTap;
+  final bool showRepostBanner;
 
   @override
   State<TweetPostCard> createState() => _TweetPostCardState();
@@ -189,7 +192,9 @@ class _TweetPostCardState extends State<TweetPostCard> {
         ),
       );
     }
-    if (repostBannerHandle != null && repostBannerHandle.isNotEmpty) {
+    if (widget.showRepostBanner &&
+        repostBannerHandle != null &&
+        repostBannerHandle.isNotEmpty) {
       header.add(
         Padding(
           padding: const EdgeInsets.only(bottom: 12),
@@ -226,20 +231,16 @@ class _TweetPostCardState extends State<TweetPostCard> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primaryContainer.withValues(
-                    alpha: 0.5,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                ),
+              HexagonAvatar(
+                size: 48,
+                backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                borderColor: const Color(0xFFB48A6B),
+                borderWidth: 1.5,
                 child: Center(
                   child: Text(
                     _initialsFrom(widget.post.author),
                     style: theme.textTheme.labelLarge?.copyWith(
-                      color: theme.colorScheme.onPrimaryContainer,
+                      color: theme.colorScheme.onSurface,
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                     ),

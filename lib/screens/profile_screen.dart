@@ -42,9 +42,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final dataService = context.watch<DataService>();
-    final posts = dataService.posts
-        .where((p) => p.author == 'You' || p.handle == '@yourprofile')
-        .toList();
+    final posts = dataService.postsForHandle(_currentUserHandle);
     final currentUserHandle = _currentUserHandle;
 
     void showToast(String message) {

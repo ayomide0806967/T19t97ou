@@ -9,12 +9,14 @@ class HexagonAvatar extends StatelessWidget {
     this.backgroundColor,
     this.borderColor,
     this.child,
+    this.borderWidth = 3,
   });
 
   final double size;
   final Color? backgroundColor;
   final Color? borderColor;
   final Widget? child;
+  final double borderWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -32,13 +34,10 @@ class HexagonAvatar extends StatelessWidget {
             child: Container(color: border),
           ),
           Padding(
-            padding: const EdgeInsets.all(3),
+            padding: EdgeInsets.all(borderWidth.clamp(0, size / 4)),
             child: ClipPath(
               clipper: _HexagonClipper(),
-              child: Container(
-                color: bg,
-                child: child,
-              ),
+              child: Container(color: bg, child: child),
             ),
           ),
         ],

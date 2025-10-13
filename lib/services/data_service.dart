@@ -494,4 +494,11 @@ class DataService extends ChangeNotifier {
     final raw = jsonEncode(_posts.map((e) => e.toJson()).toList());
     await prefs.setString(_storageKey, raw);
   }
+
+  List<PostModel> get timelinePosts =>
+      _posts.where((post) => post.repostedBy == null).toList();
+
+  List<PostModel> postsForHandle(String handle) => _posts
+      .where((post) => post.handle == handle || post.repostedBy == handle)
+      .toList();
 }

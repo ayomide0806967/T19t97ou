@@ -131,6 +131,7 @@ class ThreadReplyTile extends StatelessWidget {
                   backgroundColor: _replyBackground,
                   cornerAccentColor: _replyCorner,
                   showCornerAccent: false,
+                  showRepostBanner: true,
                   onTap: () {
                     Navigator.of(context).push(
                       ThreadScreen.route(
