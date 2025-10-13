@@ -1,9 +1,8 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
 import '../widgets/hexagon_avatar.dart';
-import '../widgets/tweet_shell.dart';
+import '../widgets/brand_mark.dart';
 import 'home_screen.dart';
 import 'explore_screen.dart';
 import 'profile_screen.dart';
@@ -133,8 +132,10 @@ class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: AnimatedBuilder(
           animation: _fadeAnimation,
@@ -167,28 +168,43 @@ class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateM
   }
 
   Widget _buildHeader() {
+    final theme = Theme.of(context);
+    final surface = theme.colorScheme.surface;
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
             blurRadius: 20,
-            offset: const Offset(0, 2),
+            offset: const Offset(0, 6),
           ),
         ],
+        border: Border(
+          bottom: BorderSide(
+            color: theme.dividerColor.withValues(alpha: isDark ? 0.4 : 0.2),
+          ),
+        ),
       ),
       child: Row(
         children: [
-          Text(
-            'Messages',
-            style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF1E293B),
+          const BrandMark(size: 28),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Messages',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.headlineLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onSurface,
+              ),
             ),
           ),
-          const Spacer(),
+          const SizedBox(width: 12),
           IconButton(
             onPressed: () {},
             icon: const Icon(
@@ -316,9 +332,6 @@ class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateM
   }
 
   Widget _buildBottomNavigationBar() {
-    final platform = Theme.of(context).platform;
-    final isMobile = platform == TargetPlatform.android || platform == TargetPlatform.iOS;
-
     final barContent = SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -398,7 +411,7 @@ class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateM
               borderRadius: const BorderRadius.all(Radius.circular(24)),
               border: Border.all(
                 color: isDark
-                    ? Colors.white.withOpacity(0.15)
+                    ? Colors.white.withValues(alpha: 0.15)
                     : Colors.black.withValues(alpha: 0.1),
                 width: 1,
               ),
@@ -410,12 +423,12 @@ class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateM
                 child: Container(
                   decoration: BoxDecoration(
                     color: isDark
-                        ? Colors.white.withOpacity(0.08)
+                        ? Colors.white.withValues(alpha: 0.08)
                         : Colors.white.withValues(alpha: 0.7),
                     borderRadius: const BorderRadius.all(Radius.circular(24)),
                     border: Border.all(
                       color: isDark
-                          ? Colors.white.withOpacity(0.1)
+                          ? Colors.white.withValues(alpha: 0.1)
                           : Colors.white.withValues(alpha: 0.3),
                       width: 1,
                     ),
@@ -427,7 +440,7 @@ class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateM
                       ),
                       BoxShadow(
                         color: isDark
-                            ? Colors.white.withOpacity(0.05)
+                            ? Colors.white.withValues(alpha: 0.05)
                             : Colors.white.withValues(alpha: 0.8),
                         blurRadius: 0,
                         offset: const Offset(0, -1),
@@ -529,7 +542,7 @@ class _ModernBottomBarItemState extends State<_ModernBottomBarItem>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final inactive = isDark ? Colors.white.withOpacity(0.6) : const Color(0xFF64748B);
+    final inactive = isDark ? Colors.white.withValues(alpha: 0.6) : const Color(0xFF64748B);
     final color = widget.isActive ? AppTheme.accent : inactive;
 
     return Expanded(
@@ -591,7 +604,7 @@ class _ModernBottomBarItemState extends State<_ModernBottomBarItem>
                               child: Builder(builder: (context) {
                                 final isDark = Theme.of(context).brightness == Brightness.dark;
                                 final bg = AppTheme.accent;
-                                final borderColor = isDark ? Colors.black.withOpacity(0.6) : Colors.white;
+                                final borderColor = isDark ? Colors.black.withValues(alpha: 0.6) : Colors.white;
                                 return Container(
                                   constraints: const BoxConstraints(
                                     minWidth: 20,
@@ -607,7 +620,7 @@ class _ModernBottomBarItemState extends State<_ModernBottomBarItem>
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(isDark ? 0.35 : 0.15),
+                                        color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.15),
                                         blurRadius: 6,
                                         offset: const Offset(0, 2),
                                       ),

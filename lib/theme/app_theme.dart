@@ -109,7 +109,7 @@ class AppTheme {
           shape: pillShape,
           textStyle: GoogleFonts.inter(
             fontWeight: FontWeight.w600,
-            fontSize: 15,
+            fontSize: 16,
           ),
         ),
       ),
@@ -123,7 +123,7 @@ class AppTheme {
           side: const BorderSide(color: divider),
           textStyle: GoogleFonts.inter(
             fontWeight: FontWeight.w600,
-            fontSize: 15,
+            fontSize: 16,
           ),
         ),
       ),
@@ -133,7 +133,7 @@ class AppTheme {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           textStyle: GoogleFonts.inter(
             fontWeight: FontWeight.w600,
-            fontSize: 14,
+            fontSize: 16,
           ),
         ),
       ),
@@ -240,7 +240,7 @@ class AppTheme {
           shape: pillShape,
           textStyle: GoogleFonts.inter(
             fontWeight: FontWeight.w600,
-            fontSize: 15,
+            fontSize: 16,
           ),
         ),
       ),
@@ -254,7 +254,7 @@ class AppTheme {
           side: const BorderSide(color: darkDivider),
           textStyle: GoogleFonts.inter(
             fontWeight: FontWeight.w600,
-            fontSize: 15,
+            fontSize: 16,
           ),
         ),
       ),
@@ -264,7 +264,7 @@ class AppTheme {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           textStyle: GoogleFonts.inter(
             fontWeight: FontWeight.w600,
-            fontSize: 14,
+            fontSize: 16,
           ),
         ),
       ),

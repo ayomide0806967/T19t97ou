@@ -1,6 +1,5 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
 
 class TaggedTextInput extends StatefulWidget {
@@ -38,7 +37,6 @@ class _TaggedTextInputState extends State<TaggedTextInput> {
   String _currentMention = '';
   int _mentionStart = 0;
   int _mentionEnd = 0;
-  int _cursorPosition = 0;
 
   @override
   void initState() {
@@ -168,31 +166,32 @@ class _TaggedTextInputState extends State<TaggedTextInput> {
     for (final match in regex.allMatches(text)) {
       // Add text before the match
       if (match.start > lastIndex) {
-        spans.add(TextSpan(
-          text: text.substring(lastIndex, match.start),
-          style: baseStyle,
-        ));
+        spans.add(
+          TextSpan(
+            text: text.substring(lastIndex, match.start),
+            style: baseStyle,
+          ),
+        );
       }
 
       // Add the highlighted match
       final matchedText = match.group(0)!;
-      spans.add(TextSpan(
-        text: matchedText,
-        style: baseStyle.copyWith(
-          color: AppTheme.accent,
-          fontWeight: FontWeight.w600,
+      spans.add(
+        TextSpan(
+          text: matchedText,
+          style: baseStyle.copyWith(
+            color: AppTheme.accent,
+            fontWeight: FontWeight.w600,
+          ),
         ),
-      ));
+      );
 
       lastIndex = match.end;
     }
 
     // Add remaining text
     if (lastIndex < text.length) {
-      spans.add(TextSpan(
-        text: text.substring(lastIndex),
-        style: baseStyle,
-      ));
+      spans.add(TextSpan(text: text.substring(lastIndex), style: baseStyle));
     }
 
     return spans;
@@ -207,14 +206,14 @@ class _TaggedTextInputState extends State<TaggedTextInput> {
       children: [
         Container(
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.06) : Colors.white,
+            color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: _focusNode.hasFocus
                   ? AppTheme.accent
                   : isDark
-                      ? Colors.white.withOpacity(0.08)
-                      : const Color(0xFFE2E8F0),
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : const Color(0xFFE2E8F0),
               width: _focusNode.hasFocus ? 2 : 1,
             ),
             boxShadow: isDark
@@ -266,22 +265,28 @@ class _TaggedTextInputState extends State<TaggedTextInput> {
                     child: widget.controller.text.isEmpty
                         ? Text(
                             widget.hintText,
-                            style: widget.hintStyle ?? TextStyle(
-                              color: isDark ? const Color(0xFF6B7280) : const Color(0xFF94A3B8),
-                              fontSize: 16,
-                            ),
+                            style:
+                                widget.hintStyle ??
+                                TextStyle(
+                                  color: isDark
+                                      ? const Color(0xFF6B7280)
+                                      : const Color(0xFF94A3B8),
+                                  fontSize: 16,
+                                ),
                           )
                         : RichText(
                             text: TextSpan(
                               children: _buildHighlightedSpans(
                                 widget.controller.text,
-                                (widget.style ?? theme.textTheme.bodyLarge)?.copyWith(
-                                  color: theme.colorScheme.onSurface,
-                                  height: 1.4,
-                                ) ?? const TextStyle(
-                                  color: Color(0xFF1E293B),
-                                  height: 1.4,
-                                ),
+                                (widget.style ?? theme.textTheme.bodyLarge)
+                                        ?.copyWith(
+                                          color: theme.colorScheme.onSurface,
+                                          height: 1.4,
+                                        ) ??
+                                    const TextStyle(
+                                      color: Color(0xFF1E293B),
+                                      height: 1.4,
+                                    ),
                               ),
                             ),
                           ),
@@ -341,18 +346,12 @@ class _MentionSuggestionsState extends State<_MentionSuggestions>
     _slideAnimation = Tween<double>(
       begin: -0.1,
       end: 0.0,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutCubic,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
 
     _fadeAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutCubic,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
 
     _controller.forward();
   }
@@ -369,7 +368,9 @@ class _MentionSuggestionsState extends State<_MentionSuggestions>
       return allSuggestions.take(8).toList();
     }
     return allSuggestions
-        .where((s) => s.username.toLowerCase().contains(widget.query.toLowerCase()))
+        .where(
+          (s) => s.username.toLowerCase().contains(widget.query.toLowerCase()),
+        )
         .take(8)
         .toList();
   }
@@ -427,19 +428,26 @@ class _MentionSuggestionsState extends State<_MentionSuggestions>
                                   child: Text(
                                     'No suggestions found',
                                     style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                                      color: theme.colorScheme.onSurface
+                                          .withValues(alpha: 0.6),
                                     ),
                                   ),
                                 ),
                               )
                             : ListView.separated(
                                 shrinkWrap: true,
-                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                ),
                                 itemCount: suggestions.length,
                                 separatorBuilder: (_, __) => Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                  ),
                                   child: Divider(
-                                    color: theme.dividerColor.withValues(alpha: 0.3),
+                                    color: theme.dividerColor.withValues(
+                                      alpha: 0.3,
+                                    ),
                                     height: 1,
                                   ),
                                 ),
@@ -447,7 +455,8 @@ class _MentionSuggestionsState extends State<_MentionSuggestions>
                                   final suggestion = suggestions[index];
                                   return _SuggestionTile(
                                     suggestion: suggestion,
-                                    onTap: () => widget.onSelected(suggestion.username),
+                                    onTap: () =>
+                                        widget.onSelected(suggestion.username),
                                   );
                                 },
                               ),
@@ -465,10 +474,7 @@ class _MentionSuggestionsState extends State<_MentionSuggestions>
 }
 
 class _SuggestionTile extends StatefulWidget {
-  const _SuggestionTile({
-    required this.suggestion,
-    required this.onTap,
-  });
+  const _SuggestionTile({required this.suggestion, required this.onTap});
 
   final MentionSuggestion suggestion;
   final VoidCallback onTap;
@@ -492,10 +498,7 @@ class _SuggestionTileState extends State<_SuggestionTile>
     _scaleAnimation = Tween<double>(
       begin: 1.0,
       end: 0.95,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutCubic,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
   }
 
   @override
@@ -507,7 +510,6 @@ class _SuggestionTileState extends State<_SuggestionTile>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return GestureDetector(
       onTapDown: (_) => _controller.forward(),
@@ -538,15 +540,15 @@ class _SuggestionTileState extends State<_SuggestionTile>
                       borderRadius: BorderRadius.circular(10),
                       boxShadow: [
                         BoxShadow(
-                          color: widget.suggestion.colors.first.withValues(alpha: 0.3),
+                          color: widget.suggestion.colors.first.withValues(
+                            alpha: 0.3,
+                          ),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
                       ],
                     ),
-                    child: Center(
-                      child: widget.suggestion.avatar,
-                    ),
+                    child: Center(child: widget.suggestion.avatar),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -564,7 +566,9 @@ class _SuggestionTileState extends State<_SuggestionTile>
                         Text(
                           widget.suggestion.username,
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.6,
+                            ),
                           ),
                         ),
                       ],
@@ -650,7 +654,11 @@ const List<MentionSuggestion> _allMentionSuggestions = [
   MentionSuggestion(
     username: '@sports',
     displayName: 'Athletics',
-    avatar: Icon(Icons.sports_basketball_rounded, color: Colors.white, size: 20),
+    avatar: Icon(
+      Icons.sports_basketball_rounded,
+      color: Colors.white,
+      size: 20,
+    ),
     colors: [Color(0xFFA8EDEA), Color(0xFFFED6E3)],
   ),
   MentionSuggestion(

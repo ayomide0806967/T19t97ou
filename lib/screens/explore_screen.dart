@@ -2,6 +2,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/hexagon_avatar.dart';
+import '../widgets/brand_mark.dart';
 import 'home_screen.dart';
 import 'chat_screen.dart';
 import 'profile_screen.dart';
@@ -22,70 +23,74 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
 
   final List<String> _categories = [
     'For You',
-    'Trending',
-    'News',
-    'Sports',
-    'Entertainment',
-    'Technology',
-    'Science',
+    'OSCE Prep',
+    'Clinical Skills',
+    'Public Health',
+    'Medication Safety',
+    'Leadership',
+    'Research',
   ];
 
-  final List<TrendingTopic> _trendingTopics = [
-    TrendingTopic(
-      category: 'Technology',
-      title: 'Campus Innovation Hub',
-      posts: '12.4K',
-      engagement: '💬 Trending',
-    ),
-    TrendingTopic(
-      category: 'Events',
-      title: 'Spring Festival 2024',
-      posts: '8.7K',
-      engagement: '🔥 Hot',
-    ),
-    TrendingTopic(
-      category: 'Academic',
-      title: 'Research Symposium',
-      posts: '5.2K',
-      engagement: '📈 Rising',
-    ),
-    TrendingTopic(
-      category: 'Sports',
-      title: 'Championship Finals',
-      posts: '15.1K',
-      engagement: '⚡ Popular',
-    ),
-    TrendingTopic(
-      category: 'Student Life',
-      title: 'Dorm Room Ideas',
-      posts: '3.8K',
-      engagement: '✨ New',
-    ),
-  ];
 
-  final List<SuggestedUser> _suggestedUsers = [
-    SuggestedUser(
-      name: 'Tech Club',
-      handle: '@techclub',
-      bio: 'Innovation and technology enthusiasts',
-      followers: '2.1K',
-      isVerified: true,
-    ),
-    SuggestedUser(
-      name: 'Student Government',
-      handle: '@studentgov',
-      bio: 'Your voice in campus decisions',
-      followers: '5.4K',
-      isVerified: true,
-    ),
-    SuggestedUser(
-      name: 'Career Services',
-      handle: '@careers',
-      bio: 'Your gateway to professional success',
-      followers: '8.9K',
-      isVerified: true,
-    ),
-  ];
+final List<TrendingTopic> _trendingTopics = [
+  TrendingTopic(
+    category: 'NMCN',
+    title: 'OSCE Medication Checks',
+    posts: '9.4K',
+    engagement: '💡 Key Focus',
+  ),
+  TrendingTopic(
+    category: 'Clinical Skills',
+    title: 'Sterile Dressing Routine',
+    posts: '7.2K',
+    engagement: '📈 Rising',
+  ),
+  TrendingTopic(
+    category: 'Public Health',
+    title: 'Community Hypertension Drive',
+    posts: '5.9K',
+    engagement: '🌍 Impact',
+  ),
+  TrendingTopic(
+    category: 'Midwifery',
+    title: 'Labour Support Protocols',
+    posts: '6.8K',
+    engagement: '🤰 Active',
+  ),
+  TrendingTopic(
+    category: 'Mental Wellness',
+    title: 'Night Shift Recovery',
+    posts: '4.1K',
+    engagement: '✨ New',
+  ),
+];
+
+
+
+final List<SuggestedUser> _suggestedUsers = [
+  SuggestedUser(
+    name: 'Clinical Skills Lab',
+    handle: '@skills_lab',
+    bio: 'Daily demos for procedures & simulations',
+    followers: '3.6K',
+    isVerified: true,
+  ),
+  SuggestedUser(
+    name: 'Nursing Leadership Forum',
+    handle: '@matrons_circle',
+    bio: 'Charge nurses sharing shift-ready playbooks',
+    followers: '5.1K',
+    isVerified: true,
+  ),
+  SuggestedUser(
+    name: 'NMCN Exam Coach',
+    handle: '@nmcncoach',
+    bio: 'Bite-sized revisions for OSCE & qualifying exams',
+    followers: '7.9K',
+    isVerified: true,
+  ),
+];
+
 
   @override
   void initState() {
@@ -113,8 +118,10 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: AnimatedBuilder(
           animation: _fadeAnimation,
@@ -141,28 +148,47 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
   }
 
   Widget _buildSearchHeader() {
+    final theme = Theme.of(context);
+    final surface = theme.colorScheme.surface;
+    final isDark = theme.brightness == Brightness.dark;
+
     return SliverToBoxAdapter(
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: surface,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
+              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
               blurRadius: 20,
-              offset: const Offset(0, 2),
+              offset: const Offset(0, 6),
             ),
           ],
+          border: Border(
+            bottom: BorderSide(
+              color: theme.dividerColor.withValues(alpha: isDark ? 0.4 : 0.2),
+            ),
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Explore',
-              style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF1E293B),
-              ),
+            Row(
+              children: [
+                const BrandMark(size: 28),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Explore',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.headlineLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             Container(
@@ -175,7 +201,7 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
                 controller: _searchController,
                 onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
-                  hintText: 'Search trending topics, people, tags...',
+                  hintText: 'Search nursing topics, clinical tips, tags...',
                   hintStyle: const TextStyle(
                     color: Color(0xFF64748B),
                     fontSize: 16,

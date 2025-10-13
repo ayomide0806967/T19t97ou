@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../services/simple_auth_service.dart';
 import '../services/data_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/hexagon_avatar.dart';
-import '../widgets/tweet_shell.dart';
-import 'quote_screen.dart';
+import '../widgets/brand_mark.dart';
+import '../widgets/tweet_post_card.dart';
+import 'post_detail_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -17,25 +19,26 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   int _selectedTab = 0;
+  SimpleAuthService get _authService => SimpleAuthService();
+
+  String get _currentUserHandle {
+    final email = _authService.currentUserEmail;
+    if (email == null || email.isEmpty) {
+      return '@yourprofile';
+    }
+    final normalized = email.split('@').first.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '').toLowerCase();
+    if (normalized.isEmpty) {
+      return '@yourprofile';
+    }
+    return '@$normalized';
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final dataService = context.watch<DataService>();
-    final posts = dataService.posts
-        .where((p) => p.author == 'You' || p.handle == '@yourprofile')
-        .map((p) => _ProfilePost(
-              author: p.author,
-              meta: '${p.handle} • ${p.timeAgo}',
-              body: p.body,
-              tags: p.tags,
-              replies: p.replies,
-              reposts: p.reposts,
-              likes: p.likes,
-              views: p.views,
-              bookmarks: p.bookmarks,
-            ))
-        .toList();
+    final posts = dataService.posts.where((p) => p.author == 'You' || p.handle == '@yourprofile').toList();
+    final currentUserHandle = _currentUserHandle;
 
     void showToast(String message) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -51,13 +54,89 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
 
-    void handleFollow() => showToast('You are now following Alex');
-    void handleMessage() => showToast('Messaging coming soon');
+    void handleEditProfile() {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: theme.colorScheme.surface,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (context) {
+          final localTheme = Theme.of(context);
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 24,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Edit Profile',
+                  style: localTheme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 18),
+                TextFormField(
+                  initialValue: 'Alex Rivera',
+                  decoration: const InputDecoration(labelText: 'Full name'),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  initialValue: '@productlead',
+                  decoration: const InputDecoration(labelText: 'Handle'),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  initialValue:
+                      'Guiding nursing and midwifery teams through safe practice, exam preparation, and compassionate leadership.',
+                  decoration: const InputDecoration(labelText: 'Bio'),
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      showToast('Profile changes saved (coming soon)');
+                    },
+                    child: const Text('Save changes'),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    }
+
+    void handleShareProfile() {
+      Clipboard.setData(const ClipboardData(text: 'https://academicnightingale.app/yourprofile'));
+      showToast('Profile link copied to clipboard');
+    }
 
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 0,
-        title: Text('Profile', style: theme.textTheme.headlineSmall),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const BrandMark(size: 24),
+            const SizedBox(width: 10),
+            Flexible(
+              child: Text(
+                'Profile',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.headlineSmall,
+              ),
+            ),
+          ],
+        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -68,7 +147,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _ProfileHeader(onPrimaryAction: handleFollow, onSecondaryAction: handleMessage),
+                  _ProfileHeader(onEditProfile: handleEditProfile, onShareProfile: handleShareProfile),
                   const SizedBox(height: 32),
                   _ProfileTabs(
                     selectedIndex: _selectedTab,
@@ -91,7 +170,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ...posts.map(
                       (post) => Padding(
                         padding: const EdgeInsets.only(bottom: 24),
-                        child: _ProfilePostCard(post: post),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            TweetPostCard(
+                              post: post,
+                              currentUserHandle: currentUserHandle,
+                            ),
+                            const SizedBox(height: 12),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton.icon(
+                                onPressed: () => _openPostDetail(post),
+                                icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                                label: const Text('View details'),
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -103,87 +203,166 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+
+  void _openPostDetail(PostModel post) {
+    final payload = PostDetailPayload(
+      author: post.author,
+      handle: post.handle,
+      timeAgo: post.timeAgo,
+      body: post.body,
+      initials: _initialsFrom(post.author),
+      tags: post.tags,
+      replies: post.replies,
+      reposts: post.reposts,
+      likes: post.likes,
+      bookmarks: post.bookmarks,
+      views: post.views,
+      quoted: post.quoted != null
+          ? PostDetailQuote(
+              author: post.quoted!.author,
+              handle: post.quoted!.handle,
+              timeAgo: post.quoted!.timeAgo,
+              body: post.quoted!.body,
+            )
+          : null,
+    );
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PostDetailScreen(post: payload),
+      ),
+    );
+  }
+
 }
 
 class _ProfileHeader extends StatelessWidget {
-  const _ProfileHeader({required this.onPrimaryAction, required this.onSecondaryAction});
+  const _ProfileHeader({required this.onEditProfile, required this.onShareProfile});
 
-  final VoidCallback onPrimaryAction;
-  final VoidCallback onSecondaryAction;
+  final VoidCallback onEditProfile;
+  final VoidCallback onShareProfile;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final auth = SimpleAuthService();
     final email = auth.currentUserEmail ?? 'user@institution.edu';
+    final accent = AppTheme.accent;
+    final isDark = theme.brightness == Brightness.dark;
+    final onSurface = theme.colorScheme.onSurface;
+    final subtle = onSurface.withValues(alpha: isDark ? 0.7 : 0.58);
+    final containerColor = isDark ? accent.withValues(alpha: 0.18) : accent.withValues(alpha: 0.1);
+    final borderColor = accent.withValues(alpha: isDark ? 0.45 : 0.35);
 
-    return TweetShell(
+    return Container(
+      decoration: BoxDecoration(
+        color: containerColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor, width: 1),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               HexagonAvatar(
-                size: 110,
+                size: 84,
                 child: Center(
                   child: Text(
                     _initialsFrom(email),
-                    style: theme.textTheme.headlineMedium,
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                          fontSize: 36,
+                          fontWeight: FontWeight.w700,
+                        ),
                   ),
                 ),
               ),
-              const SizedBox(width: 24),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Alex Rivera', style: theme.textTheme.headlineMedium),
-                    const SizedBox(height: 8),
-                    Text('@productlead • ${email.toLowerCase()}', style: theme.textTheme.bodySmall),
+                    Text(
+                      'Alex Rivera',
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        color: onSurface,
+                        fontSize: 26,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '@productlead • ${email.toLowerCase()}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: subtle,
+                        fontSize: 12.5,
+                      ),
+                    ),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           Text(
-            'Building human-centred platforms for students, faculty, and researchers. Product Lead at IN-Institution, previously design fellow at Hume Labs.',
-            style: theme.textTheme.bodyLarge?.copyWith(color: AppTheme.textPrimary, height: 1.6),
+            'Guiding nursing and midwifery teams through safe practice, exam preparation, and compassionate leadership across our teaching hospital.',
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: onSurface,
+              height: 1.45,
+              fontSize: 13.5,
+            ),
           ),
-          const SizedBox(height: 24),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: const [
-              _PillTag('Product Strategy'),
-              _PillTag('Accessibility'),
-              _PillTag('Leadership'),
-            ],
+          const SizedBox(height: 14),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: Row(
+              children: const [
+                _PillTag('Clinical Education'),
+                SizedBox(width: 8),
+                _PillTag('Quality Improvement'),
+                SizedBox(width: 8),
+                _PillTag('Mentorship'),
+              ],
+            ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           Row(
             children: const [
               _ProfileStat(value: '18.4K', label: 'Followers'),
-              SizedBox(width: 32),
+              SizedBox(width: 24),
               _ProfileStat(value: '1.2K', label: 'Following'),
-              SizedBox(width: 32),
-              _ProfileStat(value: '342', label: 'Moments'),
+              SizedBox(width: 24),
+              _ProfileStat(value: '342', label: 'Clinical Moments'),
             ],
           ),
-          const SizedBox(height: 28),
+          const SizedBox(height: 18),
           Row(
             children: [
               Expanded(
                 child: ElevatedButton(
-                  onPressed: onPrimaryAction,
-                  child: const Text('Follow'),
+                  onPressed: onEditProfile,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    backgroundColor: onSurface,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Edit Profile'),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton(
-                  onPressed: onSecondaryAction,
-                  child: const Text('Message'),
+                  onPressed: onShareProfile,
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    side: BorderSide(color: borderColor),
+                    foregroundColor: onSurface,
+                  ),
+                  child: const Text('Share Profile'),
                 ),
               ),
             ],
@@ -203,12 +382,25 @@ class _ProfileStat extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final onSurface = theme.colorScheme.onSurface;
+    final subtle = onSurface.withValues(
+      alpha: theme.brightness == Brightness.dark ? 0.6 : 0.55,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(value, style: theme.textTheme.labelLarge?.copyWith(fontSize: 18, color: AppTheme.textPrimary)),
+        Text(
+          value,
+          style: theme.textTheme.labelLarge?.copyWith(
+            fontSize: 18,
+            color: onSurface,
+          ),
+        ),
         const SizedBox(height: 6),
-        Text(label, style: theme.textTheme.bodySmall),
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(color: subtle),
+        ),
       ],
     );
   }
@@ -225,6 +417,11 @@ class _ProfileTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final onSurface = theme.colorScheme.onSurface;
+    final inactive = onSurface.withValues(alpha: isDark ? 0.55 : 0.5);
+    final selectedBg = AppTheme.accent.withValues(alpha: isDark ? 0.24 : 0.12);
+    final borderColor = theme.dividerColor.withValues(alpha: isDark ? 0.4 : 0.2);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: List.generate(_tabs.length, (index) {
@@ -237,364 +434,17 @@ class _ProfileTabs extends StatelessWidget {
               selected: isSelected,
               onSelected: (_) => onChanged(index),
               labelStyle: theme.textTheme.bodyMedium?.copyWith(
-                color: isSelected ? AppTheme.textPrimary : AppTheme.textSecondary,
+                color: isSelected ? onSurface : inactive,
                 fontWeight: FontWeight.w600,
               ),
-              backgroundColor: Colors.white,
-              selectedColor: AppTheme.accent.withValues(alpha: 0.12),
+              backgroundColor: theme.cardColor,
+              selectedColor: selectedBg,
               shape: const StadiumBorder(),
-              side: BorderSide(color: isSelected ? AppTheme.accent : AppTheme.divider),
+              side: BorderSide(color: isSelected ? AppTheme.accent : borderColor),
             ),
           ),
         );
       }),
-    );
-  }
-}
-
-class _ProfilePostCard extends StatefulWidget {
-  const _ProfilePostCard({required this.post});
-
-  final _ProfilePost post;
-
-  @override
-  State<_ProfilePostCard> createState() => _ProfilePostCardState();
-}
-
-class _ProfilePostCardState extends State<_ProfilePostCard> {
-  late int replies = widget.post.replies;
-  late int reposts = widget.post.reposts;
-  late int likes = widget.post.likes;
-  late int views = widget.post.views;
-  late int bookmarks = widget.post.bookmarks;
-
-  bool liked = false;
-  bool bookmarked = false;
-  bool reposted = false;
-
-  void _showToast(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white)),
-        backgroundColor: Colors.black,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        duration: const Duration(milliseconds: 1200),
-      ),
-    );
-  }
-
-  void _handleAction(_MetricType type) {
-    switch (type) {
-      case _MetricType.reply:
-        setState(() => replies += 1);
-        _showToast(context, 'Reply composer coming soon');
-        break;
-      case _MetricType.rein:
-        _showReinDropdown();
-        break;
-      case _MetricType.like:
-        setState(() {
-          liked = !liked;
-          likes += liked ? 1 : -1;
-        });
-        break;
-      case _MetricType.view:
-        setState(() => views += 1);
-        _showToast(context, 'Insights panel coming soon');
-        break;
-      case _MetricType.bookmark:
-        setState(() {
-          bookmarked = !bookmarked;
-          bookmarks += bookmarked ? 1 : -1;
-        });
-        break;
-      case _MetricType.share:
-        _showToast(context, 'Share sheet coming soon');
-        break;
-    }
-  }
-
-  void _showReinDropdown() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => Container(
-        margin: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.15),
-              blurRadius: 30,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(top: 12, bottom: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE2E8F0),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  _buildReinDropdownItem(
-                    icon: Icons.repeat_rounded,
-                    title: 'Re-institute',
-                    onTap: () {
-                      Navigator.pop(context);
-                      setState(() {
-                        reposted = !reposted;
-                        reposts += reposted ? 1 : -1;
-                      });
-                      _showToast(context, reposted ? 'Re-instituted!' : 'Removed re-institution');
-                    },
-                  ),
-                  const SizedBox(height: 4),
-                  _buildReinDropdownItem(
-                    icon: Icons.format_quote_rounded,
-                    title: 'Quote',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => QuoteScreen(
-                            author: widget.post.author,
-                            handle: '@profile',
-                            timeAgo: widget.post.meta,
-                            body: widget.post.body,
-                            initials: _initialsFrom(widget.post.author),
-                            tags: widget.post.tags,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  const Divider(color: Color(0xFFE2E8F0)),
-                  const SizedBox(height: 8),
-                  _buildReinDropdownItem(
-                    icon: Icons.close_rounded,
-                    title: 'Cancel',
-                    color: const Color(0xFF64748B),
-                    onTap: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildReinDropdownItem({
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-    Color? color,
-  }) {
-    final itemColor = color ?? const Color(0xFF2D3748);
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
-          child: Row(
-            children: [
-              Icon(
-                icon,
-                color: itemColor,
-                size: 20,
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    color: itemColor,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    final metrics = [
-      _TweetMetricData(type: _MetricType.reply, icon: Icons.chat_rounded, count: replies),
-      _TweetMetricData(type: _MetricType.rein, icon: Icons.swap_vertical_circle, count: reposts, isActive: reposted),
-      _TweetMetricData(type: _MetricType.like, icon: liked ? Icons.favorite : Icons.favorite_border, count: likes, isActive: liked),
-      _TweetMetricData(type: _MetricType.view, icon: Icons.visibility_outlined, count: views),
-      _TweetMetricData(type: _MetricType.bookmark, icon: bookmarked ? Icons.bookmark : Icons.bookmark_border, count: bookmarks, isActive: bookmarked),
-      const _TweetMetricData(type: _MetricType.share, icon: Icons.open_in_new_outlined),
-    ];
-
-    return TweetShell(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              HexagonAvatar(
-                size: 56,
-                child: Center(
-                  child: Text(
-                    _initialsFrom(widget.post.author),
-                    style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(widget.post.author, style: theme.textTheme.labelLarge?.copyWith(fontSize: 16)),
-                    const SizedBox(height: 4),
-                    Text(widget.post.meta, style: theme.textTheme.bodySmall),
-                  ],
-                ),
-              ),
-              IconButton(
-                onPressed: () => _showToast(context, 'Post options coming soon'),
-                icon: const Icon(Icons.more_horiz, color: AppTheme.textTertiary),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Text(
-            widget.post.body,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface,
-              height: 1.6,
-            ),
-          ),
-          if (widget.post.tags.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: widget.post.tags.map((tag) => _PillTag(tag)).toList(),
-            ),
-          ],
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              for (final metric in metrics)
-                Flexible(
-                  flex: metric.count != null ? 2 : 1,
-                  child: _TweetMetric(data: metric, onTap: () => _handleAction(metric.type)),
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TweetMetricData {
-  const _TweetMetricData({
-    required this.type,
-    required this.icon,
-    this.count,
-    this.isActive = false,
-  });
-
-  final _MetricType type;
-  final IconData icon;
-  final int? count;
-  final bool isActive;
-}
-
-class _TweetMetric extends StatelessWidget {
-  const _TweetMetric({required this.data, required this.onTap});
-
-  final _TweetMetricData data;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final isRein = data.type == _MetricType.rein;
-    final color = data.isActive ? AppTheme.accent : AppTheme.textSecondary;
-    final textStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: color,
-          fontWeight: FontWeight.w600,
-        );
-
-    Widget child = SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (isRein)
-            Text(
-              'Re-in',
-              style: textStyle?.copyWith(fontSize: 13, fontWeight: FontWeight.w600),
-            )
-          else
-            Icon(data.icon, size: 20, color: color),
-          if (data.count != null) ...[
-            const SizedBox(width: 4),
-            Text(
-              _formatMetric(data.count!),
-              style: textStyle?.copyWith(fontSize: 12),
-            ),
-          ],
-        ],
-      ),
-    );
-
-    if (isRein) {
-      return InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            color: data.isActive ? AppTheme.accent.withValues(alpha: 0.1) : Colors.transparent,
-            border: data.isActive
-              ? Border.all(color: AppTheme.accent.withValues(alpha: 0.3), width: 1)
-              : null,
-          ),
-          child: child,
-        ),
-      );
-    }
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-        child: child,
-      ),
     );
   }
 }
@@ -606,64 +456,29 @@ class _PillTag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final background = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : const Color(0xFFF1F5F9);
+    final textColor = isDark ? Colors.white.withValues(alpha: 0.72) : const Color(0xFF4B5563);
+
     return Chip(
       label: Text(label),
-      labelStyle: Theme.of(context)
-          .textTheme
+      labelStyle: theme.textTheme
           .bodyMedium
-          ?.copyWith(color: AppTheme.accent, fontWeight: FontWeight.w600),
-      backgroundColor: AppTheme.accent.withValues(alpha: 0.12),
+          ?.copyWith(color: textColor, fontWeight: FontWeight.w600, fontSize: 11),
+      backgroundColor: background,
       shape: const StadiumBorder(),
       side: BorderSide.none,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
     );
   }
 }
-
-enum _MetricType { reply, rein, like, view, bookmark, share }
-
-class _ProfilePost {
-  const _ProfilePost({
-    required this.author,
-    required this.meta,
-    required this.body,
-    required this.replies,
-    required this.reposts,
-    required this.likes,
-    required this.views,
-    required this.bookmarks,
-    this.tags = const <String>[],
-  });
-
-  final String author;
-  final String meta;
-  final String body;
-  final int replies;
-  final int reposts;
-  final int likes;
-  final int views;
-  final int bookmarks;
-  final List<String> tags;
-}
-
-// Note: profile posts now loaded from DataService; seed constant removed.
-const List<_ProfilePost> _profilePosts = const [];
 
 String _initialsFrom(String value) {
   final letters = value.replaceAll(RegExp('[^A-Za-z]'), '');
   if (letters.isEmpty) return 'IN';
   final count = letters.length >= 2 ? 2 : 1;
   return letters.substring(0, count).toUpperCase();
-}
-
-String _formatMetric(int value) {
-  if (value >= 1000000) {
-    final formatted = value / 1000000;
-    return formatted >= 10 ? '${formatted.toStringAsFixed(0)}M' : '${formatted.toStringAsFixed(1)}M';
-  }
-  if (value >= 1000) {
-    final formatted = value / 1000;
-    return formatted >= 10 ? '${formatted.toStringAsFixed(0)}K' : '${formatted.toStringAsFixed(1)}K';
-  }
-  return value.toString();
 }

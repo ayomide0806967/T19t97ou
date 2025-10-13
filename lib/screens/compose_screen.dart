@@ -1,18 +1,15 @@
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/hexagon_avatar.dart';
-import '../widgets/tweet_shell.dart';
 import '../widgets/tagged_text_input.dart';
-import 'home_screen.dart';
 import 'package:provider/provider.dart';
 import '../services/data_service.dart';
-import '../services/simple_auth_service.dart';
 
 class ComposeScreen extends StatefulWidget {
   const ComposeScreen({super.key, this.onPostCreated});
 
-  final Function(String content, List<String> tags, List<String> media)? onPostCreated;
+  final Function(String content, List<String> tags, List<String> media)?
+  onPostCreated;
 
   @override
   State<ComposeScreen> createState() => _ComposeScreenState();
@@ -36,7 +33,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-appBar: AppBar(
+      appBar: AppBar(
         backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         elevation: 0,
         leading: IconButton(
@@ -75,7 +72,10 @@ appBar: AppBar(
                 children: [
                   // Current user info
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -84,26 +84,26 @@ appBar: AppBar(
                           child: const Icon(Icons.person, color: Colors.white),
                         ),
                         const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'You',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'You',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            ),
-                            Text(
-                              'your@institution.edu',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: const Color(0xFF64748B),
+                              Text(
+                                'your@institution.edu',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: const Color(0xFF64748B),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -112,10 +112,10 @@ appBar: AppBar(
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: TaggedTextInput(
-                    controller: _controller,
-                    maxLines: null,
-                    hintText: 'What\'s happening at the institution?',
-                    onChanged: (_) => setState(() {}),
+                      controller: _controller,
+                      maxLines: null,
+                      hintText: 'What\'s happening on the wards today?',
+                      onChanged: (_) => setState(() {}),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -124,7 +124,7 @@ appBar: AppBar(
                   if (_selectedMedia.isNotEmpty) ...[
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Container(
+                      child: SizedBox(
                         height: 100,
                         child: ListView.builder(
                           scrollDirection: Axis.horizontal,
@@ -159,8 +159,12 @@ appBar: AppBar(
                                         width: 24,
                                         height: 24,
                                         decoration: BoxDecoration(
-                                          color: Colors.black.withValues(alpha: 0.6),
-                                          borderRadius: BorderRadius.circular(12),
+                                          color: Colors.black.withValues(
+                                            alpha: 0.6,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
                                         ),
                                         child: const Icon(
                                           Icons.close,
@@ -187,41 +191,52 @@ appBar: AppBar(
                       child: Wrap(
                         spacing: 8,
                         runSpacing: 8,
-                        children: _selectedTags.map((tag) => Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: AppTheme.accent.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppTheme.accent.withValues(alpha: 0.3)),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                tag,
-                                style: TextStyle(
-                                  color: AppTheme.accent,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
+                        children: _selectedTags
+                            .map(
+                              (tag) => Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.accent.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: AppTheme.accent.withValues(
+                                      alpha: 0.3,
+                                    ),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      tag,
+                                      style: TextStyle(
+                                        color: AppTheme.accent,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          _selectedTags.remove(tag);
+                                        });
+                                      },
+                                      child: Icon(
+                                        Icons.close,
+                                        size: 16,
+                                        color: AppTheme.accent,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              const SizedBox(width: 4),
-                              GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _selectedTags.remove(tag);
-                                  });
-                                },
-                                child: Icon(
-                                  Icons.close,
-                                  size: 16,
-                                  color: AppTheme.accent,
-                                ),
-                              ),
-                            ],
-                          ),
-                      )).toList(),
-                    ),
+                            )
+                            .toList(),
+                      ),
                     ),
                     const SizedBox(height: 12),
                   ],
@@ -230,53 +245,53 @@ appBar: AppBar(
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Quick Actions',
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF1E293B),
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Quick Actions',
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF1E293B),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          _QuickActionChip(
-                            label: 'Announcement',
-                            icon: Icons.campaign_outlined,
-                            onTap: () => _addTag('Announcement'),
-                          ),
-                          _QuickActionChip(
-                            label: 'Event',
-                            icon: Icons.event_outlined,
-                            onTap: () => _addTag('Event'),
-                          ),
-                          _QuickActionChip(
-                            label: 'Question',
-                            icon: Icons.help_outline,
-                            onTap: () => _addTag('Question'),
-                          ),
-                          _QuickActionChip(
-                            label: 'Update',
-                            icon: Icons.update_outlined,
-                            onTap: () => _addTag('Update'),
-                          ),
-                          _QuickActionChip(
-                            label: 'Achievement',
-                            icon: Icons.emoji_events_outlined,
-                            onTap: () => _addTag('Achievement'),
-                          ),
-                          _QuickActionChip(
-                            label: 'Discussion',
-                            icon: Icons.forum_outlined,
-                            onTap: () => _addTag('Discussion'),
-                          ),
-                        ],
-                      ),
-                    ],
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _QuickActionChip(
+                              label: 'Clinical Update',
+                              icon: Icons.campaign_outlined,
+                              onTap: () => _addTag('Clinical Update'),
+                            ),
+                            _QuickActionChip(
+                              label: 'Study Tip',
+                              icon: Icons.event_outlined,
+                              onTap: () => _addTag('Study Tip'),
+                            ),
+                            _QuickActionChip(
+                              label: 'Case Review',
+                              icon: Icons.help_outline,
+                              onTap: () => _addTag('Case Review'),
+                            ),
+                            _QuickActionChip(
+                              label: 'Policy Alert',
+                              icon: Icons.update_outlined,
+                              onTap: () => _addTag('Policy Alert'),
+                            ),
+                            _QuickActionChip(
+                              label: 'Competency Check',
+                              icon: Icons.emoji_events_outlined,
+                              onTap: () => _addTag('Competency Check'),
+                            ),
+                            _QuickActionChip(
+                              label: 'Wellness',
+                              icon: Icons.forum_outlined,
+                              onTap: () => _addTag('Wellness'),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -311,8 +326,8 @@ appBar: AppBar(
                   '${_controller.text.length}/280',
                   style: TextStyle(
                     color: _controller.text.length > 280
-                      ? const Color(0xFFEF4444)
-                      : const Color(0xFF64748B),
+                        ? const Color(0xFFEF4444)
+                        : const Color(0xFF64748B),
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),
@@ -327,8 +342,8 @@ appBar: AppBar(
 
   bool _canPost() {
     return _controller.text.trim().isNotEmpty &&
-           _controller.text.length <= 280 &&
-           !_isPosting;
+        _controller.text.length <= 280 &&
+        !_isPosting;
   }
 
   void _addMedia() {
@@ -347,7 +362,9 @@ appBar: AppBar(
   }
 
   void _showCancelDialog() {
-    if (_controller.text.trim().isNotEmpty || _selectedMedia.isNotEmpty || _selectedTags.isNotEmpty) {
+    if (_controller.text.trim().isNotEmpty ||
+        _selectedMedia.isNotEmpty ||
+        _selectedTags.isNotEmpty) {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -383,20 +400,18 @@ appBar: AppBar(
     // Simulate posting delay
     await Future.delayed(const Duration(seconds: 1));
 
-    if (mounted) {
-      // Add to global feed
-      final auth = SimpleAuthService();
-      final email = auth.currentUserEmail ?? 'your@institution.edu';
-      await context.read<DataService>().addPost(
-        author: 'You',
-        handle: '@yourprofile',
-        body: _controller.text.trim(),
-        tags: List.of(_selectedTags),
-      );
+    if (!mounted) return;
 
-      Navigator.pop(context);
-      _showToast('Post published successfully!');
-    }
+    await context.read<DataService>().addPost(
+      author: 'You',
+      handle: '@yourprofile',
+      body: _controller.text.trim(),
+      tags: List.of(_selectedTags),
+    );
+
+    if (!mounted) return;
+    Navigator.pop(context);
+    _showToast('Post published successfully!');
   }
 
   void _showToast(String message) {
@@ -404,7 +419,10 @@ appBar: AppBar(
       SnackBar(
         content: Text(
           message,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         backgroundColor: Colors.black,
         behavior: SnackBarBehavior.floating,
@@ -430,16 +448,12 @@ class _ToolbarButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 20,
-              color: const Color(0xFF64748B),
-            ),
+            Icon(icon, size: 20, color: const Color(0xFF64748B)),
             const SizedBox(height: 2),
             Text(
               label,
@@ -481,11 +495,7 @@ class _QuickActionChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 16,
-              color: const Color(0xFF64748B),
-            ),
+            Icon(icon, size: 16, color: const Color(0xFF64748B)),
             const SizedBox(width: 6),
             Text(
               label,

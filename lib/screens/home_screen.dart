@@ -3,18 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../services/data_service.dart';
 import '../services/simple_auth_service.dart';
+import '../state/app_settings.dart';
 import '../theme/app_theme.dart';
 import '../widgets/hexagon_avatar.dart';
-import '../widgets/tweet_shell.dart';
-import '../widgets/simple_comment_section.dart';
-import '../state/app_settings.dart';
-import '../services/data_service.dart';
-import 'profile_screen.dart';
-import 'explore_screen.dart';
+import '../widgets/tweet_post_card.dart';
 import 'chat_screen.dart';
-import 'quote_screen.dart';
 import 'compose_screen.dart';
+import 'explore_screen.dart';
+import 'profile_screen.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -28,90 +26,31 @@ class _HomeScreenState extends State<HomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 // Theme is now controlled globally via AppSettings; keeping local field removed.
   int _selectedBottomNavIndex = 0;
-  List<_Post> _posts = List.from(_demoPosts);
 
   SimpleAuthService get _authService => SimpleAuthService();
-
-  void _addNewPost({
-    required String type,
-    _Post? originalPost,
-    String? comment,
-    List<String>? postTags,
-    List<String>? postMedia,
-  }) {
-    final newPost = _Post(
-      author: 'You',
-      handle: '@yourprofile',
-      timeAgo: 'just now',
-      body: comment ?? '',
-      quotedPost: type == 'Quote' ? originalPost : null,
-      replies: 0,
-      reposts: 0,
-      likes: 0,
-      views: 0,
-      bookmarks: 0,
-      tags: postTags ?? <String>[],
-    );
-
-    setState(() {
-      _posts.insert(0, newPost);
-    });
-
-    _showToast('Post published successfully!');
-  }
-
-  void _showToast(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-        ),
-        backgroundColor: Colors.black,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        duration: const Duration(milliseconds: 1200),
-      ),
-    );
+  String get _currentUserHandle {
+    final email = _authService.currentUserEmail;
+    if (email == null || email.isEmpty) {
+      return '@yourprofile';
+    }
+    final normalized = email.split('@').first.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '').toLowerCase();
+    if (normalized.isEmpty) {
+      return '@yourprofile';
+    }
+    return '@$normalized';
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-final dataService = context.watch<DataService>();
-    final posts = dataService.posts
-        .map((p) => _Post(
-              author: p.author,
-              handle: p.handle,
-              timeAgo: p.timeAgo,
-              body: p.body,
-              replies: p.replies,
-              reposts: p.reposts,
-              likes: p.likes,
-              views: p.views,
-              bookmarks: p.bookmarks,
-              tags: p.tags,
-              quotedPost: p.quoted != null
-                  ? _Post(
-                      author: p.quoted!.author,
-                      handle: p.quoted!.handle,
-                      timeAgo: p.quoted!.timeAgo,
-                      body: p.quoted!.body,
-                      replies: 0,
-                      reposts: 0,
-                      likes: 0,
-                      views: 0,
-                      bookmarks: 0,
-                      tags: p.quoted!.tags,
-                    )
-                  : null,
-            ))
-        .toList();
+    final dataService = context.watch<DataService>();
+    final posts = dataService.posts;
     final initials = _initialsFrom(_authService.currentUserEmail);
+    final currentUserHandle = _currentUserHandle;
 
     return Scaffold(
       key: _scaffoldKey,
-appBar: AppBar(
+      appBar: AppBar(
         backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         elevation: 0,
         shadowColor: Colors.black.withValues(alpha: 0.05),
@@ -212,13 +151,15 @@ appBar: AppBar(
                         ),
                         const SizedBox(height: 24),
                         RepaintBoundary(
-child: _ComposeCard(onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const ComposeScreen(),
-                      ),
-                    );
-                  })
+                          child: _ComposeCard(
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => const ComposeScreen(),
+                                ),
+                              );
+                            },
+                          ),
                         ),
                         const SizedBox(height: 32),
                       ],
@@ -240,8 +181,9 @@ child: _ComposeCard(onTap: () {
                       child: Center(
                         child: ConstrainedBox(
                           constraints: const BoxConstraints(maxWidth: 720),
-child: _PostCard(
+                          child: _PostCard(
                             post: post,
+                            currentUserHandle: currentUserHandle,
                           ),
                         ),
                       ),
@@ -262,7 +204,7 @@ child: _PostCard(
           onPressed: () {
             Navigator.of(context).push(
               MaterialPageRoute(
-builder: (context) => const ComposeScreen(),
+                builder: (context) => const ComposeScreen(),
               ),
             );
           },
@@ -279,9 +221,6 @@ builder: (context) => const ComposeScreen(),
   }
 
   Widget _buildBottomNavigationBar() {
-    final platform = Theme.of(context).platform;
-    final isMobile = platform == TargetPlatform.android || platform == TargetPlatform.iOS;
-
     final barContent = SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -367,7 +306,7 @@ builder: (context) => const ComposeScreen(),
               borderRadius: const BorderRadius.all(Radius.circular(24)),
               border: Border.all(
                 color: isDark
-                    ? Colors.white.withOpacity(0.15)
+                    ? Colors.white.withValues(alpha: 0.15)
                     : Colors.black.withValues(alpha: 0.1),
                 width: 1,
               ),
@@ -379,12 +318,12 @@ builder: (context) => const ComposeScreen(),
                 child: Container(
                   decoration: BoxDecoration(
                     color: isDark
-                        ? Colors.white.withOpacity(0.08)
+                        ? Colors.white.withValues(alpha: 0.08)
                         : Colors.white.withValues(alpha: 0.7),
                     borderRadius: const BorderRadius.all(Radius.circular(24)),
                     border: Border.all(
                       color: isDark
-                          ? Colors.white.withOpacity(0.1)
+                          ? Colors.white.withValues(alpha: 0.1)
                           : Colors.white.withValues(alpha: 0.3),
                       width: 1,
                     ),
@@ -396,7 +335,7 @@ builder: (context) => const ComposeScreen(),
                       ),
                       BoxShadow(
                         color: isDark
-                            ? Colors.white.withOpacity(0.05)
+                            ? Colors.white.withValues(alpha: 0.05)
                             : Colors.white.withValues(alpha: 0.8),
                         blurRadius: 0,
                         offset: const Offset(0, -1),
@@ -749,7 +688,8 @@ _buildDropdownItem(
                       onChanged: (value) {
                         context.read<AppSettings>().toggleDarkMode(value);
                       },
-                      activeColor: const Color(0xFF4299E1),
+                      activeTrackColor: const Color(0xFF4299E1).withValues(alpha: 0.5),
+                      activeThumbColor: const Color(0xFF4299E1),
                     ),
                   ),
                   _buildDropdownItem(
@@ -1190,14 +1130,14 @@ class _ComposeCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(28),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-decoration: BoxDecoration(
+        decoration: BoxDecoration(
           color: Theme.of(context).brightness == Brightness.dark
-              ? Colors.white.withOpacity(0.06)
+              ? Colors.white.withValues(alpha: 0.06)
               : Colors.white,
           borderRadius: BorderRadius.circular(28),
           border: Border.all(
             color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.white.withOpacity(0.08)
+                ? Colors.white.withValues(alpha: 0.08)
                 : AppTheme.divider,
           ),
           boxShadow: Theme.of(context).brightness == Brightness.dark
@@ -1265,470 +1205,17 @@ class _ComposerTool extends StatelessWidget {
   }
 }
 
-class _PostCard extends StatefulWidget {
-  const _PostCard({required this.post, this.onQuoteCreated});
+class _PostCard extends StatelessWidget {
+  const _PostCard({required this.post, required this.currentUserHandle});
 
-  final _Post post;
-  final Function(String comment)? onQuoteCreated;
-
-  @override
-  State<_PostCard> createState() => _PostCardState();
-}
-
-class _PostCardState extends State<_PostCard> {
-  late int replies = widget.post.replies;
-  late int reposts = widget.post.reposts;
-  late int likes = widget.post.likes;
-  late int views = widget.post.views;
-  late int bookmarks = widget.post.bookmarks;
-
-  bool liked = false;
-  bool bookmarked = false;
-  bool reposted = false;
-
-  void _showToast(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white)),
-        backgroundColor: Colors.black,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        duration: const Duration(milliseconds: 1200),
-      ),
-    );
-  }
-
-  void _handleAction(_MetricType type) {
-    switch (type) {
-      case _MetricType.reply:
-        setState(() => replies += 1);
-        _showCommentBottomSheet();
-        break;
-      case _MetricType.rein:
-        _showReinDropdown();
-        break;
-      case _MetricType.like:
-        setState(() {
-          liked = !liked;
-          likes += liked ? 1 : -1;
-        });
-        break;
-      case _MetricType.view:
-        setState(() => views += 1);
-        _showToast(context, 'Insights panel coming soon');
-        break;
-      case _MetricType.bookmark:
-        setState(() {
-          bookmarked = !bookmarked;
-          bookmarks += bookmarked ? 1 : -1;
-        });
-        break;
-      case _MetricType.share:
-        _showToast(context, 'Share sheet coming soon');
-        break;
-    }
-  }
-
-  void _showReinDropdown() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => Container(
-        margin: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.15),
-              blurRadius: 30,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(top: 12, bottom: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE2E8F0),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  _buildReinDropdownItem(
-                    icon: Icons.repeat_rounded,
-                    title: 'Re-institute',
-                    onTap: () {
-                      Navigator.pop(context);
-                      setState(() {
-                        reposted = !reposted;
-                        reposts += reposted ? 1 : -1;
-                      });
-                      _showToast(context, reposted ? 'Re-instituted!' : 'Removed re-institution');
-                    },
-                  ),
-                  const SizedBox(height: 4),
-                  _buildReinDropdownItem(
-                    icon: Icons.format_quote_rounded,
-                    title: 'Quote',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => QuoteScreen(
-                            author: widget.post.author,
-                            handle: widget.post.handle,
-                            timeAgo: widget.post.timeAgo,
-                            body: widget.post.body,
-                            initials: _initialsFrom(widget.post.author),
-                            tags: widget.post.tags,
-                            onPostQuote: (comment) {
-                              if (widget.onQuoteCreated != null) {
-                                widget.onQuoteCreated!(comment);
-                              }
-                            },
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  const Divider(color: Color(0xFFE2E8F0)),
-                  const SizedBox(height: 8),
-                  _buildReinDropdownItem(
-                    icon: Icons.close_rounded,
-                    title: 'Cancel',
-                    color: const Color(0xFF64748B),
-                    onTap: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showCommentBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: Container(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.8,
-          ),
-          margin: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Theme.of(context).scaffoldBackgroundColor,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.15),
-                blurRadius: 30,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(top: 12, bottom: 8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE2E8F0),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              Expanded(
-                child: SimpleCommentSection(
-                  postAuthor: widget.post.author,
-                  postBody: widget.post.body,
-                  postTime: widget.post.timeAgo,
-                  comments: _getSimpleDemoComments(),
-                  onAddComment: (content) {
-                    Navigator.pop(context);
-                    _showToast(context, 'Reply posted successfully!');
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  
-  List<SimpleComment> _getSimpleDemoComments() {
-    return [
-      SimpleComment(
-        author: 'Sarah Johnson',
-        timeAgo: '2h',
-        body: 'This is exactly what our campus needs! Looking forward to seeing the impact on student innovation.',
-        avatarColors: [const Color(0xFF667EEA), const Color(0xFF764BA2)],
-        likes: 12,
-        isLiked: false,
-      ),
-      SimpleComment(
-        author: 'Mike Chen',
-        timeAgo: '1h',
-        body: 'Completely agree! The interdisciplinary approach will be game-changing.',
-        avatarColors: [const Color(0xFFF093FB), const Color(0xFFF5576C)],
-        likes: 3,
-        isLiked: true,
-      ),
-      SimpleComment(
-        author: 'Dr. Emily Watson',
-        timeAgo: '45m',
-        body: 'As a faculty member, I\'m excited about the collaboration opportunities this will create.',
-        avatarColors: [const Color(0xFF4FACFE), const Color(0xFF00F2FE)],
-        likes: 28,
-        isLiked: true,
-      ),
-      SimpleComment(
-        author: 'Alex Rivera',
-        timeAgo: '30m',
-        body: 'The timing is perfect for this initiative. Students have been asking for more collaborative spaces.',
-        avatarColors: [const Color(0xFFFA709A), const Color(0xFFFEE140)],
-        likes: 8,
-        isLiked: false,
-      ),
-    ];
-  }
-
-  Widget _buildReinDropdownItem({
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-    Color? color,
-  }) {
-    final itemColor = color ?? const Color(0xFF2D3748);
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
-          child: Row(
-            children: [
-              Icon(
-                icon,
-                color: itemColor,
-                size: 20,
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    color: itemColor,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  final PostModel post;
+  final String currentUserHandle;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    final metrics = [
-      _TweetMetricData(type: _MetricType.reply, icon: Icons.mode_comment_outlined, count: replies),
-      _TweetMetricData(type: _MetricType.rein, icon: Icons.swap_vertical_circle, count: reposts, isActive: reposted),
-      _TweetMetricData(type: _MetricType.like, icon: liked ? Icons.favorite : Icons.favorite_border, count: likes, isActive: liked),
-      _TweetMetricData(type: _MetricType.view, icon: Icons.trending_up_rounded, count: views),
-      _TweetMetricData(type: _MetricType.bookmark, icon: bookmarked ? Icons.bookmark : Icons.bookmark_border, count: bookmarks, isActive: bookmarked),
-      const _TweetMetricData(type: _MetricType.share, icon: Icons.send_rounded),
-    ];
-
-    return TweetShell(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              HexagonAvatar(
-                size: 56,
-                child: Center(
-                  child: Text(
-                    widget.post.initials,
-                    style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(widget.post.author, style: theme.textTheme.labelLarge?.copyWith(fontSize: 16)),
-                    const SizedBox(height: 4),
-                    Text('${widget.post.handle} • ${widget.post.timeAgo}', style: theme.textTheme.bodySmall),
-                  ],
-                ),
-              ),
-              IconButton(
-                onPressed: () => _showToast(context, 'Post options coming soon'),
-                icon: const Icon(Icons.more_horiz, color: AppTheme.textTertiary),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          if (widget.post.body.isNotEmpty)
-            Text(
-              widget.post.body,
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface,
-                height: 1.6,
-              ),
-            ),
-          if (widget.post.quotedPost != null) ...[
-            const SizedBox(height: 16),
-            _QuoteCard(post: widget.post.quotedPost!),
-          ],
-          if (widget.post.tags.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: widget.post.tags.map((tag) => _PillTag(tag)).toList(),
-            ),
-          ],
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: _TweetMetric(data: metrics[0], onTap: () => _handleAction(metrics[0].type)),
-              ),
-              Expanded(
-                child: _TweetMetric(data: metrics[1], onTap: () => _handleAction(metrics[1].type)),
-              ),
-              Expanded(
-                child: _TweetMetric(data: metrics[2], onTap: () => _handleAction(metrics[2].type)),
-              ),
-              Expanded(
-                child: _TweetMetric(data: metrics[3], onTap: () => _handleAction(metrics[3].type)),
-              ),
-              Expanded(
-                child: _TweetMetric(data: metrics[4], onTap: () => _handleAction(metrics[4].type)),
-              ),
-              Expanded(
-                child: _TweetMetric(data: metrics[5], onTap: () => _handleAction(metrics[5].type)),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TweetMetricData {
-  const _TweetMetricData({
-    required this.type,
-    required this.icon,
-    this.count,
-    this.isActive = false,
-  });
-
-  final _MetricType type;
-  final IconData icon;
-  final int? count;
-  final bool isActive;
-
-  _TweetMetricData copyWith({bool? isActive, int? count}) => _TweetMetricData(
-        type: type,
-        icon: icon,
-        count: count ?? this.count,
-        isActive: isActive ?? this.isActive,
-      );
-}
-
-class _TweetMetric extends StatelessWidget {
-  const _TweetMetric({required this.data, required this.onTap});
-
-  final _TweetMetricData data;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final isRein = data.type == _MetricType.rein;
-    final color = data.isActive ? AppTheme.accent : AppTheme.textSecondary;
-    final textStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: color,
-          fontWeight: FontWeight.w600,
-        );
-
-    Widget child = Row(
-      children: [
-        if (isRein)
-          Text(
-            'Re-in',
-            style: textStyle?.copyWith(fontSize: 13, fontWeight: FontWeight.w600),
-          )
-        else
-          Icon(data.icon, size: 20, color: color),
-        if (data.count != null) ...[
-          const SizedBox(width: 4),
-          Text(
-            _formatMetric(data.count!),
-            style: textStyle?.copyWith(fontSize: 12),
-          ),
-        ],
-      ],
-    );
-
-    if (isRein) {
-      return InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            color: data.isActive ? AppTheme.accent.withValues(alpha: 0.1) : Colors.transparent,
-            border: data.isActive
-              ? Border.all(color: AppTheme.accent.withValues(alpha: 0.3), width: 1)
-              : null,
-          ),
-          child: child,
-        ),
-      );
-    }
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-        child: child,
-      ),
+    return TweetPostCard(
+      post: post,
+      currentUserHandle: currentUserHandle,
     );
   }
 }
@@ -1740,23 +1227,28 @@ class _PillTag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final background = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : const Color(0xFFF1F5F9);
+    final textColor = isDark ? Colors.white.withValues(alpha: 0.72) : const Color(0xFF4B5563);
+
     return Chip(
       label: Text(label),
-      labelStyle: Theme.of(context)
-          .textTheme
+      labelStyle: theme.textTheme
           .bodyMedium
-          ?.copyWith(color: AppTheme.accent, fontWeight: FontWeight.w600),
-      backgroundColor: AppTheme.accent.withValues(alpha: 0.12),
+          ?.copyWith(color: textColor, fontWeight: FontWeight.w600, fontSize: 11),
+      backgroundColor: background,
       shape: const StadiumBorder(),
       side: BorderSide.none,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
     );
   }
 }
 
 class _NavigationItem extends StatelessWidget {
   const _NavigationItem({
-    super.key,
     required this.icon,
     required this.title,
     required this.color,
@@ -1819,210 +1311,12 @@ class _NavigationItem extends StatelessWidget {
   }
 }
 
-enum _MetricType { reply, rein, like, view, bookmark, share }
-
 String _initialsFrom(String? value) {
   if (value == null || value.isEmpty) return 'IN';
   final letters = value.replaceAll(RegExp('[^A-Za-z]'), '');
   if (letters.isEmpty) return 'IN';
   final count = letters.length >= 2 ? 2 : 1;
   return letters.substring(0, count).toUpperCase();
-}
-
-String _formatMetric(int value) {
-  if (value >= 1000000) {
-    final formatted = value / 1000000;
-    return formatted >= 10 ? '${formatted.toStringAsFixed(0)}M' : '${formatted.toStringAsFixed(1)}M';
-  }
-  if (value >= 1000) {
-    final formatted = value / 1000;
-    return formatted >= 10 ? '${formatted.toStringAsFixed(0)}K' : '${formatted.toStringAsFixed(1)}K';
-  }
-  return value.toString();
-}
-
-class _Post {
-  const _Post({
-    required this.author,
-    required this.handle,
-    required this.timeAgo,
-    required this.body,
-    required this.replies,
-    required this.reposts,
-    required this.likes,
-    required this.views,
-    required this.bookmarks,
-    this.tags = const <String>[],
-    this.quotedPost,
-  });
-
-  final String author;
-  final String handle;
-  final String timeAgo;
-  final String body;
-  final int replies;
-  final int reposts;
-  final int likes;
-  final int views;
-  final int bookmarks;
-  final List<String> tags;
-  final _Post? quotedPost;
-
-  String get initials {
-    final parts = author.split(' ');
-    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
-    return (parts.first.substring(0, 1) + parts.last.substring(0, 1)).toUpperCase();
-  }
-}
-
-const List<_Post> _demoPosts = [
-  _Post(
-    author: 'Dr. Maya Chen',
-    handle: '@dean_creative',
-    timeAgo: '2h',
-    body:
-        'Excited to announce the new Innovation Studio. A collaborative environment designed for prototyping, creative coding, and rapid experimentation.',
-    tags: ['Innovation', 'Design Labs'],
-    replies: 91,
-    reposts: 51,
-    likes: 968,
-    views: 46100,
-    bookmarks: 18,
-  ),
-  _Post(
-    author: 'Student Affairs',
-    handle: '@life_at_in',
-    timeAgo: '4h',
-    body:
-        'This Friday we host our minimalist mixer on the West Terrace. Expect acoustic sets, local roasters, and plenty of space to breathe.',
-    tags: ['Events', 'Community'],
-    replies: 42,
-    reposts: 27,
-    likes: 312,
-    views: 18600,
-    bookmarks: 23,
-  ),
-  _Post(
-    author: 'Research Collective',
-    handle: '@insights',
-    timeAgo: '1d',
-    body:
-        'We just published our annual state of campus innovation report. Streamlined briefs, interactive prototypes, and open data sets are available now.',
-    tags: ['Research', 'Open Data'],
-    replies: 58,
-    reposts: 36,
-    likes: 742,
-    views: 32900,
-    bookmarks: 41,
-  ),
-];
-
-class _QuoteCard extends StatelessWidget {
-  const _QuoteCard({required this.post});
-
-  final _Post post;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      margin: const EdgeInsets.only(left: 16),
-      padding: const EdgeInsets.all(16),
-decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark
-            ? Colors.white.withOpacity(0.06)
-            : const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(12),
-border: Border.all(
-          color: Theme.of(context).brightness == Brightness.dark
-              ? Colors.white.withOpacity(0.08)
-              : const Color(0xFFE2E8F0),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: AppTheme.accent.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Center(
-                  child: Text(
-                    post.initials,
-                    style: TextStyle(
-                      color: AppTheme.accent,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          post.author,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF1E293B),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          post.handle,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: const Color(0xFF64748B),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '·',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: const Color(0xFF64748B),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          post.timeAgo,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: const Color(0xFF64748B),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            post.body.length > 200
-              ? '${post.body.substring(0, 200)}...'
-              : post.body,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.85),
-              height: 1.5,
-            ),
-            maxLines: 6,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _Story {

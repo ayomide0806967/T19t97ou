@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../state/app_settings.dart';
+import '../widgets/brand_mark.dart';
 
 class NavigationDrawerScreen extends StatefulWidget {
   const NavigationDrawerScreen({super.key});
@@ -9,61 +13,68 @@ class NavigationDrawerScreen extends StatefulWidget {
 
 class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  bool _darkMode = false;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final surface = theme.colorScheme.surface;
+    final scaffold = theme.scaffoldBackgroundColor;
+    final onSurface = theme.colorScheme.onSurface;
+    final subtle = onSurface.withValues(alpha: isDark ? 0.65 : 0.5);
+
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: scaffold,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: theme.appBarTheme.backgroundColor ?? surface,
         elevation: 0,
-        shadowColor: Colors.black.withValues(alpha: 0.05),
+        shadowColor: Colors.transparent,
         leading: Container(
           margin: const EdgeInsets.only(left: 16, top: 8, bottom: 8),
           decoration: BoxDecoration(
-            color: const Color(0xFFF7FAFC),
+            color: surface,
             borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            border: Border.all(
+              color: theme.dividerColor.withValues(alpha: isDark ? 0.45 : 0.2),
+            ),
           ),
           child: IconButton(
-            icon: const Icon(Icons.menu, color: Color(0xFF2D3748), size: 22),
+            icon: Icon(Icons.menu, color: onSurface, size: 22),
             onPressed: () => _scaffoldKey.currentState?.openDrawer(),
             tooltip: 'Open menu',
           ),
         ),
-        title: const Text(
-          'Dashboard',
-          style: TextStyle(
-            color: Color(0xFF2D3748),
-            fontSize: 24,
-            fontWeight: FontWeight.w600,
-          ),
+        title: Row(
+          children: [
+            const BrandMark(size: 24),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Dashboard',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: onSurface,
+                ),
+              ),
+            ),
+          ],
         ),
         centerTitle: false,
         actions: [
           Container(
             margin: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
             decoration: BoxDecoration(
-              color: const Color(0xFFF7FAFC),
+              color: surface,
               borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              border: Border.all(
+                color: theme.dividerColor.withValues(alpha: isDark ? 0.45 : 0.2),
+              ),
             ),
             child: IconButton(
-              icon: const Icon(Icons.notifications_outlined, color: Color(0xFF2D3748), size: 22),
+              icon: Icon(Icons.notifications_outlined, color: onSurface, size: 22),
               onPressed: () {},
               tooltip: 'Notifications',
             ),
@@ -75,39 +86,40 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildWelcomeSection(),
+            _buildWelcomeSection(theme, onSurface),
             const SizedBox(height: 32),
-            _buildStatsGrid(),
+            _buildStatsGrid(theme, onSurface),
             const SizedBox(height: 32),
-            _buildRecentActivity(),
+            _buildRecentActivity(theme, onSurface, subtle),
             const SizedBox(height: 32),
-            _buildQuickActions(),
+            _buildQuickActions(theme, onSurface),
           ],
         ),
       ),
-      drawer: _buildNavigationDrawer(),
+      drawer: _buildNavigationDrawer(theme, surface, onSurface, subtle),
     );
   }
 
-  Widget _buildNavigationDrawer() {
+  Widget _buildNavigationDrawer(
+    ThemeData theme,
+    Color surface,
+    Color onSurface,
+    Color subtle,
+  ) {
+    final dividerColor = theme.dividerColor.withValues(alpha: 0.2);
+
     return Drawer(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: surface,
       child: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFF8F9FA),
-              Color(0xFFF1F3F4),
-            ],
-          ),
+        decoration: BoxDecoration(
+          color: surface,
+          border: Border(right: BorderSide(color: dividerColor)),
         ),
         child: SafeArea(
           child: Column(
             children: [
               const SizedBox(height: 20),
-              _buildSearchBar(),
+              _buildSearchBar(theme, onSurface, subtle),
               const SizedBox(height: 32),
               Expanded(
                 child: SingleChildScrollView(
@@ -115,9 +127,9 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildNavigationItems(),
+                      _buildNavigationItems(theme, onSurface, subtle),
                       const SizedBox(height: 32),
-                      _buildSection('Pinned', [
+                      _buildSection(theme, 'Pinned', [
                         NavigationItem(
                           icon: Icons.analytics_outlined,
                           title: 'Research & Analysis',
@@ -135,7 +147,7 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
                         ),
                       ]),
                       const SizedBox(height: 24),
-                      _buildSection('Recents', [
+                      _buildSection(theme, 'Recents', [
                         NavigationItem(
                           icon: Icons.person_search_outlined,
                           title: 'User research analysis',
@@ -153,7 +165,7 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
                         ),
                       ]),
                       const SizedBox(height: 24),
-                      _buildSection('Yesterday', [
+                      _buildSection(theme, 'Yesterday', [
                         NavigationItem(
                           icon: Icons.trending_up_outlined,
                           title: 'Market trends analysis',
@@ -175,7 +187,7 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
                   ),
                 ),
               ),
-              _buildUserProfileCard(),
+              _buildUserProfileCard(theme, onSurface, subtle),
             ],
           ),
         ),
@@ -183,38 +195,21 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
     );
   }
 
-  Widget _buildSearchBar() {
+  Widget _buildSearchBar(ThemeData theme, Color onSurface, Color subtle) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-          BoxShadow(
-            color: Colors.white,
-            blurRadius: 0,
-            offset: const Offset(0, -1),
-            spreadRadius: 1,
-          ),
-        ],
+        border: Border.all(
+          color: theme.dividerColor.withValues(alpha: 0.25),
+        ),
       ),
       child: TextField(
         decoration: InputDecoration(
           hintText: 'Search...',
-          hintStyle: const TextStyle(
-            color: Color(0xFFA0AEC0),
-            fontSize: 16,
-          ),
-          prefixIcon: const Icon(
-            Icons.search,
-            color: Color(0xFFA0AEC0),
-            size: 20,
-          ),
+          hintStyle: theme.textTheme.bodyMedium?.copyWith(color: subtle),
+          prefixIcon: Icon(Icons.search, color: subtle, size: 20),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide.none,
@@ -228,7 +223,11 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
     );
   }
 
-  Widget _buildNavigationItems() {
+  Widget _buildNavigationItems(
+    ThemeData theme,
+    Color onSurface,
+    Color subtle,
+  ) {
     return Column(
       children: [
         NavigationItem(
@@ -253,7 +252,7 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
     );
   }
 
-  Widget _buildSection(String title, List<Widget> items) {
+  Widget _buildSection(ThemeData theme, String title, List<Widget> items) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -261,9 +260,9 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
           padding: const EdgeInsets.only(left: 4, bottom: 12),
           child: Text(
             title,
-            style: const TextStyle(
-              color: Color(0xFF718096),
-              fontSize: 12,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurface
+                  .withValues(alpha: theme.brightness == Brightness.dark ? 0.55 : 0.5),
               fontWeight: FontWeight.w600,
               letterSpacing: 0.5,
             ),
@@ -277,24 +276,23 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
     );
   }
 
-  Widget _buildUserProfileCard() {
+  Widget _buildUserProfileCard(
+    ThemeData theme,
+    Color onSurface,
+    Color subtle,
+  ) {
     return Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-          BoxShadow(
-            color: Colors.white,
-            blurRadius: 0,
-            offset: const Offset(0, -2),
-            spreadRadius: 1,
-          ),
+          if (theme.brightness != Brightness.dark)
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
         ],
       ),
       child: Material(
@@ -343,20 +341,18 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'James Brown',
-                        style: TextStyle(
-                          color: Color(0xFF2D3748),
-                          fontSize: 16,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: onSurface,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         'james@alignui.com',
-                        style: TextStyle(
-                          color: const Color(0xFF718096),
-                          fontSize: 12,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: subtle,
                         ),
                       ),
                     ],
@@ -390,94 +386,113 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
   }
 
   void _showProfileDropdown() {
+    final appSettings = context.read<AppSettings>();
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => Container(
-        margin: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.15),
-              blurRadius: 30,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(top: 12, bottom: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE2E8F0),
-                borderRadius: BorderRadius.circular(2),
+      builder: (sheetContext) {
+        final theme = Theme.of(sheetContext);
+        final surface = theme.colorScheme.surface;
+        final divider = theme.dividerColor;
+
+        return Container(
+          margin: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: surface,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: divider.withValues(alpha: 0.2)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 24,
+                offset: const Offset(0, 12),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  _buildDropdownItem(
-                    icon: _darkMode ? Icons.dark_mode : Icons.light_mode,
-                    title: 'Dark Mode',
-                    trailing: Switch(
-                      value: _darkMode,
-                      onChanged: (value) {
-                        setState(() {
-                          _darkMode = value;
-                        });
-                        Navigator.pop(context);
-                      },
-                      activeColor: const Color(0xFF4299E1),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                decoration: BoxDecoration(
+                  color: divider.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    _buildDropdownItem(
+                      theme: theme,
+                      icon: appSettings.isDarkMode
+                          ? Icons.dark_mode
+                          : Icons.light_mode,
+                      title: 'Dark Mode',
+                      trailing: Switch(
+                        value: appSettings.isDarkMode,
+                        onChanged: (value) async {
+                          Navigator.pop(sheetContext);
+                          await context
+                              .read<AppSettings>()
+                              .toggleDarkMode(value);
+                        },
+                        activeThumbColor: theme.colorScheme.primary,
+                        activeTrackColor:
+                            theme.colorScheme.primary.withValues(alpha: 0.35),
+                      ),
                     ),
-                  ),
-                  _buildDropdownItem(
-                    icon: Icons.settings_outlined,
-                    title: 'Settings',
-                    onTap: () => Navigator.pop(context),
-                  ),
-                  _buildDropdownItem(
-                    icon: Icons.language_outlined,
-                    title: 'Language',
-                    onTap: () => Navigator.pop(context),
-                  ),
-                  _buildDropdownItem(
-                    icon: Icons.help_outline,
-                    title: 'Help',
-                    onTap: () => Navigator.pop(context),
-                  ),
-                  const SizedBox(height: 8),
-                  const Divider(color: Color(0xFFE2E8F0)),
-                  const SizedBox(height: 8),
-                  _buildDropdownItem(
-                    icon: Icons.logout_outlined,
-                    title: 'Log out',
-                    color: const Color(0xFFF56565),
-                    onTap: () => Navigator.pop(context),
-                  ),
-                ],
+                    const SizedBox(height: 12),
+                    _buildDropdownItem(
+                      theme: theme,
+                      icon: Icons.settings_outlined,
+                      title: 'Settings',
+                      onTap: () => Navigator.pop(sheetContext),
+                    ),
+                    _buildDropdownItem(
+                      theme: theme,
+                      icon: Icons.language_outlined,
+                      title: 'Language',
+                      onTap: () => Navigator.pop(sheetContext),
+                    ),
+                    _buildDropdownItem(
+                      theme: theme,
+                      icon: Icons.help_outline,
+                      title: 'Help',
+                      onTap: () => Navigator.pop(sheetContext),
+                    ),
+                    const SizedBox(height: 8),
+                    Divider(color: divider),
+                    const SizedBox(height: 8),
+                    _buildDropdownItem(
+                      theme: theme,
+                      icon: Icons.logout_outlined,
+                      title: 'Log out',
+                      color: const Color(0xFFF56565),
+                      onTap: () => Navigator.pop(sheetContext),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
-      ),
+            ],
+          ),
+        );
+      },
     );
   }
 
   Widget _buildDropdownItem({
+    required ThemeData theme,
     required IconData icon,
     required String title,
     Widget? trailing,
     Color? color,
     VoidCallback? onTap,
   }) {
-    final itemColor = color ?? const Color(0xFF2D3748);
+    final itemColor = color ?? theme.colorScheme.onSurface;
 
     return Material(
       color: Colors.transparent,
@@ -497,9 +512,8 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
               Expanded(
                 child: Text(
                   title,
-                  style: TextStyle(
+                  style: theme.textTheme.bodyMedium?.copyWith(
                     color: itemColor,
-                    fontSize: 16,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -512,7 +526,7 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
     );
   }
 
-  Widget _buildWelcomeSection() {
+  Widget _buildWelcomeSection(ThemeData theme, Color onSurface) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -536,11 +550,10 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Welcome back, James!',
-            style: TextStyle(
+            style: theme.textTheme.headlineMedium?.copyWith(
               color: Colors.white,
-              fontSize: 28,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -577,15 +590,14 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
     );
   }
 
-  Widget _buildStatsGrid() {
+  Widget _buildStatsGrid(ThemeData theme, Color onSurface) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Overview',
-          style: TextStyle(
-            color: Color(0xFF2D3748),
-            fontSize: 24,
+          style: theme.textTheme.titleLarge?.copyWith(
+            color: onSurface,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -599,6 +611,8 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
           childAspectRatio: 1.5,
           children: [
             _buildStatCard(
+              theme: theme,
+              onSurface: onSurface,
               title: 'Active Projects',
               value: '12',
               icon: Icons.folder_outlined,
@@ -606,6 +620,8 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
               change: '+2',
             ),
             _buildStatCard(
+              theme: theme,
+              onSurface: onSurface,
               title: 'Completed Tasks',
               value: '48',
               icon: Icons.check_circle_outline,
@@ -613,6 +629,8 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
               change: '+8',
             ),
             _buildStatCard(
+              theme: theme,
+              onSurface: onSurface,
               title: 'Team Members',
               value: '24',
               icon: Icons.people_outline,
@@ -620,6 +638,8 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
               change: '+1',
             ),
             _buildStatCard(
+              theme: theme,
+              onSurface: onSurface,
               title: 'Messages',
               value: '156',
               icon: Icons.chat_bubble_outline,
@@ -633,6 +653,8 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
   }
 
   Widget _buildStatCard({
+    required ThemeData theme,
+    required Color onSurface,
     required String title,
     required String value,
     required IconData icon,
@@ -642,15 +664,20 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: Border.all(
+          color: theme.dividerColor.withValues(alpha: 0.25),
+        ),
+        boxShadow: theme.brightness == Brightness.dark
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
+                ),
+              ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -670,18 +697,16 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
           const SizedBox(height: 12),
           Text(
             value,
-            style: const TextStyle(
-              color: Color(0xFF2D3748),
-              fontSize: 24,
+            style: theme.textTheme.headlineSmall?.copyWith(
+              color: onSurface,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             title,
-            style: const TextStyle(
-              color: Color(0xFF718096),
-              fontSize: 12,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: onSurface.withValues(alpha: 0.6),
             ),
           ),
           const Spacer(),
@@ -708,34 +733,45 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
     );
   }
 
-  Widget _buildRecentActivity() {
+  Widget _buildRecentActivity(
+    ThemeData theme,
+    Color onSurface,
+    Color subtle,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Recent Activity',
-          style: TextStyle(
-            color: Color(0xFF2D3748),
-            fontSize: 24,
+          style: theme.textTheme.titleLarge?.copyWith(
+            color: onSurface,
             fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: 20),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: theme.cardColor,
             borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
+            border: Border.all(
+              color: theme.dividerColor.withValues(alpha: 0.2),
+            ),
+            boxShadow: theme.brightness == Brightness.dark
+                ? []
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
           ),
           child: Column(
             children: [
               _buildActivityItem(
+                theme: theme,
+                onSurface: onSurface,
+                subtle: subtle,
                 icon: Icons.file_download_outlined,
                 title: 'Research Report Completed',
                 subtitle: 'Market analysis Q3 2024',
@@ -743,6 +779,9 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
                 color: const Color(0xFF4299E1),
               ),
               _buildActivityItem(
+                theme: theme,
+                onSurface: onSurface,
+                subtle: subtle,
                 icon: Icons.chat_outlined,
                 title: 'New team message',
                 subtitle: 'Design team discussion',
@@ -750,6 +789,9 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
                 color: const Color(0xFF48BB78),
               ),
               _buildActivityItem(
+                theme: theme,
+                onSurface: onSurface,
+                subtle: subtle,
                 icon: Icons.task_alt_outlined,
                 title: 'Task completed',
                 subtitle: 'Update user documentation',
@@ -764,6 +806,9 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
   }
 
   Widget _buildActivityItem({
+    required ThemeData theme,
+    required Color onSurface,
+    required Color subtle,
     required IconData icon,
     required String title,
     required String subtitle,
@@ -793,43 +838,35 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    color: Color(0xFF2D3748),
-                    fontSize: 14,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: onSurface,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 Text(
                   subtitle,
-                  style: const TextStyle(
-                    color: Color(0xFF718096),
-                    fontSize: 12,
-                  ),
+                  style: theme.textTheme.bodySmall?.copyWith(color: subtle),
                 ),
               ],
             ),
           ),
           Text(
             time,
-            style: const TextStyle(
-              color: Color(0xFFA0AEC0),
-              fontSize: 11,
-            ),
+            style: theme.textTheme.labelSmall?.copyWith(color: subtle),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildQuickActions() {
+  Widget _buildQuickActions(ThemeData theme, Color onSurface) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Quick Actions',
-          style: TextStyle(
-            color: Color(0xFF2D3748),
-            fontSize: 24,
+          style: theme.textTheme.titleLarge?.copyWith(
+            color: onSurface,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -838,6 +875,7 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
           children: [
             Expanded(
               child: _buildActionButton(
+                theme: theme,
                 icon: Icons.add_circle_outline,
                 label: 'New Project',
                 color: const Color(0xFF4299E1),
@@ -846,6 +884,7 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: _buildActionButton(
+                theme: theme,
                 icon: Icons.upload_file_outlined,
                 label: 'Upload File',
                 color: const Color(0xFF48BB78),
@@ -854,6 +893,7 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: _buildActionButton(
+                theme: theme,
                 icon: Icons.schedule_outlined,
                 label: 'Schedule',
                 color: const Color(0xFF9F7AEA),
@@ -866,6 +906,7 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
   }
 
   Widget _buildActionButton({
+    required ThemeData theme,
     required IconData icon,
     required String label,
     required Color color,
@@ -873,10 +914,10 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: color.withValues(alpha: 0.2),
+          color: theme.dividerColor.withValues(alpha: 0.2),
           width: 1,
         ),
       ),
@@ -890,9 +931,8 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
           const SizedBox(height: 8),
           Text(
             label,
-            style: TextStyle(
+            style: theme.textTheme.bodySmall?.copyWith(
               color: color,
-              fontSize: 12,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -918,23 +958,26 @@ class NavigationItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final surface = theme.cardColor;
+    final onSurface = theme.colorScheme.onSurface;
+    final borderColor = theme.dividerColor.withValues(alpha: isDark ? 0.35 : 0.2);
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: surface,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-          BoxShadow(
-            color: Colors.white,
-            blurRadius: 0,
-            offset: const Offset(0, -1),
-            spreadRadius: 1,
-          ),
-        ],
+        border: Border.all(color: borderColor),
+        boxShadow: isDark
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
       ),
       child: Material(
         color: Colors.transparent,
@@ -954,9 +997,8 @@ class NavigationItem extends StatelessWidget {
                 Expanded(
                   child: Text(
                     title,
-                    style: const TextStyle(
-                      color: Color(0xFF2D3748),
-                      fontSize: 14,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: onSurface,
                       fontWeight: FontWeight.w500,
                     ),
                   ),

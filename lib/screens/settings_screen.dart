@@ -49,6 +49,7 @@ class SettingsScreen extends StatelessWidget {
                   final prefs = await SharedPreferences.getInstance();
                   await prefs.clear();
                   // Reload settings to default
+                  if (!context.mounted) return;
                   await context.read<AppSettings>().setThemeMode(ThemeMode.light);
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(

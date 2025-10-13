@@ -1,7 +1,5 @@
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
-import '../widgets/hexagon_avatar.dart';
 import '../widgets/tagged_text_input.dart';
 
 class CommentSection extends StatefulWidget {
@@ -36,13 +34,9 @@ class _CommentSectionState extends State<CommentSection>
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeOutCubic,
-    ));
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
+    );
     _animationController.forward();
   }
 
@@ -76,11 +70,13 @@ class _CommentSectionState extends State<CommentSection>
           child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 24),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.03) : Colors.white,
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.03)
+                  : Colors.white,
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
                 color: isDark
-                    ? Colors.white.withOpacity(0.06)
+                    ? Colors.white.withValues(alpha: 0.06)
                     : Colors.black.withValues(alpha: 0.06),
               ),
               boxShadow: isDark
@@ -104,7 +100,9 @@ class _CommentSectionState extends State<CommentSection>
                       Icon(
                         Icons.mode_comment_rounded,
                         size: 18,
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.7,
+                        ),
                       ),
                       const SizedBox(width: 8),
                       Text(
@@ -152,20 +150,24 @@ class _CommentSectionState extends State<CommentSection>
                                 Icon(
                                   Icons.chat_bubble_outline_rounded,
                                   size: 48,
-                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+                                  color: theme.colorScheme.onSurface.withValues(
+                                    alpha: 0.3,
+                                  ),
                                 ),
                                 const SizedBox(height: 12),
                                 Text(
                                   'No comments yet',
                                   style: theme.textTheme.bodyLarge?.copyWith(
-                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                                    color: theme.colorScheme.onSurface
+                                        .withValues(alpha: 0.5),
                                   ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   'Be the first to share your thoughts',
                                   style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                                    color: theme.colorScheme.onSurface
+                                        .withValues(alpha: 0.4),
                                   ),
                                 ),
                               ],
@@ -189,7 +191,9 @@ class _CommentSectionState extends State<CommentSection>
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.white.withOpacity(0.01) : Colors.grey.withValues(alpha: 0.02),
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.01)
+                        : Colors.grey.withValues(alpha: 0.02),
                     borderRadius: const BorderRadius.only(
                       bottomLeft: Radius.circular(24),
                       bottomRight: Radius.circular(24),
@@ -213,10 +217,7 @@ class _CommentSectionState extends State<CommentSection>
 }
 
 class _CommentTile extends StatefulWidget {
-  const _CommentTile({
-    required this.comment,
-    required this.isLast,
-  });
+  const _CommentTile({required this.comment, required this.isLast});
 
   final Comment comment;
   final bool isLast;
@@ -240,10 +241,7 @@ class _CommentTileState extends State<_CommentTile>
     _scaleAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutBack,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
     _controller.forward();
   }
 
@@ -256,7 +254,6 @@ class _CommentTileState extends State<_CommentTile>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return AnimatedBuilder(
       animation: _scaleAnimation,
@@ -264,10 +261,7 @@ class _CommentTileState extends State<_CommentTile>
         return Transform.scale(
           scale: _scaleAnimation.value,
           child: Container(
-            margin: EdgeInsets.only(
-              top: 16,
-              bottom: widget.isLast ? 0 : 16,
-            ),
+            margin: EdgeInsets.only(top: 16, bottom: widget.isLast ? 0 : 16),
             child: Column(
               children: [
                 Row(
@@ -395,16 +389,16 @@ class _CommentTileState extends State<_CommentTile>
                                 isActive: widget.comment.isLiked,
                                 onTap: () {
                                   setState(() {
-                                    widget.comment.isLiked = !widget.comment.isLiked;
-                                    widget.comment.likes += widget.comment.isLiked
-                                        ? 1
-                                        : -1;
+                                    widget.comment.isLiked =
+                                        !widget.comment.isLiked;
+                                    widget.comment.likes +=
+                                        widget.comment.isLiked ? 1 : -1;
                                   });
                                 },
                               ),
                               const SizedBox(width: 20),
                               _CommentAction(
-                                icon: Icons.share_rounded,
+                                icon: Icons.send_rounded,
                                 onTap: () {},
                               ),
                             ],
@@ -435,10 +429,7 @@ class _CommentTileState extends State<_CommentTile>
 }
 
 class _ReplyTile extends StatefulWidget {
-  const _ReplyTile({
-    required this.reply,
-    required this.isLast,
-  });
+  const _ReplyTile({required this.reply, required this.isLast});
 
   final Comment reply;
   final bool isLast;
@@ -462,10 +453,7 @@ class _ReplyTileState extends State<_ReplyTile>
     _slideAnimation = Tween<double>(
       begin: -0.05,
       end: 0.0,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutCubic,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
     _controller.forward();
   }
 
@@ -493,7 +481,7 @@ class _ReplyTileState extends State<_ReplyTile>
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: theme.brightness == Brightness.dark
-                  ? Colors.white.withOpacity(0.03)
+                  ? Colors.white.withValues(alpha: 0.03)
                   : Colors.grey.withValues(alpha: 0.04),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
@@ -572,7 +560,9 @@ class _ReplyTileState extends State<_ReplyTile>
                             onTap: () {
                               setState(() {
                                 widget.reply.isLiked = !widget.reply.isLiked;
-                                widget.reply.likes += widget.reply.isLiked ? 1 : -1;
+                                widget.reply.likes += widget.reply.isLiked
+                                    ? 1
+                                    : -1;
                               });
                             },
                             size: 'small',
@@ -625,10 +615,7 @@ class _CommentActionState extends State<_CommentAction>
     _scaleAnimation = Tween<double>(
       begin: 1.0,
       end: 0.9,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutCubic,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
   }
 
   @override
@@ -719,7 +706,6 @@ class _CommentInputState extends State<_CommentInput>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _heightAnimation;
-  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
@@ -731,17 +717,7 @@ class _CommentInputState extends State<_CommentInput>
     _heightAnimation = Tween<double>(
       begin: 48.0,
       end: 80.0,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutCubic,
-    ));
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutCubic,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
 
     if (widget.isExpanded) {
       _controller.value = 1.0;
@@ -778,12 +754,12 @@ class _CommentInputState extends State<_CommentInput>
           height: _heightAnimation.value,
           decoration: BoxDecoration(
             color: isDark
-                ? Colors.white.withOpacity(0.06)
+                ? Colors.white.withValues(alpha: 0.06)
                 : Colors.grey.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
               color: isDark
-                  ? Colors.white.withOpacity(0.08)
+                  ? Colors.white.withValues(alpha: 0.08)
                   : Colors.black.withValues(alpha: 0.06),
             ),
           ),
@@ -824,7 +800,9 @@ class _CommentInputState extends State<_CommentInput>
                           color: theme.colorScheme.onSurface,
                         ),
                         hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.5,
+                          ),
                         ),
                         onChanged: (text) {
                           setState(() {});
@@ -839,7 +817,9 @@ class _CommentInputState extends State<_CommentInput>
                           child: Text(
                             'Add a comment...',
                             style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.5,
+                              ),
                             ),
                           ),
                         ),
@@ -848,7 +828,9 @@ class _CommentInputState extends State<_CommentInput>
 
               // Post button
               AnimatedOpacity(
-                opacity: widget.isExpanded && widget.controller.text.trim().isNotEmpty
+                opacity:
+                    widget.isExpanded &&
+                        widget.controller.text.trim().isNotEmpty
                     ? 1.0
                     : 0.0,
                 duration: const Duration(milliseconds: 150),
@@ -906,6 +888,7 @@ class Comment {
   String get initials {
     final parts = author.split(' ');
     if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
-    return (parts.first.substring(0, 1) + parts.last.substring(0, 1)).toUpperCase();
+    return (parts.first.substring(0, 1) + parts.last.substring(0, 1))
+        .toUpperCase();
   }
 }

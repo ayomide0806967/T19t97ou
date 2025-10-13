@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../services/simple_auth_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/brand_mark.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -112,22 +113,24 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        const BrandMark(size: 48),
+                        const SizedBox(height: 24),
                         Wrap(
                           spacing: 12,
                           runSpacing: 12,
                           children: const [
-                            _FeatureTag('Minimal UI'),
-                            _FeatureTag('Built for teams'),
+                            _FeatureTag('Clinical Focus'),
+                            _FeatureTag('Secure for cohorts'),
                           ],
                         ),
                         const SizedBox(height: 48),
                         Text(
-                          'Campus conversations, reimagined.',
+                          'Nursing collaboration, reimagined.',
                           style: theme.textTheme.headlineLarge,
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'A lightweight social hub for announcements, collaborations, and the everyday pulse of your institution.',
+                          'A lightweight hub for nursing updates, clinical pearls, and daily learning wins.',
                           style: theme.textTheme.bodyLarge,
                         ),
                         const SizedBox(height: 56),
@@ -156,7 +159,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                                 const SizedBox(height: 12),
                                 Text(
-                                  'Use your institutional email to stay connected with the community.',
+                                  'Use your training email to stay connected with your cohort.',
                                   style: theme.textTheme.bodyMedium,
                                 ),
                                 const SizedBox(height: 28),

@@ -1,11 +1,8 @@
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/hexagon_avatar.dart';
-import '../widgets/tweet_shell.dart';
 import 'package:provider/provider.dart';
 import '../services/data_service.dart';
-import '../services/simple_auth_service.dart';
 
 class QuoteScreen extends StatefulWidget {
   const QuoteScreen({
@@ -47,7 +44,7 @@ class _QuoteScreenState extends State<QuoteScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-appBar: AppBar(
+      appBar: AppBar(
         backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         elevation: 0,
         leading: IconButton(
@@ -154,7 +151,10 @@ appBar: AppBar(
                         // Quote indicator
                         Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
                           decoration: BoxDecoration(
                             color: AppTheme.accent.withValues(alpha: 0.1),
                             borderRadius: const BorderRadius.only(
@@ -194,28 +194,32 @@ appBar: AppBar(
                                     child: Center(
                                       child: Text(
                                         widget.initials,
-                                        style: theme.textTheme.labelSmall?.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                                        style: theme.textTheme.labelSmall
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                       ),
                                     ),
                                   ),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           widget.author,
-                                          style: theme.textTheme.titleSmall?.copyWith(
-                                            fontWeight: FontWeight.w600,
-                                          ),
+                                          style: theme.textTheme.titleSmall
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w600,
+                                              ),
                                         ),
                                         Text(
                                           '${widget.handle} • ${widget.timeAgo}',
-                                          style: theme.textTheme.bodySmall?.copyWith(
-                                            color: const Color(0xFF64748B),
-                                          ),
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                                color: const Color(0xFF64748B),
+                                              ),
                                         ),
                                       ],
                                     ),
@@ -238,21 +242,30 @@ appBar: AppBar(
                                 Wrap(
                                   spacing: 8,
                                   runSpacing: 8,
-                                  children: widget.tags.map((tag) => Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF1F5F9),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(
-                                      tag,
-                                      style: const TextStyle(
-                                        color: Color(0xFF64748B),
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  )).toList(),
+                                  children: widget.tags
+                                      .map(
+                                        (tag) => Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFF1F5F9),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            tag,
+                                            style: const TextStyle(
+                                              color: Color(0xFF64748B),
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                      .toList(),
                                 ),
                               ],
                             ],
@@ -271,9 +284,7 @@ appBar: AppBar(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
-              border: Border(
-                top: BorderSide(color: const Color(0xFFE2E8F0)),
-              ),
+              border: Border(top: BorderSide(color: const Color(0xFFE2E8F0))),
             ),
             child: Row(
               children: [
@@ -299,8 +310,8 @@ appBar: AppBar(
                   '${_controller.text.length}/280',
                   style: TextStyle(
                     color: _controller.text.length > 280
-                      ? const Color(0xFFEF4444)
-                      : const Color(0xFF64748B),
+                        ? const Color(0xFFEF4444)
+                        : const Color(0xFF64748B),
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),
@@ -314,7 +325,8 @@ appBar: AppBar(
   }
 
   bool _canPost() {
-    return _controller.text.length <= 280 && !_isPosting;  // Allow empty text for quotes
+    return _controller.text.length <= 280 &&
+        !_isPosting; // Allow empty text for quotes
   }
 
   void _postQuote() async {
@@ -327,26 +339,24 @@ appBar: AppBar(
     // Simulate posting delay
     await Future.delayed(const Duration(seconds: 1));
 
-    if (mounted) {
-      final auth = SimpleAuthService();
-      final email = auth.currentUserEmail ?? 'your@institution.edu';
+    if (!mounted) return;
 
-      await context.read<DataService>().addQuote(
-        author: 'You',
-        handle: '@yourprofile',
-        comment: _controller.text.trim(),
-        original: PostSnapshot(
-          author: widget.author,
-          handle: widget.handle,
-          timeAgo: widget.timeAgo,
-          body: widget.body,
-          tags: widget.tags,
-        ),
-      );
+    await context.read<DataService>().addQuote(
+      author: 'You',
+      handle: '@yourprofile',
+      comment: _controller.text.trim(),
+      original: PostSnapshot(
+        author: widget.author,
+        handle: widget.handle,
+        timeAgo: widget.timeAgo,
+        body: widget.body,
+        tags: widget.tags,
+      ),
+    );
 
-      Navigator.pop(context);
-      _showToast('Quote posted successfully!');
-    }
+    if (!mounted) return;
+    Navigator.pop(context);
+    _showToast('Quote posted successfully!');
   }
 
   void _showToast(String message) {
@@ -354,7 +364,10 @@ appBar: AppBar(
       SnackBar(
         content: Text(
           message,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         backgroundColor: Colors.black,
         behavior: SnackBarBehavior.floating,
@@ -385,11 +398,7 @@ class _ToolbarButton extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 20,
-              color: const Color(0xFF64748B),
-            ),
+            Icon(icon, size: 20, color: const Color(0xFF64748B)),
             const SizedBox(height: 2),
             Text(
               label,
@@ -405,4 +414,3 @@ class _ToolbarButton extends StatelessWidget {
     );
   }
 }
-

@@ -3,27 +3,28 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
 class TweetShell extends StatelessWidget {
-  const TweetShell({required this.child, super.key});
+  const TweetShell({required this.child, this.showBorder = false, super.key});
 
   final Widget child;
+  final bool showBorder;
 
-  static const BorderRadius _radius = BorderRadius.all(Radius.circular(28));
+  static const BorderRadius _radius = BorderRadius.all(Radius.circular(20));
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final Color bg = isDark
-        ? Colors.white.withOpacity(0.06)
+        ? Colors.white.withValues(alpha: 0.04)
         : Colors.white;
     final Color border = isDark
-        ? Colors.white.withOpacity(0.08)
+        ? Colors.white.withValues(alpha: 0.08)
         : AppTheme.accent.withValues(alpha: 0.3);
 
     return Container(
       decoration: BoxDecoration(
         color: bg,
         borderRadius: _radius,
-        border: Border.all(color: border),
+        border: showBorder ? Border.all(color: border) : null,
         boxShadow: isDark
             ? const []
             : [
@@ -42,21 +43,20 @@ class TweetShell extends StatelessWidget {
               top: 0,
               right: 0,
               child: Container(
-                width: 96,
-                height: 96,
+                width: 72,
+                height: 72,
                 decoration: BoxDecoration(
-                  color: AppTheme.accent.withValues(alpha: isDark ? 0.08 : 0.12),
+                  color: AppTheme.accent.withValues(
+                    alpha: isDark ? 0.05 : 0.1,
+                  ),
                   borderRadius: const BorderRadius.only(
-                    topRight: Radius.circular(28),
-                    bottomLeft: Radius.circular(36),
+                    topRight: Radius.circular(20),
+                    bottomLeft: Radius.circular(26),
                   ),
                 ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(28),
-              child: child,
-            ),
+            Padding(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18), child: child),
           ],
         ),
       ),
