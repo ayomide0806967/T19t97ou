@@ -1,4 +1,3 @@
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -69,14 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
           tooltip: 'Open menu',
         ),
         titleSpacing: 0,
-        title: Text(
-          'Institution',
-          style: theme.textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-            letterSpacing: -0.5,
-            color: const Color(0xFF1E293B),
-          ),
-        ),
+        title: const SizedBox.shrink(),
         actions: [
           RepaintBoundary(
             child: IconButton(
@@ -93,15 +85,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     builder: (context) => const ProfileScreen(),
                   ),
                 );
-              },
-            ),
-          ),
-          RepaintBoundary(
-            child: IconButton(
-              tooltip: 'Sign out',
-              icon: const Icon(Icons.logout_outlined),
-              onPressed: () async {
-                await _authService.signOut();
               },
             ),
           ),
@@ -124,49 +107,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        RepaintBoundary(
+                        const RepaintBoundary(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Institution',
-                                style: theme.textTheme.displayLarge?.copyWith(
-                                  fontFamily: 'Roboto',
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: -0.5,
-                                  color: const Color(0xFF1E293B),
-                                  height: 1.1,
-                                ),
-                              ),
-                              const SizedBox(height: 32),
-                              const _StoryRail(),
-                              const SizedBox(height: 24),
-                              Wrap(
-                                spacing: 12,
-                                runSpacing: 12,
-                                children: const [
-                                  _PillTag('Announcements'),
-                                  _PillTag('Events'),
-                                  _PillTag('Research'),
-                                  _PillTag('Community'),
-                                ],
-                              ),
-                            ],
+                            children: [_StoryRail(), SizedBox(height: 16)],
                           ),
                         ),
-                        const SizedBox(height: 24),
-                        RepaintBoundary(
-                          child: _ComposeCard(
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (context) => const ComposeScreen(),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(height: 32),
                       ],
                     ),
                   ),
@@ -201,159 +147,168 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      floatingActionButton: RepaintBoundary(
-        child: FloatingActionButton.extended(
-          onPressed: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (context) => const ComposeScreen()),
-            );
-          },
-          label: const Text('Compose'),
-          icon: const Icon(Icons.edit_outlined, color: Colors.white),
-          backgroundColor: AppTheme.buttonPrimary,
-          foregroundColor: Colors.white,
-          shape: const StadiumBorder(),
-          elevation: 0,
-        ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (context) => const ComposeScreen()),
+          );
+        },
+        tooltip: 'Compose',
+        mini: true,
+        backgroundColor: AppTheme.buttonPrimary,
+        foregroundColor: Colors.white,
+        elevation: 2,
+        child: const Icon(Icons.edit_rounded, size: 18),
       ),
       bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
 
   Widget _buildBottomNavigationBar() {
-    final barContent = SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _ModernBottomBarItem(
-              icon: Icons.home_outlined,
-              activeIcon: Icons.home_rounded,
-              label: 'Home',
-              isActive: _selectedBottomNavIndex == 0,
-              onTap: () {
-                setState(() {
-                  _selectedBottomNavIndex = 0;
-                });
-              },
-              isFirst: true,
-            ),
-            _ModernBottomBarItem(
-              icon: Icons.explore_outlined,
-              activeIcon: Icons.explore,
-              label: 'Explore',
-              isActive: _selectedBottomNavIndex == 1,
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const ExploreScreen(),
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final Color background = isDark
+        ? Colors.black.withValues(alpha: 0.55)
+        : Colors.white.withValues(alpha: 0.92);
+    final Color activeColor = theme.colorScheme.onSurface;
+    final Color inactiveColor = activeColor.withValues(alpha: 0.55);
+
+    Widget buildItem({
+      required IconData icon,
+      required String label,
+      required int index,
+      required VoidCallback onPressed,
+    }) {
+      final bool isActive = _selectedBottomNavIndex == index;
+      final Color color = isActive ? activeColor : inactiveColor;
+
+      return Expanded(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onPressed,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, color: color, size: 22),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w600,
                   ),
-                );
-              },
+                ),
+              ],
             ),
-            _ModernBottomBarItem(
-              icon: Icons.add_circle_outline,
-              activeIcon: Icons.add_circle,
-              label: 'Create',
-              isActive: _selectedBottomNavIndex == 2,
-              onTap: () {
-                setState(() {
-                  _selectedBottomNavIndex = 2;
-                });
-              },
-              isCreate: true,
-            ),
-            _ModernBottomBarItem(
-              icon: Icons.mark_chat_unread_outlined,
-              activeIcon: Icons.mark_chat_unread_rounded,
-              label: 'Chat',
-              isActive: _selectedBottomNavIndex == 3,
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => const ChatScreen()),
-                );
-              },
-              badge: '12',
-            ),
-            _ModernBottomBarItem(
-              icon: Icons.person_outline_rounded,
-              activeIcon: Icons.person_rounded,
-              label: 'Profile',
-              isActive: _selectedBottomNavIndex == 4,
-              onTap: () {
-                setState(() {
-                  _selectedBottomNavIndex = 4;
-                });
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const ProfileScreen(),
-                  ),
-                );
-              },
-              isLast: true,
+          ),
+        ),
+      );
+    }
+
+    void resetToHome() {
+      if (_selectedBottomNavIndex != 0 && mounted) {
+        setState(() => _selectedBottomNavIndex = 0);
+      }
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+      child: Container(
+        height: 60,
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.12),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
-      ),
-    );
-
-    return RepaintBoundary(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-        child: Builder(
-          builder: (context) {
-            final isDark = Theme.of(context).brightness == Brightness.dark;
-
-            return Container(
-              decoration: BoxDecoration(
-                color: Colors.transparent,
-                borderRadius: const BorderRadius.all(Radius.circular(24)),
-                border: Border.all(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.15)
-                      : Colors.black.withValues(alpha: 0.1),
-                  width: 1,
-                ),
-              ),
-              child: ClipRRect(
-                borderRadius: const BorderRadius.all(Radius.circular(24)),
-                child: BackdropFilter(
-                  filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.08)
-                          : Colors.white.withValues(alpha: 0.7),
-                      borderRadius: const BorderRadius.all(Radius.circular(24)),
-                      border: Border.all(
-                        color: isDark
-                            ? Colors.white.withValues(alpha: 0.1)
-                            : Colors.white.withValues(alpha: 0.3),
-                        width: 1,
+        child: Row(
+          children: [
+            buildItem(
+              icon: Icons.home_outlined,
+              label: 'Home',
+              index: 0,
+              onPressed: () {
+                if (_selectedBottomNavIndex != 0) {
+                  setState(() => _selectedBottomNavIndex = 0);
+                }
+              },
+            ),
+            buildItem(
+              icon: Icons.explore_outlined,
+              label: 'Explore',
+              index: 1,
+              onPressed: () {
+                setState(() => _selectedBottomNavIndex = 1);
+                Navigator.of(context)
+                    .push(
+                      MaterialPageRoute(
+                        builder: (context) => const ExploreScreen(),
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 20,
-                          offset: const Offset(0, 8),
-                        ),
-                        BoxShadow(
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.05)
-                              : Colors.white.withValues(alpha: 0.8),
-                          blurRadius: 0,
-                          offset: const Offset(0, -1),
-                          spreadRadius: 1,
-                        ),
-                      ],
-                    ),
-                    child: barContent,
-                  ),
-                ),
-              ),
-            );
-          },
+                    )
+                    .then((_) {
+                      resetToHome();
+                    });
+              },
+            ),
+            buildItem(
+              icon: Icons.mode_edit_outline_rounded,
+              label: 'Compose',
+              index: 2,
+              onPressed: () {
+                setState(() => _selectedBottomNavIndex = 2);
+                Navigator.of(context)
+                    .push(
+                      MaterialPageRoute(
+                        builder: (context) => const ComposeScreen(),
+                      ),
+                    )
+                    .then((_) {
+                      resetToHome();
+                    });
+              },
+            ),
+            buildItem(
+              icon: Icons.mark_chat_unread_outlined,
+              label: 'Chat',
+              index: 3,
+              onPressed: () {
+                setState(() => _selectedBottomNavIndex = 3);
+                Navigator.of(context)
+                    .push(
+                      MaterialPageRoute(
+                        builder: (context) => const ChatScreen(),
+                      ),
+                    )
+                    .then((_) {
+                      resetToHome();
+                    });
+              },
+            ),
+            buildItem(
+              icon: Icons.person_outline_rounded,
+              label: 'Profile',
+              index: 4,
+              onPressed: () {
+                setState(() => _selectedBottomNavIndex = 4);
+                Navigator.of(context)
+                    .push(
+                      MaterialPageRoute(
+                        builder: (context) => const ProfileScreen(),
+                      ),
+                    )
+                    .then((_) {
+                      resetToHome();
+                    });
+              },
+            ),
+          ],
         ),
       ),
     );
@@ -782,217 +737,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _ModernBottomBarItem extends StatefulWidget {
-  const _ModernBottomBarItem({
-    required this.icon,
-    required this.activeIcon,
-    required this.label,
-    required this.isActive,
-    required this.onTap,
-    this.badge,
-    this.isFirst = false,
-    this.isLast = false,
-    this.isCreate = false,
-  });
-
-  final IconData icon;
-  final IconData activeIcon;
-  final String label;
-  final bool isActive;
-  final VoidCallback onTap;
-  final String? badge;
-  final bool isFirst;
-  final bool isLast;
-  final bool isCreate;
-
-  @override
-  State<_ModernBottomBarItem> createState() => _ModernBottomBarItemState();
-}
-
-class _ModernBottomBarItemState extends State<_ModernBottomBarItem>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
-  late Animation<Color?> _colorAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 150),
-      vsync: this,
-    );
-
-    _scaleAnimation = Tween<double>(
-      begin: 1.0,
-      end: 1.1,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-
-    _colorAnimation = ColorTween(
-      begin: Colors.transparent,
-      end: AppTheme.accent.withValues(alpha: 0.1),
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-
-    if (widget.isActive) {
-      _controller.value = 1.0;
-    }
-  }
-
-  @override
-  void didUpdateWidget(_ModernBottomBarItem oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Only trigger animation if the active state actually changed
-    if (oldWidget.isActive != widget.isActive &&
-        _controller.status != AnimationStatus.forward &&
-        _controller.status != AnimationStatus.reverse) {
-      if (widget.isActive) {
-        _controller.forward();
-      } else {
-        _controller.reverse();
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final inactive = isDark
-        ? Colors.white.withValues(alpha: 0.6)
-        : const Color(0xFF64748B);
-    final color = widget.isActive ? AppTheme.accent : inactive;
-    final borderColor = isDark
-        ? Colors.black.withValues(alpha: 0.6)
-        : Colors.white;
-
-    return Expanded(
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: Container(
-          margin: EdgeInsets.symmetric(
-            horizontal: widget.isFirst || widget.isLast ? 8 : 4,
-            vertical: 4,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: widget.isCreate ? 56 : 48,
-                height: widget.isCreate ? 56 : 48,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(
-                    widget.isCreate ? 16 : 14,
-                  ),
-                  color: widget.isCreate ? Colors.black : _colorAnimation.value,
-                  border: widget.isCreate
-                      ? Border.all(color: Colors.black, width: 2)
-                      : null,
-                  boxShadow: [
-                    if (widget.isActive && !widget.isCreate)
-                      BoxShadow(
-                        color: AppTheme.accent.withValues(alpha: 0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    if (widget.isCreate)
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.2),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                  ],
-                ),
-                child: AnimatedBuilder(
-                  animation: _scaleAnimation,
-                  builder: (context, child) {
-                    return Transform.scale(
-                      scale: widget.isCreate ? 1.0 : _scaleAnimation.value,
-                      child: Stack(
-                        children: [
-                          Center(
-                            child: Icon(
-                              widget.isActive ? widget.activeIcon : widget.icon,
-                              color: widget.isCreate ? Colors.white : color,
-                              size: widget.isCreate ? 28 : 24,
-                              weight: widget.isCreate ? 700 : 400,
-                            ),
-                          ),
-                          if (widget.badge != null && !widget.isCreate)
-                            Positioned(
-                              right: widget.isCreate ? 2 : -4,
-                              top: widget.isCreate ? 2 : -6,
-                              child: Container(
-                                constraints: const BoxConstraints(
-                                  minWidth: 20,
-                                  minHeight: 20,
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.accent,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: borderColor,
-                                    width: 2,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(
-                                        alpha: isDark ? 0.35 : 0.15,
-                                      ),
-                                      blurRadius: 6,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    widget.badge!,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: -0.2,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-              if (!widget.isCreate) ...[
-                const SizedBox(height: 6),
-                AnimatedDefaultTextStyle(
-                  duration: const Duration(milliseconds: 200),
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 11,
-                    fontWeight: widget.isActive
-                        ? FontWeight.w700
-                        : FontWeight.w500,
-                    letterSpacing: widget.isActive ? 0.2 : 0.1,
-                  ),
-                  child: Text(widget.label),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _StoryRail extends StatelessWidget {
   const _StoryRail();
 
@@ -1131,102 +875,6 @@ class _StoryRail extends StatelessWidget {
   }
 }
 
-class _ComposeCard extends StatelessWidget {
-  const _ComposeCard({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(28),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-        decoration: BoxDecoration(
-          color: Theme.of(context).brightness == Brightness.dark
-              ? Colors.white.withValues(alpha: 0.06)
-              : Colors.white,
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.white.withValues(alpha: 0.08)
-                : AppTheme.divider,
-          ),
-          boxShadow: Theme.of(context).brightness == Brightness.dark
-              ? const []
-              : [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 28,
-                    offset: const Offset(0, 12),
-                  ),
-                ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                HexagonAvatar(
-                  size: 48,
-                  child: const Icon(Icons.add, color: AppTheme.textPrimary),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Text(
-                    'Share an update with the community…',
-                    style: theme.textTheme.bodyLarge,
-                  ),
-                ),
-                const Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 18,
-                  color: AppTheme.textTertiary,
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
-            Row(
-              children: const [
-                _ComposerTool(icon: Icons.photo_outlined, label: 'Media'),
-                SizedBox(width: 18),
-                _ComposerTool(icon: Icons.bar_chart_outlined, label: 'Poll'),
-                SizedBox(width: 18),
-                _ComposerTool(
-                  icon: Icons.calendar_month_outlined,
-                  label: 'Event',
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ComposerTool extends StatelessWidget {
-  const _ComposerTool({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: AppTheme.textSecondary),
-        const SizedBox(width: 6),
-        Text(label, style: theme.textTheme.bodySmall),
-      ],
-    );
-  }
-}
-
 class _PostCard extends StatelessWidget {
   const _PostCard({required this.post, required this.currentUserHandle});
 
@@ -1249,37 +897,6 @@ class _PostCard extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-}
-
-class _PillTag extends StatelessWidget {
-  const _PillTag(this.label);
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final background = isDark
-        ? Colors.white.withValues(alpha: 0.08)
-        : const Color(0xFFF1F5F9);
-    final textColor = isDark
-        ? Colors.white.withValues(alpha: 0.72)
-        : const Color(0xFF4B5563);
-
-    return Chip(
-      label: Text(label),
-      labelStyle: theme.textTheme.bodyMedium?.copyWith(
-        color: textColor,
-        fontWeight: FontWeight.w600,
-        fontSize: 11,
-      ),
-      backgroundColor: background,
-      shape: const StadiumBorder(),
-      side: BorderSide.none,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
     );
   }
 }

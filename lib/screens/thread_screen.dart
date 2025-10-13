@@ -97,70 +97,53 @@ class ThreadReplyTile extends StatelessWidget {
     final theme = Theme.of(context);
     final String replyTo = entry.replyToHandle ?? entry.post.handle;
     final double indent = depth == 0 ? 0 : depth * 20.0;
-    final Color lineColor = theme.dividerColor.withValues(alpha: 0.4);
 
     return Padding(
       padding: EdgeInsets.only(left: indent, bottom: 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Column(
-                  children: [
-                    SizedBox(
-                      width: 18,
-                      height: 22,
-                      child: Align(
-                        alignment: Alignment.centerRight,
-                        child: Container(
-                          width: 12,
-                          height: 2,
-                          decoration: BoxDecoration(
-                            color: lineColor,
-                            borderRadius: BorderRadius.circular(1),
-                          ),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Align(
-                        alignment: Alignment.topCenter,
-                        child: Container(
-                          width: 2,
-                          decoration: BoxDecoration(
-                            color: lineColor,
-                            borderRadius: BorderRadius.circular(1),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+            padding: const EdgeInsets.only(top: 12),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(
+                  color: theme.dividerColor.withValues(alpha: 0.35),
                 ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: TweetPostCard(
-                    post: entry.post,
-                    currentUserHandle: currentUserHandle,
-                    replyContext: replyTo,
-                    backgroundColor: _replyBackground,
-                    cornerAccentColor: _replyCorner,
-                    showCornerAccent: false,
-                    onTap: () {
-                      Navigator.of(context).push(
-                        ThreadScreen.route(
-                          entry: entry,
-                          currentUserHandle: currentUserHandle,
-                        ),
-                      );
-                    },
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 14,
+                    offset: const Offset(0, 4),
                   ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: TweetPostCard(
+                  post: entry.post,
+                  currentUserHandle: currentUserHandle,
+                  replyContext: replyTo,
+                  backgroundColor: _replyBackground,
+                  cornerAccentColor: _replyCorner,
+                  showCornerAccent: false,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      ThreadScreen.route(
+                        entry: entry,
+                        currentUserHandle: currentUserHandle,
+                      ),
+                    );
+                  },
                 ),
-              ],
+              ),
             ),
           ),
+          const SizedBox(height: 8),
         ],
       ),
     );
