@@ -8,6 +8,7 @@ import '../state/app_settings.dart';
 import '../theme/app_theme.dart';
 import '../widgets/hexagon_avatar.dart';
 import '../widgets/brand_mark.dart';
+import '../widgets/floating_nav_bar.dart';
 import '../widgets/tweet_post_card.dart';
 import 'thread_screen.dart';
 import 'chat_screen.dart';
@@ -69,7 +70,20 @@ class _HomeScreenState extends State<HomeScreen> {
           tooltip: 'Open menu',
         ),
         titleSpacing: 0,
-        title: const SizedBox.shrink(),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const BrandMark(size: 24),
+            const SizedBox(width: 10),
+            Text(
+              'Institution',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.2,
+              ),
+            ),
+          ],
+        ),
         actions: [
           RepaintBoundary(
             child: IconButton(
@@ -105,30 +119,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 720),
-                    child: Column(
+                    child: const Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        RepaintBoundary(
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              const BrandMark(size: 28),
-                              const SizedBox(width: 12),
-                              Text(
-                                'Institution',
-                                style: theme.textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: -0.4,
-                                  color: theme.colorScheme.onSurface,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        const _StoryRail(),
-                        const SizedBox(height: 16),
-                      ],
+                      children: [_StoryRail(), SizedBox(height: 16)],
                     ),
                   ),
                 ),
@@ -180,152 +173,88 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildBottomNavigationBar() {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final Color background = isDark
-        ? Colors.black.withValues(alpha: 0.55)
-        : Colors.white.withValues(alpha: 0.92);
-    final Color activeColor = theme.colorScheme.onSurface;
-    final Color inactiveColor = activeColor.withValues(alpha: 0.55);
-
-    Widget buildItem({
-      required IconData icon,
-      required String label,
-      required int index,
-      required VoidCallback onPressed,
-    }) {
-      final bool isActive = _selectedBottomNavIndex == index;
-      final Color color = isActive ? activeColor : inactiveColor;
-
-      return Expanded(
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: onPressed,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, color: color, size: 22),
-                const SizedBox(height: 4),
-                Text(
-                  label,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: color,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
     void resetToHome() {
       if (_selectedBottomNavIndex != 0 && mounted) {
         setState(() => _selectedBottomNavIndex = 0);
       }
     }
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-      child: Container(
-        height: 60,
-        decoration: BoxDecoration(
-          color: background,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.12),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            ),
-          ],
+    return FloatingNavBar(
+      currentIndex: _selectedBottomNavIndex,
+      onIndexChange: (index) {
+        if (mounted) {
+          setState(() => _selectedBottomNavIndex = index);
+        }
+      },
+      destinations: [
+        FloatingNavBarDestination(
+          icon: Icons.home_outlined,
+          label: 'Home',
+          onTap: () {
+            if (mounted) {
+              setState(() => _selectedBottomNavIndex = 0);
+            }
+          },
         ),
-        child: Row(
-          children: [
-            buildItem(
-              icon: Icons.home_outlined,
-              label: 'Home',
-              index: 0,
-              onPressed: () {
-                if (_selectedBottomNavIndex != 0) {
-                  setState(() => _selectedBottomNavIndex = 0);
-                }
-              },
-            ),
-            buildItem(
-              icon: Icons.explore_outlined,
-              label: 'Explore',
-              index: 1,
-              onPressed: () {
-                setState(() => _selectedBottomNavIndex = 1);
-                Navigator.of(context)
-                    .push(
-                      MaterialPageRoute(
-                        builder: (context) => const ExploreScreen(),
-                      ),
-                    )
-                    .then((_) {
-                      resetToHome();
-                    });
-              },
-            ),
-            buildItem(
-              icon: Icons.mode_edit_outline_rounded,
-              label: 'Compose',
-              index: 2,
-              onPressed: () {
-                setState(() => _selectedBottomNavIndex = 2);
-                Navigator.of(context)
-                    .push(
-                      MaterialPageRoute(
-                        builder: (context) => const ComposeScreen(),
-                      ),
-                    )
-                    .then((_) {
-                      resetToHome();
-                    });
-              },
-            ),
-            buildItem(
-              icon: Icons.mark_chat_unread_outlined,
-              label: 'Chat',
-              index: 3,
-              onPressed: () {
-                setState(() => _selectedBottomNavIndex = 3);
-                Navigator.of(context)
-                    .push(
-                      MaterialPageRoute(
-                        builder: (context) => const ChatScreen(),
-                      ),
-                    )
-                    .then((_) {
-                      resetToHome();
-                    });
-              },
-            ),
-            buildItem(
-              icon: Icons.person_outline_rounded,
-              label: 'Profile',
-              index: 4,
-              onPressed: () {
-                setState(() => _selectedBottomNavIndex = 4);
-                Navigator.of(context)
-                    .push(
-                      MaterialPageRoute(
-                        builder: (context) => const ProfileScreen(),
-                      ),
-                    )
-                    .then((_) {
-                      resetToHome();
-                    });
-              },
-            ),
-          ],
+        FloatingNavBarDestination(
+          icon: Icons.explore_outlined,
+          label: 'Explore',
+          onTap: () {
+            Navigator.of(context)
+                .push(
+                  MaterialPageRoute(
+                    builder: (context) => const ExploreScreen(),
+                  ),
+                )
+                .then((_) {
+                  resetToHome();
+                });
+          },
         ),
-      ),
+        FloatingNavBarDestination(
+          icon: Icons.mode_edit_outline_rounded,
+          label: 'Compose',
+          onTap: () {
+            Navigator.of(context)
+                .push(
+                  MaterialPageRoute(
+                    builder: (context) => const ComposeScreen(),
+                  ),
+                )
+                .then((_) {
+                  resetToHome();
+                });
+          },
+        ),
+        FloatingNavBarDestination(
+          icon: Icons.mark_chat_unread_outlined,
+          label: 'Chat',
+          onTap: () {
+            Navigator.of(context)
+                .push(
+                  MaterialPageRoute(builder: (context) => const ChatScreen()),
+                )
+                .then((_) {
+                  resetToHome();
+                });
+          },
+        ),
+        FloatingNavBarDestination(
+          icon: Icons.person_outline_rounded,
+          label: 'Profile',
+          onTap: () {
+            Navigator.of(context)
+                .push(
+                  MaterialPageRoute(
+                    builder: (context) => const ProfileScreen(),
+                  ),
+                )
+                .then((_) {
+                  resetToHome();
+                });
+          },
+        ),
+      ],
     );
   }
 

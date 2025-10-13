@@ -1,8 +1,8 @@
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/hexagon_avatar.dart';
 import '../widgets/brand_mark.dart';
+import '../widgets/floating_nav_bar.dart';
 import 'home_screen.dart';
 import 'chat_screen.dart';
 import 'profile_screen.dart';
@@ -15,7 +15,8 @@ class ExploreScreen extends StatefulWidget {
   State<ExploreScreen> createState() => _ExploreScreenState();
 }
 
-class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProviderStateMixin {
+class _ExploreScreenState extends State<ExploreScreen>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   int _selectedCategory = 0;
   late AnimationController _animationController;
@@ -31,66 +32,62 @@ class _ExploreScreenState extends State<ExploreScreen> with SingleTickerProvider
     'Research',
   ];
 
+  final List<TrendingTopic> _trendingTopics = [
+    TrendingTopic(
+      category: 'NMCN',
+      title: 'OSCE Medication Checks',
+      posts: '9.4K',
+      engagement: '💡 Key Focus',
+    ),
+    TrendingTopic(
+      category: 'Clinical Skills',
+      title: 'Sterile Dressing Routine',
+      posts: '7.2K',
+      engagement: '📈 Rising',
+    ),
+    TrendingTopic(
+      category: 'Public Health',
+      title: 'Community Hypertension Drive',
+      posts: '5.9K',
+      engagement: '🌍 Impact',
+    ),
+    TrendingTopic(
+      category: 'Midwifery',
+      title: 'Labour Support Protocols',
+      posts: '6.8K',
+      engagement: '🤰 Active',
+    ),
+    TrendingTopic(
+      category: 'Mental Wellness',
+      title: 'Night Shift Recovery',
+      posts: '4.1K',
+      engagement: '✨ New',
+    ),
+  ];
 
-final List<TrendingTopic> _trendingTopics = [
-  TrendingTopic(
-    category: 'NMCN',
-    title: 'OSCE Medication Checks',
-    posts: '9.4K',
-    engagement: '💡 Key Focus',
-  ),
-  TrendingTopic(
-    category: 'Clinical Skills',
-    title: 'Sterile Dressing Routine',
-    posts: '7.2K',
-    engagement: '📈 Rising',
-  ),
-  TrendingTopic(
-    category: 'Public Health',
-    title: 'Community Hypertension Drive',
-    posts: '5.9K',
-    engagement: '🌍 Impact',
-  ),
-  TrendingTopic(
-    category: 'Midwifery',
-    title: 'Labour Support Protocols',
-    posts: '6.8K',
-    engagement: '🤰 Active',
-  ),
-  TrendingTopic(
-    category: 'Mental Wellness',
-    title: 'Night Shift Recovery',
-    posts: '4.1K',
-    engagement: '✨ New',
-  ),
-];
-
-
-
-final List<SuggestedUser> _suggestedUsers = [
-  SuggestedUser(
-    name: 'Clinical Skills Lab',
-    handle: '@skills_lab',
-    bio: 'Daily demos for procedures & simulations',
-    followers: '3.6K',
-    isVerified: true,
-  ),
-  SuggestedUser(
-    name: 'Nursing Leadership Forum',
-    handle: '@matrons_circle',
-    bio: 'Charge nurses sharing shift-ready playbooks',
-    followers: '5.1K',
-    isVerified: true,
-  ),
-  SuggestedUser(
-    name: 'NMCN Exam Coach',
-    handle: '@nmcncoach',
-    bio: 'Bite-sized revisions for OSCE & qualifying exams',
-    followers: '7.9K',
-    isVerified: true,
-  ),
-];
-
+  final List<SuggestedUser> _suggestedUsers = [
+    SuggestedUser(
+      name: 'Clinical Skills Lab',
+      handle: '@skills_lab',
+      bio: 'Daily demos for procedures & simulations',
+      followers: '3.6K',
+      isVerified: true,
+    ),
+    SuggestedUser(
+      name: 'Nursing Leadership Forum',
+      handle: '@matrons_circle',
+      bio: 'Charge nurses sharing shift-ready playbooks',
+      followers: '5.1K',
+      isVerified: true,
+    ),
+    SuggestedUser(
+      name: 'NMCN Exam Coach',
+      handle: '@nmcncoach',
+      bio: 'Bite-sized revisions for OSCE & qualifying exams',
+      followers: '7.9K',
+      isVerified: true,
+    ),
+  ];
 
   @override
   void initState() {
@@ -99,13 +96,9 @@ final List<SuggestedUser> _suggestedUsers = [
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    ));
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
     _animationController.forward();
   }
 
@@ -134,9 +127,7 @@ final List<SuggestedUser> _suggestedUsers = [
                   _buildCategories(),
                   _buildTrendingTopics(),
                   _buildSuggestedUsers(),
-                  const SliverToBoxAdapter(
-                    child: SizedBox(height: 100),
-                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 100)),
                 ],
               ),
             );
@@ -268,10 +259,12 @@ final List<SuggestedUser> _suggestedUsers = [
     final query = _searchController.text.trim().toLowerCase();
     final selectedCategory = _categories[_selectedCategory];
     return _trendingTopics.where((t) {
-      final matchesQuery = query.isEmpty ||
+      final matchesQuery =
+          query.isEmpty ||
           t.title.toLowerCase().contains(query) ||
           t.category.toLowerCase().contains(query);
-      final matchesCategory = selectedCategory == 'For You' || t.category == selectedCategory;
+      final matchesCategory =
+          selectedCategory == 'For You' || t.category == selectedCategory;
       return matchesQuery && matchesCategory;
     }).toList();
   }
@@ -341,129 +334,51 @@ final List<SuggestedUser> _suggestedUsers = [
   }
 
   Widget _buildBottomNavigationBar() {
-    final barContent = SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _ModernBottomBarItem(
-              icon: Icons.home_outlined,
-              activeIcon: Icons.home_rounded,
-              label: 'Home',
-              isActive: false,
-              onTap: () {
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (context) => const HomeScreen()),
-                  (route) => false,
-                );
-              },
-              isFirst: true,
-            ),
-            _ModernBottomBarItem(
-              icon: Icons.explore_outlined,
-              activeIcon: Icons.explore,
-              label: 'Explore',
-              isActive: true,
-              onTap: () {},
-            ),
-            _ModernBottomBarItem(
-              icon: Icons.add_circle_outline,
-              activeIcon: Icons.add_circle,
-              label: 'Create',
-              isActive: false,
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => const ComposeScreen()),
-                );
-              },
-              isCreate: true,
-            ),
-            _ModernBottomBarItem(
-              icon: Icons.mark_chat_unread_outlined,
-              activeIcon: Icons.mark_chat_unread_rounded,
-              label: 'Chat',
-              isActive: false,
-              onTap: () {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (context) => const ChatScreen()),
-                );
-              },
-              badge: '16',
-            ),
-            _ModernBottomBarItem(
-              icon: Icons.person_outline_rounded,
-              activeIcon: Icons.person_rounded,
-              label: 'Profile',
-              isActive: false,
-              onTap: () {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (context) => const ProfileScreen()),
-                );
-              },
-              isLast: true,
-            ),
-          ],
+    return FloatingNavBar(
+      currentIndex: 1,
+      destinations: [
+        FloatingNavBarDestination(
+          icon: Icons.home_outlined,
+          label: 'Home',
+          onTap: () {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (context) => const HomeScreen()),
+              (route) => false,
+            );
+          },
         ),
-      ),
-    );
-
-    return RepaintBoundary(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-        child: Builder(builder: (context) {
-          final isDark = Theme.of(context).brightness == Brightness.dark;
-
-          return Container(
-            decoration: BoxDecoration(
-              color: Colors.transparent,
-              borderRadius: const BorderRadius.all(Radius.circular(24)),
-              border: Border.all(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.15)
-                    : Colors.black.withValues(alpha: 0.1),
-                width: 1,
-              ),
-            ),
-            child: ClipRRect(
-              borderRadius: const BorderRadius.all(Radius.circular(24)),
-              child: BackdropFilter(
-                filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.08)
-                        : Colors.white.withValues(alpha: 0.7),
-                    borderRadius: const BorderRadius.all(Radius.circular(24)),
-                    border: Border.all(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.1)
-                          : Colors.white.withValues(alpha: 0.3),
-                      width: 1,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 20,
-                        offset: const Offset(0, 8),
-                      ),
-                      BoxShadow(
-                        color: isDark
-                            ? Colors.white.withValues(alpha: 0.05)
-                            : Colors.white.withValues(alpha: 0.8),
-                        blurRadius: 0,
-                        offset: const Offset(0, -1),
-                        spreadRadius: 1,
-                      ),
-                    ],
-                  ),
-                  child: barContent,
-                ),
-              ),
-            ),
-          );
-        }),
-      ),
+        const FloatingNavBarDestination(
+          icon: Icons.explore_outlined,
+          label: 'Explore',
+        ),
+        FloatingNavBarDestination(
+          icon: Icons.mode_edit_outline_rounded,
+          label: 'Compose',
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (context) => const ComposeScreen()),
+            );
+          },
+        ),
+        FloatingNavBarDestination(
+          icon: Icons.mark_chat_unread_outlined,
+          label: 'Chat',
+          onTap: () {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const ChatScreen()),
+            );
+          },
+        ),
+        FloatingNavBarDestination(
+          icon: Icons.person_outline_rounded,
+          label: 'Profile',
+          onTap: () {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const ProfileScreen()),
+            );
+          },
+        ),
+      ],
     );
   }
 }
@@ -579,10 +494,7 @@ class _TrendingTopicCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             topic.engagement,
-            style: const TextStyle(
-              color: Color(0xFF64748B),
-              fontSize: 14,
-            ),
+            style: const TextStyle(color: Color(0xFF64748B), fontSize: 14),
           ),
         ],
       ),
@@ -683,14 +595,14 @@ class _SuggestedUserCard extends StatelessWidget {
               ),
               const Text(
                 'followers',
-                style: TextStyle(
-                  color: Color(0xFF64748B),
-                  fontSize: 11,
-                ),
+                style: TextStyle(color: Color(0xFF64748B), fontSize: 11),
               ),
               const SizedBox(height: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: AppTheme.accent,
                   borderRadius: BorderRadius.circular(20),
@@ -707,108 +619,6 @@ class _SuggestedUserCard extends StatelessWidget {
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ModernBottomBarItem extends StatelessWidget {
-  const _ModernBottomBarItem({
-    required this.icon,
-    required this.activeIcon,
-    required this.label,
-    required this.isActive,
-    required this.onTap,
-    this.badge,
-    this.isFirst = false,
-    this.isLast = false,
-    this.isCreate = false,
-  });
-
-  final IconData icon;
-  final IconData activeIcon;
-  final String label;
-  final bool isActive;
-  final VoidCallback onTap;
-  final String? badge;
-  final bool isFirst;
-  final bool isLast;
-  final bool isCreate;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: EdgeInsets.all(isCreate ? 6 : 10),
-                decoration: BoxDecoration(
-                  color: isActive
-                      ? AppTheme.accent
-                      : isCreate
-                          ? AppTheme.accent.withValues(alpha: 0.1)
-                          : Colors.transparent,
-                  borderRadius: BorderRadius.circular(isCreate ? 20 : 12),
-                ),
-                child: Stack(
-                  children: [
-                    Icon(
-                      isActive ? activeIcon : icon,
-                      size: isCreate ? 28 : 24,
-                      color: isActive
-                          ? Colors.white
-                          : isCreate
-                              ? AppTheme.accent
-                              : const Color(0xFF64748B),
-                    ),
-                    if (badge != null)
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          constraints: const BoxConstraints(
-                            minWidth: 16,
-                            minHeight: 16,
-                          ),
-                          child: Text(
-                            badge!,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                  color: isActive
-                      ? AppTheme.accent
-                      : const Color(0xFF64748B),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
