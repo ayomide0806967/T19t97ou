@@ -7,6 +7,7 @@ import '../services/simple_auth_service.dart';
 import '../state/app_settings.dart';
 import '../theme/app_theme.dart';
 import '../widgets/hexagon_avatar.dart';
+import '../widgets/brand_mark.dart';
 import '../widgets/tweet_post_card.dart';
 import 'thread_screen.dart';
 import 'chat_screen.dart';
@@ -107,12 +108,26 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const RepaintBoundary(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [_StoryRail(), SizedBox(height: 16)],
+                        RepaintBoundary(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              const BrandMark(size: 28),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Institution',
+                                style: theme.textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: -0.4,
+                                  color: theme.colorScheme.onSurface,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
+                        const SizedBox(height: 24),
+                        const _StoryRail(),
+                        const SizedBox(height: 16),
                       ],
                     ),
                   ),
@@ -322,6 +337,23 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             children: [
               const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Row(
+                  children: [
+                    const BrandMark(size: 26),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Institution',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
               _buildSearchBar(),
               const SizedBox(height: 16),
               Expanded(
@@ -466,6 +498,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildSection(String title, List<Widget> items) {
+    final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -473,11 +506,10 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: const EdgeInsets.only(left: 4, bottom: 12),
           child: Text(
             title,
-            style: const TextStyle(
-              color: Color(0xFF718096),
-              fontSize: 12,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: const Color(0xFF4A5568),
               fontWeight: FontWeight.w600,
-              letterSpacing: 0.5,
+              letterSpacing: 0.4,
             ),
           ),
         ),
@@ -916,6 +948,7 @@ class _NavigationItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -936,10 +969,10 @@ class _NavigationItem extends StatelessWidget {
                 Expanded(
                   child: Text(
                     title,
-                    style: const TextStyle(
-                      color: Color(0xFF2D3748),
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: const Color(0xFF2D3748),
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: -0.1,
                     ),
                   ),
                 ),
