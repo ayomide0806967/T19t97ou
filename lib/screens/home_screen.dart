@@ -757,7 +757,7 @@ class _StoryRail extends StatelessWidget {
             final bool isSelf = story.label == 'You';
             final Color borderColor = isSelf
                 ? AppTheme.accent
-                : const Color(0xFFB48A6B);
+                : theme.colorScheme.primary.withValues(alpha: 0.25);
             final Color background = isSelf
                 ? AppTheme.accent.withValues(alpha: 0.9)
                 : Theme.of(context).colorScheme.surface;

@@ -234,7 +234,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
               HexagonAvatar(
                 size: 48,
                 backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                borderColor: const Color(0xFFB48A6B),
+                borderColor: theme.colorScheme.primary.withValues(alpha: 0.35),
                 borderWidth: 1.5,
                 child: Center(
                   child: Text(
