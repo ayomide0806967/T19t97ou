@@ -92,6 +92,9 @@ class _HomeScreenState extends State<HomeScreen> {
               tooltip: 'Profile',
               icon: HexagonAvatar(
                 size: 40,
+                backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                borderColor: theme.colorScheme.primary.withValues(alpha: 0.35),
+                borderWidth: 1.5,
                 child: Center(
                   child: Text(initials, style: theme.textTheme.labelLarge),
                 ),
