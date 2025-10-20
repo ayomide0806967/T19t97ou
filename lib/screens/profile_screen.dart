@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../services/simple_auth_service.dart';
 import '../services/data_service.dart';
-import '../theme/app_theme.dart';
 import '../widgets/hexagon_avatar.dart';
-import '../widgets/brand_mark.dart';
 import '../widgets/tweet_post_card.dart';
-import 'post_detail_screen.dart';
 import 'thread_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -20,7 +18,136 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   int _selectedTab = 0;
+  Uint8List? _headerImage;
+  Uint8List? _profileImage;
+  final ImagePicker _picker = ImagePicker();
   SimpleAuthService get _authService => SimpleAuthService();
+
+  void _showToast(String message) {
+    if (!mounted) return;
+    final theme = Theme.of(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        backgroundColor: Colors.black,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+        ),
+        duration: const Duration(milliseconds: 1500),
+      ),
+    );
+  }
+
+  Future<void> _handlePickProfileImage() async {
+    final XFile? file = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+      maxWidth: 1024,
+    );
+    if (file == null) return;
+    final bytes = await file.readAsBytes();
+    setState(() => _profileImage = bytes);
+    _showToast('Profile photo updated');
+  }
+
+  Future<void> _showProfilePhotoViewer() async {
+    final bool hasImage = _profileImage != null;
+    final String initials =
+        _initialsFrom((_authService.currentUserEmail ?? 'user@institution.edu'));
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black.withValues(alpha: 0.65),
+      builder: (dialogContext) {
+        final theme = Theme.of(dialogContext);
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding:
+              const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.18),
+                  blurRadius: 30,
+                  offset: const Offset(0, 16),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                HexagonAvatar(
+                  size: 180,
+                  backgroundColor:
+                      theme.colorScheme.surfaceContainerHighest,
+                  borderColor:
+                      theme.colorScheme.primary.withValues(alpha: 0.32),
+                  borderWidth: 3,
+                  image: hasImage ? MemoryImage(_profileImage!) : null,
+                  child: hasImage
+                      ? null
+                      : Center(
+                          child: Text(
+                            initials,
+                            style: theme.textTheme.headlineLarge?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -1.2,
+                            ),
+                          ),
+                        ),
+                ),
+                const SizedBox(height: 28),
+                FilledButton(
+                  onPressed: () async {
+                    Navigator.of(dialogContext).pop();
+                    await _handlePickProfileImage();
+                  },
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 28,
+                      vertical: 16,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                  ),
+                  child: const Text('Change photo'),
+                ),
+                if (hasImage) ...[
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(dialogContext).pop();
+                      setState(() => _profileImage = null);
+                      _showToast('Profile photo removed');
+                    },
+                    child: const Text('Remove current photo'),
+                  ),
+                ],
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Close'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   String get _currentUserHandle {
     final email = _authService.currentUserEmail;
@@ -42,27 +169,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final dataService = context.watch<DataService>();
-    final posts = dataService.postsForHandle(_currentUserHandle);
     final currentUserHandle = _currentUserHandle;
+    final email = _authService.currentUserEmail ?? 'user@institution.edu';
+    final initials = _initialsFrom(email);
+    final posts = dataService.postsForHandle(currentUserHandle);
+    final replies = dataService.repliesForHandle(currentUserHandle);
+    final bookmarks = posts.where((post) => post.bookmarks > 0).toList();
 
-    void showToast(String message) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            message,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          backgroundColor: Colors.black,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-          ),
-        ),
-      );
+    final List<PostModel> visiblePosts;
+    switch (_selectedTab) {
+      case 1:
+        visiblePosts = replies;
+        break;
+      case 2:
+        visiblePosts = bookmarks;
+        break;
+      default:
+        visiblePosts = posts;
     }
+
+    final emptyMessage = () {
+      if (_selectedTab == 0) return "You haven't posted yet.";
+      if (_selectedTab == 1) return 'No replies yet.';
+      return 'No bookmarks yet.';
+    }();
 
     void handleEditProfile() {
       showModalBottomSheet(
@@ -114,7 +244,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: FilledButton(
                     onPressed: () {
                       Navigator.of(context).pop();
-                      showToast('Profile changes saved (coming soon)');
+                      _showToast('Profile changes saved (coming soon)');
                     },
                     child: const Text('Save changes'),
                   ),
@@ -127,290 +257,378 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     void handleShareProfile() {
+      final sanitizedHandle = _currentUserHandle.startsWith('@')
+          ? _currentUserHandle.substring(1)
+          : _currentUserHandle;
       Clipboard.setData(
-        const ClipboardData(
-          text: 'https://academicnightingale.app/yourprofile',
-        ),
+        ClipboardData(text: 'https://academicnightingale.app/$sanitizedHandle'),
       );
-      showToast('Profile link copied to clipboard');
+      _showToast('Profile link copied to clipboard');
+    }
+
+    Future<void> handleChangeHeader() async {
+      final action = await showModalBottomSheet<_HeaderAction>(
+        context: context,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (context) {
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Update cover image',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ListTile(
+                    leading: const Icon(Icons.photo_library_outlined),
+                    title: const Text('Choose from gallery'),
+                    onTap: () =>
+                        Navigator.of(context).pop(_HeaderAction.pickImage),
+                  ),
+                  if (_headerImage != null)
+                    ListTile(
+                      leading: const Icon(Icons.delete_outline),
+                      title: const Text('Remove photo'),
+                      onTap: () =>
+                          Navigator.of(context).pop(_HeaderAction.removeImage),
+                    ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Cancel'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+
+      switch (action) {
+        case _HeaderAction.pickImage:
+          final XFile? file = await _picker.pickImage(
+            source: ImageSource.gallery,
+            imageQuality: 85,
+            maxWidth: 1600,
+          );
+          if (file == null) return;
+          final bytes = await file.readAsBytes();
+          setState(() {
+            _headerImage = bytes;
+          });
+          _showToast('Cover photo updated');
+          break;
+        case _HeaderAction.removeImage:
+          setState(() => _headerImage = null);
+          _showToast('Cover photo removed');
+          break;
+        case null:
+          break;
+      }
     }
 
     return Scaffold(
       appBar: AppBar(
-        titleSpacing: 0,
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const BrandMark(size: 24),
-            const SizedBox(width: 10),
-            Flexible(
-              child: Text(
-                'Profile',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.headlineSmall,
-              ),
-            ),
-          ],
-        ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 720),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _ProfileHeader(
-                    onEditProfile: handleEditProfile,
-                    onShareProfile: handleShareProfile,
-                  ),
-                  const SizedBox(height: 32),
-                  _ProfileTabs(
-                    selectedIndex: _selectedTab,
-                    onChanged: (index) {
-                      setState(() => _selectedTab = index);
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                  if (posts.isEmpty) ...[
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 48),
-                        child: Text(
-                          "You haven't posted yet.",
-                          style: theme.textTheme.bodyMedium,
-                        ),
-                      ),
-                    ),
-                  ] else ...[
-                    ...posts.map(
-                      (post) => Padding(
-                        padding: const EdgeInsets.only(bottom: 24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            TweetPostCard(
-                              post: post,
-                              currentUserHandle: currentUserHandle,
-                              onTap: () {
-                                final thread = dataService.buildThreadForPost(
-                                  post.id,
-                                );
-                                Navigator.of(context).push(
-                                  ThreadScreen.route(
-                                    entry: thread,
-                                    currentUserHandle: currentUserHandle,
-                                  ),
-                                );
-                              },
-                            ),
-                            const SizedBox(height: 12),
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: TextButton.icon(
-                                onPressed: () => _openPostDetail(post),
-                                icon: const Icon(
-                                  Icons.open_in_new_rounded,
-                                  size: 16,
-                                ),
-                                label: const Text('View details'),
-                                style: TextButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 8,
-                                  ),
-                                  visualDensity: VisualDensity.compact,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
+        title: Text(
+          'Alex Rivera',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
           ),
         ),
       ),
+      body: SafeArea(
+        child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+              sliver: SliverToBoxAdapter(
+                child: _ProfileHeader(
+                  headerImage: _headerImage,
+                  profileImage: _profileImage,
+                  initials: initials,
+                  onProfileImageTap: _showProfilePhotoViewer,
+                  onChangeCover: handleChangeHeader,
+                  onEditProfile: handleEditProfile,
+                  onShareProfile: handleShareProfile,
+                ),
+              ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+              sliver: SliverToBoxAdapter(
+                child: _ProfileTabs(
+                  selectedIndex: _selectedTab,
+                  onChanged: (index) {
+                    setState(() => _selectedTab = index);
+                  },
+                ),
+              ),
+            ),
+            if (visiblePosts.isEmpty)
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 48,
+                ),
+                sliver: SliverToBoxAdapter(
+                  child: Center(
+                    child: Text(
+                      emptyMessage,
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  ),
+                ),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final post = visiblePosts[index];
+                    final isLast = index == visiblePosts.length - 1;
+                    return Padding(
+                      padding: EdgeInsets.only(bottom: isLast ? 0 : 24),
+                      child: TweetPostCard(
+                        key: ValueKey(post.id),
+                        post: post,
+                        currentUserHandle: currentUserHandle,
+                        onTap: () {
+                          final thread = dataService.buildThreadForPost(
+                            post.id,
+                          );
+                          Navigator.of(context).push(
+                            ThreadScreen.route(
+                              entry: thread,
+                              currentUserHandle: currentUserHandle,
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  }, childCount: visiblePosts.length),
+                ),
+              ),
+            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+          ],
+        ),
+      ),
     );
-  }
-
-  void _openPostDetail(PostModel post) {
-    final payload = PostDetailPayload(
-      author: post.author,
-      handle: post.handle,
-      timeAgo: post.timeAgo,
-      body: post.body,
-      initials: _initialsFrom(post.author),
-      tags: post.tags,
-      replies: post.replies,
-      reposts: post.reposts,
-      likes: post.likes,
-      bookmarks: post.bookmarks,
-      views: post.views,
-      quoted: post.quoted != null
-          ? PostDetailQuote(
-              author: post.quoted!.author,
-              handle: post.quoted!.handle,
-              timeAgo: post.quoted!.timeAgo,
-              body: post.quoted!.body,
-            )
-          : null,
-    );
-
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => PostDetailScreen(post: payload)));
   }
 }
 
 class _ProfileHeader extends StatelessWidget {
   const _ProfileHeader({
+    required this.headerImage,
+    required this.profileImage,
+    required this.initials,
+    required this.onProfileImageTap,
+    required this.onChangeCover,
     required this.onEditProfile,
     required this.onShareProfile,
   });
 
+  final Uint8List? headerImage;
+  final Uint8List? profileImage;
+  final String initials;
+  final VoidCallback onProfileImageTap;
+  final VoidCallback onChangeCover;
   final VoidCallback onEditProfile;
   final VoidCallback onShareProfile;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final auth = SimpleAuthService();
-    final email = auth.currentUserEmail ?? 'user@institution.edu';
-    final accent = AppTheme.accent;
     final isDark = theme.brightness == Brightness.dark;
     final onSurface = theme.colorScheme.onSurface;
     final subtle = onSurface.withValues(alpha: isDark ? 0.7 : 0.58);
-    final containerColor = isDark
-        ? accent.withValues(alpha: 0.18)
-        : accent.withValues(alpha: 0.1);
-    final borderColor = accent.withValues(alpha: isDark ? 0.45 : 0.35);
+    final outlineColor = theme.dividerColor.withValues(
+      alpha: isDark ? 0.4 : 0.28,
+    );
+    final coverPlaceholderColor = theme.colorScheme.surfaceContainerHigh
+        .withValues(alpha: isDark ? 0.32 : 0.6);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: containerColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor, width: 1),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Stack(
             children: [
-              HexagonAvatar(
-                size: 84,
-                child: Center(
-                  child: Text(
-                    _initialsFrom(email),
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      fontSize: 36,
-                      fontWeight: FontWeight.w700,
+              Container(
+                height: 140,
+                decoration: BoxDecoration(
+                  color: headerImage == null ? coverPlaceholderColor : null,
+                  image: headerImage != null
+                      ? DecorationImage(
+                          image: MemoryImage(headerImage!),
+                          fit: BoxFit.cover,
+                        )
+                      : null,
+                ),
+              ),
+              if (headerImage == null)
+                Positioned.fill(
+                  child: Center(
+                    child: Icon(
+                      Icons.wallpaper_outlined,
+                      size: 48,
+                      color: subtle,
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Alex Rivera',
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        color: onSurface,
-                        fontSize: 26,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      '@productlead • ${email.toLowerCase()}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: subtle,
-                        fontSize: 12.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Guiding nursing and midwifery teams through safe practice, exam preparation, and compassionate leadership across our teaching hospital.',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: onSurface,
-              height: 1.45,
-              fontSize: 13.5,
-            ),
-          ),
-          const SizedBox(height: 14),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            child: Row(
-              children: const [
-                _PillTag('Clinical Education'),
-                SizedBox(width: 8),
-                _PillTag('Quality Improvement'),
-                SizedBox(width: 8),
-                _PillTag('Mentorship'),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: const [
-              _ProfileStat(value: '18.4K', label: 'Followers'),
-              SizedBox(width: 24),
-              _ProfileStat(value: '1.2K', label: 'Following'),
-              SizedBox(width: 24),
-              _ProfileStat(value: '342', label: 'Clinical Moments'),
-            ],
-          ),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: onEditProfile,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    backgroundColor: onSurface,
+              Positioned(
+                top: 12,
+                right: 12,
+                child: IconButton(
+                  onPressed: onChangeCover,
+                  tooltip: 'Change cover photo',
+                  icon: const Icon(Icons.wallpaper_outlined),
+                  iconSize: 22,
+                  style: IconButton.styleFrom(
                     foregroundColor: Colors.white,
-                  ),
-                  child: const Text('Edit Profile'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: onShareProfile,
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                    backgroundColor: Colors.black.withValues(alpha: 0.28),
+                    padding: const EdgeInsets.all(10),
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
                     ),
-                    side: BorderSide(color: borderColor),
-                    foregroundColor: onSurface,
                   ),
-                  child: const Text('Share Profile'),
                 ),
               ),
             ],
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 20),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            GestureDetector(
+              onTap: onProfileImageTap,
+              child: HexagonAvatar(
+                size: 76,
+                borderWidth: 1.5,
+                borderColor: outlineColor.withValues(alpha: 0.6),
+                backgroundColor: isDark
+                    ? Colors.black.withValues(alpha: 0.12)
+                    : Colors.white,
+                image: profileImage != null
+                    ? MemoryImage(profileImage!)
+                    : null,
+                child: profileImage != null
+                    ? null
+                    : Center(
+                        child: Text(
+                          initials,
+                          style: theme.textTheme.headlineMedium?.copyWith(
+                            color: onSurface,
+                            fontSize: 36,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+              ),
+            ),
+            const SizedBox(width: 18),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Alex Rivera',
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      color: onSurface,
+                      fontSize: 28,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '@productlead',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: subtle,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Guiding nursing and midwifery teams through safe practice, exam preparation, and compassionate leadership across our teaching hospital.',
+          style: theme.textTheme.bodyLarge?.copyWith(
+            color: onSurface,
+            height: 1.45,
+            fontSize: 13.5,
+          ),
+        ),
+        const SizedBox(height: 14),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          child: Row(
+            children: const [
+              _PillTag('Clinical Education'),
+              SizedBox(width: 8),
+              _PillTag('Quality Improvement'),
+              SizedBox(width: 8),
+              _PillTag('Mentorship'),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: const [
+            _ProfileStat(value: '18.4K', label: 'Followers'),
+            SizedBox(width: 24),
+            _ProfileStat(value: '1.2K', label: 'Following'),
+            SizedBox(width: 24),
+            _ProfileStat(value: '342', label: 'Clinical Moments'),
+          ],
+        ),
+        const SizedBox(height: 18),
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton(
+                onPressed: onEditProfile,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  backgroundColor: onSurface,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Edit Profile'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: OutlinedButton(
+                onPressed: onShareProfile,
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  side: BorderSide(color: outlineColor),
+                  foregroundColor: onSurface,
+                ),
+                child: const Text('Share Profile'),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -451,7 +669,7 @@ class _ProfileTabs extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onChanged;
 
-  static const _tabs = ['Moments', 'Highlights', 'Bookmarks'];
+  static const _tabs = ['Moments', 'Replies', 'Bookmarks'];
 
   @override
   Widget build(BuildContext context) {
@@ -459,9 +677,11 @@ class _ProfileTabs extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final onSurface = theme.colorScheme.onSurface;
     final inactive = onSurface.withValues(alpha: isDark ? 0.55 : 0.5);
-    final selectedBg = AppTheme.accent.withValues(alpha: isDark ? 0.24 : 0.12);
+    final selectedBg = isDark
+        ? Colors.white.withValues(alpha: 0.16)
+        : Colors.grey.withValues(alpha: 0.2);
     final borderColor = theme.dividerColor.withValues(
-      alpha: isDark ? 0.4 : 0.2,
+      alpha: isDark ? 0.4 : 0.25,
     );
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -481,9 +701,7 @@ class _ProfileTabs extends StatelessWidget {
               backgroundColor: theme.cardColor,
               selectedColor: selectedBg,
               shape: const StadiumBorder(),
-              side: BorderSide(
-                color: isSelected ? AppTheme.accent : borderColor,
-              ),
+              side: BorderSide(color: isSelected ? selectedBg : borderColor),
             ),
           ),
         );
@@ -529,3 +747,5 @@ String _initialsFrom(String value) {
   final count = letters.length >= 2 ? 2 : 1;
   return letters.substring(0, count).toUpperCase();
 }
+
+enum _HeaderAction { pickImage, removeImage }

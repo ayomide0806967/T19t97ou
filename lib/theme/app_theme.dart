@@ -6,7 +6,7 @@ class AppTheme {
 
   // Light palette
   static const Color background = Color(0xFFFFFFFF);
-  static const Color surface = Color(0xFFF7F8FA);
+  static const Color surface = Color(0xFFF3F4F8);
   static const Color divider = Color(0xFFE5E7EB);
   static const Color textPrimary = Color(0xFF111827);
   static const Color textSecondary = Color(0xFF6B7280);

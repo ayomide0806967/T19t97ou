@@ -1,12 +1,14 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../services/data_service.dart';
 import '../theme/app_theme.dart';
-import 'simple_comment_section.dart';
 import 'tweet_shell.dart';
 import 'hexagon_avatar.dart';
+import '../screens/post_detail_screen.dart';
+import '../screens/quote_screen.dart';
 
 class TweetPostCard extends StatefulWidget {
   const TweetPostCard({
@@ -14,6 +16,7 @@ class TweetPostCard extends StatefulWidget {
     required this.post,
     required this.currentUserHandle,
     this.replyContext,
+    this.onReply,
     this.backgroundColor,
     this.cornerAccentColor,
     this.showCornerAccent = true,
@@ -24,6 +27,7 @@ class TweetPostCard extends StatefulWidget {
   final PostModel post;
   final String currentUserHandle;
   final String? replyContext;
+  final ValueChanged<PostModel>? onReply;
   final Color? backgroundColor;
   final Color? cornerAccentColor;
   final bool showCornerAccent;
@@ -78,7 +82,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
     });
   }
 
-  Future<void> _toggleRepost() async {
+  Future<void> _performReinstitute() async {
     final handle = widget.currentUserHandle;
     if (handle.isEmpty) {
       _showToast('Sign in to re-in.');
@@ -91,7 +95,17 @@ class _TweetPostCardState extends State<TweetPostCard> {
     );
     if (!mounted) return;
     _showToast(toggled ? 'Re-instituted!' : 'Removed re-institution');
-    setState(() {});
+    setState(() {
+      if (widget.post.originalId == null) {
+        _reposts = toggled
+            ? _reposts + 1
+            : (_reposts - 1).clamp(0, 1 << 30);
+      }
+    });
+  }
+
+  void _handleReinPressed() {
+    _showReinOptions();
   }
 
   void _incrementReply() {
@@ -120,6 +134,109 @@ class _TweetPostCardState extends State<TweetPostCard> {
     );
   }
 
+  Future<void> _showReinOptions() async {
+    final theme = Theme.of(context);
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        final bool isDark = theme.brightness == Brightness.dark;
+        final Color surface =
+            theme.colorScheme.surface.withValues(alpha: isDark ? 0.92 : 0.96);
+        final Color border =
+            Colors.white.withValues(alpha: isDark ? 0.12 : 0.25);
+
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: BackdropFilter(
+                    filter: ui.ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: surface,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: border),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.12),
+                            blurRadius: 24,
+                            offset: const Offset(0, 12),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _ReinOptionTile(
+                            icon: Icons.repeat_rounded,
+                            label: 'Re-institute',
+                            description: 'Share this post with your network',
+                            onTap: () async {
+                              Navigator.of(sheetContext).pop();
+                              await _performReinstitute();
+                            },
+                          ),
+                          Divider(
+                            height: 1,
+                            thickness: 1,
+                            color: theme.dividerColor.withValues(alpha: 0.16),
+                          ),
+                          _ReinOptionTile(
+                            icon: Icons.mode_comment_outlined,
+                            label: 'Quote',
+                            description: 'Add a comment before you share',
+                            onTap: () {
+                              Navigator.of(sheetContext).pop();
+                              _openQuoteComposer();
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                GestureDetector(
+                  onTap: () => Navigator.of(sheetContext).pop(),
+                  child: Container(
+                    width: 60,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _openQuoteComposer() async {
+    final post = widget.post;
+    final initials = _initialsFrom(post.author);
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => QuoteScreen(
+          author: post.author,
+          handle: post.handle,
+          timeAgo: post.timeAgo,
+          body: post.body,
+          initials: initials,
+          tags: post.tags,
+        ),
+      ),
+    );
+  }
+
   bool _userHasReposted(DataService service) {
     final handle = widget.currentUserHandle;
     if (handle.isEmpty) return false;
@@ -132,7 +249,23 @@ class _TweetPostCardState extends State<TweetPostCard> {
     final theme = Theme.of(context);
     final dataService = context.watch<DataService>();
     final repostedByUser = _userHasReposted(dataService);
-    final repostBannerHandle = widget.post.repostedBy;
+    final Color? cardBackground = widget.backgroundColor;
+    final bool usesLightCardOnDarkTheme =
+        theme.brightness == Brightness.dark &&
+            cardBackground != null &&
+            cardBackground == cardBackground.withValues(alpha: 1.0) &&
+            ThemeData.estimateBrightnessForColor(cardBackground) ==
+                Brightness.light;
+    final Color primaryTextColor = usesLightCardOnDarkTheme
+        ? AppTheme.textPrimary
+        : theme.colorScheme.onSurface;
+    final Color secondaryTextColor = usesLightCardOnDarkTheme
+        ? AppTheme.textSecondary
+        : (theme.textTheme.bodyMedium?.color ??
+            theme.colorScheme.onSurface.withValues(alpha: 0.7));
+    final Color controlIconColor = usesLightCardOnDarkTheme
+        ? AppTheme.textSecondary
+        : AppTheme.textTertiary;
 
     // Build metric data
     final reply = TweetMetricData(
@@ -177,48 +310,13 @@ class _TweetPostCardState extends State<TweetPostCard> {
     final List<Widget> header = [];
     if (widget.replyContext != null) {
       header.add(
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Replying to ${widget.replyContext}',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.secondary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 12),
-          ],
-        ),
-      );
-    }
-    if (widget.showRepostBanner &&
-        repostBannerHandle != null &&
-        repostBannerHandle.isNotEmpty) {
-      header.add(
         Padding(
           padding: const EdgeInsets.only(bottom: 12),
-          child: Row(
-            children: [
-              Icon(
-                Icons.import_export,
-                size: 18,
-                color: AppTheme.accent.withAlpha(200),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                '$repostBannerHandle re-in',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: AppTheme.accent,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.2,
-                ),
-              ),
-            ],
-          ),
+          child: TagChip('Replying to ${widget.replyContext}'),
         ),
       );
     }
+    // Repost banner suppressed; modern reply tag handles context.
 
     Widget shell = TweetShell(
       backgroundColor: widget.backgroundColor,
@@ -240,7 +338,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
                   child: Text(
                     _initialsFrom(widget.post.author),
                     style: theme.textTheme.labelLarge?.copyWith(
-                      color: theme.colorScheme.onSurface,
+                      color: primaryTextColor,
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                     ),
@@ -257,21 +355,25 @@ class _TweetPostCardState extends State<TweetPostCard> {
                       style: theme.textTheme.labelLarge?.copyWith(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
+                        color: primaryTextColor,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '${widget.post.handle} • ${widget.post.timeAgo}',
-                      style: theme.textTheme.bodySmall?.copyWith(fontSize: 12),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 12,
+                        color: secondaryTextColor,
+                      ),
                     ),
                   ],
                 ),
               ),
               IconButton(
                 onPressed: () => _showToast('Post options coming soon'),
-                icon: const Icon(
+                icon: Icon(
                   Icons.more_horiz,
-                  color: AppTheme.textTertiary,
+                  color: controlIconColor,
                 ),
               ),
             ],
@@ -281,7 +383,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
             Text(
               widget.post.body,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface,
+                color: primaryTextColor,
                 fontSize: 14,
                 height: 1.45,
               ),
@@ -308,21 +410,13 @@ class _TweetPostCardState extends State<TweetPostCard> {
             ),
           ],
           const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: Row(
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                ...leftMetrics.map(
-                  (m) => Expanded(
-                    child: _EdgeCell(
-                      child: _buildMetricButton(m, compact: isCompact),
-                    ),
-                  ),
-                ),
-                _EdgeCell(child: _buildMetricButton(share, compact: isCompact)),
-              ],
-            ),
+          _buildMetricsRow(
+            theme: theme,
+            leftMetrics: leftMetrics,
+            share: share,
+            isCompact: isCompact,
+            onSurfaceColor: primaryTextColor,
+            forceContrast: usesLightCardOnDarkTheme,
           ),
         ],
       ),
@@ -343,18 +437,58 @@ class _TweetPostCardState extends State<TweetPostCard> {
     return shell;
   }
 
+  Widget _buildMetricsRow({
+    required ThemeData theme,
+    required List<TweetMetricData> leftMetrics,
+    required TweetMetricData share,
+    required bool isCompact,
+    required Color onSurfaceColor,
+    required bool forceContrast,
+  }) {
+    Widget row = SizedBox(
+      width: double.infinity,
+      child: Row(
+        mainAxisSize: MainAxisSize.max,
+        children: [
+          ...leftMetrics.map(
+            (m) => Expanded(
+              child: _EdgeCell(
+                child: _buildMetricButton(m, compact: isCompact),
+              ),
+            ),
+          ),
+          _EdgeCell(child: _buildMetricButton(share, compact: isCompact)),
+        ],
+      ),
+    );
+
+    if (!forceContrast) {
+      return row;
+    }
+
+    final ThemeData overrideTheme = theme.copyWith(
+      colorScheme: theme.colorScheme.copyWith(onSurface: onSurfaceColor),
+    );
+
+    return Theme(data: overrideTheme, child: row);
+  }
+
   Widget _buildMetricButton(TweetMetricData data, {required bool compact}) {
     VoidCallback onTap;
 
     switch (data.type) {
       case TweetMetricType.reply:
         onTap = () {
-          _incrementReply();
-          _showCommentComposer();
+          final handler = widget.onReply;
+          if (handler != null) {
+            handler(widget.post);
+            return;
+          }
+          _openReplyComposer();
         };
         break;
       case TweetMetricType.rein:
-        onTap = _toggleRepost;
+        onTap = _handleReinPressed;
         break;
       case TweetMetricType.like:
         onTap = _toggleLike;
@@ -376,82 +510,104 @@ class _TweetPostCardState extends State<TweetPostCard> {
     return TweetMetric(data: data, onTap: onTap, compact: compact);
   }
 
-  void _showCommentComposer() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: Container(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.8,
-          ),
-          margin: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Theme.of(context).scaffoldBackgroundColor,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withAlpha(38),
-                blurRadius: 30,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(top: 12, bottom: 8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE2E8F0),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              Expanded(
-                child: SimpleCommentSection(
-                  postAuthor: widget.post.author,
-                  postBody: widget.post.body,
-                  postTime: widget.post.timeAgo,
-                  comments: _demoComments(),
-                  onAddComment: (content) {
-                    Navigator.pop(context);
-                    _showToast('Reply posted successfully!');
-                  },
-                ),
-              ),
-            ],
-          ),
+  Future<void> _openReplyComposer() async {
+    final payload = PostDetailPayload(
+      author: widget.post.author,
+      handle: widget.post.handle,
+      timeAgo: widget.post.timeAgo,
+      body: widget.post.body,
+      initials: _initialsFrom(widget.post.author),
+      tags: widget.post.tags,
+      replies: _replies,
+      reposts: _reposts,
+      likes: _likes,
+      bookmarks: widget.post.bookmarks,
+      views: _views,
+      quoted: widget.post.quoted != null
+          ? PostDetailQuote(
+              author: widget.post.quoted!.author,
+              handle: widget.post.quoted!.handle,
+              timeAgo: widget.post.quoted!.timeAgo,
+              body: widget.post.quoted!.body,
+            )
+          : null,
+    );
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PostDetailScreen(
+          post: payload,
+          focusComposer: true,
+          onReplyPosted: () {
+            if (!mounted) return;
+            _incrementReply();
+          },
         ),
       ),
     );
   }
+}
 
-  List<SimpleComment> _demoComments() => [
-    SimpleComment(
-      author: 'Sarah Johnson',
-      timeAgo: '2h',
-      body:
-          'This is exactly what our campus needs! Looking forward to seeing the impact on student innovation.',
-      avatarColors: [const Color(0xFF667EEA), const Color(0xFF764BA2)],
-      likes: 12,
-      isLiked: false,
-    ),
-    SimpleComment(
-      author: 'Mike Chen',
-      timeAgo: '1h',
-      body:
-          'Completely agree! The interdisciplinary approach will be game-changing.',
-      avatarColors: [const Color(0xFFF093FB), const Color(0xFFF5576C)],
-      likes: 3,
-      isLiked: true,
-    ),
-  ];
+class _ReinOptionTile extends StatelessWidget {
+  const _ReinOptionTile({
+    required this.icon,
+    required this.label,
+    required this.description,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final String description;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final Color iconBackground = theme.colorScheme.primary.withValues(
+      alpha: isDark ? 0.18 : 0.12,
+    );
+    final Color iconColor = theme.colorScheme.primary;
+    final TextStyle? titleStyle = theme.textTheme.titleMedium?.copyWith(
+      fontWeight: FontWeight.w700,
+    );
+    final TextStyle? bodyStyle = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+    );
+
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: iconBackground,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: iconColor, size: 20),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: titleStyle),
+                  const SizedBox(height: 4),
+                  Text(description, style: bodyStyle),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class TweetMetricData {

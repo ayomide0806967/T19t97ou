@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
 
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
@@ -11,11 +12,10 @@ import '../theme/app_theme.dart';
 import '../widgets/hexagon_avatar.dart';
 import '../widgets/brand_mark.dart';
 import '../widgets/floating_nav_bar.dart';
+import '../widgets/tagged_text_input.dart';
+import '../widgets/tweet_composer_card.dart';
 import '../widgets/tweet_post_card.dart';
 import 'thread_screen.dart';
-import 'chat_screen.dart';
-import 'compose_screen.dart';
-import 'explore_screen.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
 
@@ -28,9 +28,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  // Theme is now controlled globally via AppSettings; keeping local field removed.
   int _selectedBottomNavIndex = 0;
-
+  double _horizontalDragDistance = 0;
   SimpleAuthService get _authService => SimpleAuthService();
   String get _currentUserHandle {
     final email = _authService.currentUserEmail;
@@ -56,66 +55,77 @@ class _HomeScreenState extends State<HomeScreen> {
     final initials = _initialsFrom(_authService.currentUserEmail);
     final currentUserHandle = _currentUserHandle;
 
-    return Scaffold(
-      key: _scaffoldKey,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
-        elevation: 0,
-        shadowColor: Colors.black.withValues(alpha: 0.05),
-        leading: IconButton(
-          icon: const Icon(Icons.menu, color: Color(0xFF2D3748), size: 24),
-          onPressed: () {
-            if (_scaffoldKey.currentState != null) {
-              _scaffoldKey.currentState!.openDrawer();
-            }
-          },
-          tooltip: 'Open menu',
-        ),
-        titleSpacing: 0,
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const BrandMark(size: 24),
-            const SizedBox(width: 10),
-            Text(
-              'Institution',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.2,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          RepaintBoundary(
-            child: IconButton(
-              tooltip: 'Profile',
-              icon: HexagonAvatar(
-                size: 40,
-                backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                borderColor: theme.colorScheme.primary.withValues(alpha: 0.35),
-                borderWidth: 1.5,
-                child: Center(
-                  child: Text(initials, style: theme.textTheme.labelLarge),
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onHorizontalDragStart: _handleHorizontalDragStart,
+      onHorizontalDragUpdate: _handleHorizontalDragUpdate,
+      onHorizontalDragEnd: _handleHorizontalDragEnd,
+      child: Scaffold(
+        key: _scaffoldKey,
+        body: CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              floating: true,
+              snap: true,
+              elevation: 0,
+              automaticallyImplyLeading: false,
+              leading: const Padding(
+                padding: EdgeInsets.only(left: 12),
+                child: Icon(
+                  Icons.search_rounded,
+                  size: 24,
+                  color: Color(0xFF9CA3AF),
                 ),
               ),
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const ProfileScreen(),
+              backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+              shadowColor: Colors.black.withValues(alpha: 0.05),
+              centerTitle: true,
+              title: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const BrandMark(size: 24),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Institution',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.2,
+                    ),
                   ),
-                );
-              },
+                ],
+              ),
+              actions: [
+                RepaintBoundary(
+                  child: IconButton(
+                    tooltip: 'Profile',
+                    icon: HexagonAvatar(
+                      size: 40,
+                      backgroundColor:
+                          theme.colorScheme.surfaceContainerHighest,
+                      borderColor: theme.colorScheme.primary.withValues(
+                        alpha: 0.35,
+                      ),
+                      borderWidth: 1.5,
+                      child: Center(
+                        child: Text(
+                          initials,
+                          style: theme.textTheme.labelLarge,
+                        ),
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const ProfileScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
             ),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      drawer: RepaintBoundary(child: _buildNavigationDrawer()),
-      body: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(
-            child: SafeArea(
+            SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 24,
@@ -132,48 +142,41 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-          ),
-          SliverList(
-            delegate: SliverChildBuilderDelegate((context, index) {
-              final post = posts[index];
-              return RepaintBoundary(
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 24),
+            SliverList(
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final post = posts[index];
+                return RepaintBoundary(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 720),
-                        child: _PostCard(
-                          post: post,
-                          currentUserHandle: currentUserHandle,
+                    padding: const EdgeInsets.only(bottom: 24),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 720),
+                          child: _PostCard(
+                            post: post,
+                            currentUserHandle: currentUserHandle,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              );
-            }, childCount: posts.length),
+                );
+              }, childCount: posts.length),
+            ),
+            const SliverToBoxAdapter(
+              child: SizedBox(height: 100), // Extra padding at bottom
+            ),
+          ],
+        ),
+        floatingActionButton: Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: _HexagonComposeButton(
+            onTap: _openQuickComposer,
           ),
-          const SliverToBoxAdapter(
-            child: SizedBox(height: 100), // Extra padding at bottom
-          ),
-        ],
+        ),
+        bottomNavigationBar: _buildBottomNavigationBar(),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (context) => const ComposeScreen()),
-          );
-        },
-        tooltip: 'Compose',
-        mini: true,
-        backgroundColor: AppTheme.buttonPrimary,
-        foregroundColor: Colors.white,
-        elevation: 2,
-        child: const Icon(Icons.edit_rounded, size: 18),
-      ),
-      bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
 
@@ -187,66 +190,26 @@ class _HomeScreenState extends State<HomeScreen> {
     return FloatingNavBar(
       currentIndex: _selectedBottomNavIndex,
       onIndexChange: (index) {
+        if (index == 1) {
+          _showQuickControlPanel();
+          return;
+        }
         if (mounted) {
           setState(() => _selectedBottomNavIndex = index);
         }
       },
       destinations: [
         FloatingNavBarDestination(
-          icon: Icons.home_outlined,
-          label: 'Home',
+          icon: Icons.home_filled,
           onTap: () {
             if (mounted) {
               setState(() => _selectedBottomNavIndex = 0);
             }
           },
         ),
-        FloatingNavBarDestination(
-          icon: Icons.explore_outlined,
-          label: 'Explore',
-          onTap: () {
-            Navigator.of(context)
-                .push(
-                  MaterialPageRoute(
-                    builder: (context) => const ExploreScreen(),
-                  ),
-                )
-                .then((_) {
-                  resetToHome();
-                });
-          },
-        ),
-        FloatingNavBarDestination(
-          icon: Icons.mode_edit_outline_rounded,
-          label: 'Compose',
-          onTap: () {
-            Navigator.of(context)
-                .push(
-                  MaterialPageRoute(
-                    builder: (context) => const ComposeScreen(),
-                  ),
-                )
-                .then((_) {
-                  resetToHome();
-                });
-          },
-        ),
-        FloatingNavBarDestination(
-          icon: Icons.mark_chat_unread_outlined,
-          label: 'Chat',
-          onTap: () {
-            Navigator.of(context)
-                .push(
-                  MaterialPageRoute(builder: (context) => const ChatScreen()),
-                )
-                .then((_) {
-                  resetToHome();
-                });
-          },
-        ),
+        FloatingNavBarDestination(icon: Icons.add, onTap: null),
         FloatingNavBarDestination(
           icon: Icons.person_outline_rounded,
-          label: 'Profile',
           onTap: () {
             Navigator.of(context)
                 .push(
@@ -263,227 +226,94 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildNavigationDrawer() {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final Color glassColor = isDark
-        ? Colors.white.withValues(alpha: 0.08)
-        : Colors.white.withValues(alpha: 0.78);
+  void _handleHorizontalDragStart(DragStartDetails details) {
+    _horizontalDragDistance = 0;
+  }
 
-    return Drawer(
+  void _handleHorizontalDragUpdate(DragUpdateDetails details) {
+    final dx = details.delta.dx;
+    final dy = details.delta.dy.abs();
+    if (dx > 0 && dx.abs() > dy) {
+      _horizontalDragDistance += dx;
+    } else if (dx < 0) {
+      _horizontalDragDistance = 0;
+    }
+  }
+
+  void _handleHorizontalDragEnd(DragEndDetails details) {
+    final velocity = details.primaryVelocity ?? 0;
+    if (_horizontalDragDistance > 80 || velocity > 600) {
+      _showQuickControlPanel();
+    }
+    _horizontalDragDistance = 0;
+  }
+
+  Future<void> _openQuickComposer() async {
+    final dataService = context.read<DataService>();
+    final initials = _initialsFrom(_authService.currentUserEmail);
+    final handle = _currentUserHandle;
+    const authorName = 'You';
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      elevation: 0,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: BackdropFilter(
-            filter: ui.ImageFilter.blur(sigmaX: 26, sigmaY: 26),
-            child: Container(
-              decoration: BoxDecoration(
-                color: glassColor,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: isDark ? 0.14 : 0.22),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.16),
-                    blurRadius: 18,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: RepaintBoundary(
-                child: SafeArea(
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 20),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: Row(
-                          children: [
-                            const BrandMark(size: 26),
-                            const SizedBox(width: 10),
-                            Text(
-                              'Institution',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: -0.2,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      _buildSearchBar(),
-                      const SizedBox(height: 16),
-                      Expanded(
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildNavigationItems(),
-                              const SizedBox(height: 24),
-                              _buildSection('Your Pages', [
-                                _NavigationItem(
-                                  icon: Icons.pages_outlined,
-                                  title: 'Design Club',
-                                  color: const Color(0xFF4299E1),
-                                ),
-                                _NavigationItem(
-                                  icon: Icons.groups_outlined,
-                                  title: 'Student Union',
-                                  color: const Color(0xFF48BB78),
-                                ),
-                                _NavigationItem(
-                                  icon: Icons.sports_esports_outlined,
-                                  title: 'Gaming Society',
-                                  color: const Color(0xFF9F7AEA),
-                                ),
-                              ]),
-                              const SizedBox(height: 16),
-                              _buildSection('Trending', [
-                                _NavigationItem(
-                                  icon: Icons.tag_outlined,
-                                  title: '#CampusLife',
-                                  color: const Color(0xFF718096),
-                                ),
-                                _NavigationItem(
-                                  icon: Icons.tag_outlined,
-                                  title: '#StudentSuccess',
-                                  color: const Color(0xFF718096),
-                                ),
-                                _NavigationItem(
-                                  icon: Icons.tag_outlined,
-                                  title: '#InnovationHub',
-                                  color: const Color(0xFF718096),
-                                ),
-                              ]),
-                              const SizedBox(height: 16),
-                              _buildSection('Events', [
-                                _NavigationItem(
-                                  icon: Icons.event_outlined,
-                                  title: 'Tech Workshop',
-                                  color: const Color(0xFF718096),
-                                ),
-                                _NavigationItem(
-                                  icon: Icons.event_outlined,
-                                  title: 'Study Group',
-                                  color: const Color(0xFF718096),
-                                ),
-                                _NavigationItem(
-                                  icon: Icons.event_outlined,
-                                  title: 'Career Fair',
-                                  color: const Color(0xFF718096),
-                                ),
-                              ]),
-                              const SizedBox(height: 24),
-                            ],
-                          ),
-                        ),
-                      ),
-                      _buildUserProfileCard(),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
+      builder: (context) {
+        return _QuickComposerSheet(
+          initials: initials,
+          handle: handle,
+          author: authorName,
+          onSubmit: (content) async {
+            await dataService.addPost(
+              author: authorName,
+              handle: handle,
+              body: content,
+            );
+          },
+          onViewProfile: () {
+            Navigator.of(context).pop();
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+            );
+          },
+          avatarBackgroundColor:
+              Theme.of(context).colorScheme.surfaceContainerHighest,
+          avatarBorderColor:
+              Theme.of(context).colorScheme.primary.withValues(alpha: 0.35),
+        );
+      },
     );
   }
 
-  Widget _buildSearchBar() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: const [],
-      ),
-      child: TextField(
-        decoration: InputDecoration(
-          hintText: 'Search posts, people, tags...',
-          hintStyle: const TextStyle(color: Color(0xFFA0AEC0), fontSize: 16),
-          prefixIcon: const Icon(
-            Icons.search,
-            color: Color(0xFFA0AEC0),
-            size: 20,
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
-          ),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 14,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavigationItems() {
-    return Column(
-      children: [
-        _NavigationItem(
-          icon: Icons.home_outlined,
-          title: 'Home Feed',
-          color: const Color(0xFF48BB78),
-          hasBadge: true,
-        ),
-        const SizedBox(height: 8),
-        _NavigationItem(
-          icon: Icons.tag_outlined,
-          title: 'Trending Topics',
-          color: const Color(0xFF4299E1),
-        ),
-        const SizedBox(height: 8),
-        _NavigationItem(
-          icon: Icons.notifications_outlined,
-          title: 'Notifications',
-          color: const Color(0xFFED8936),
-        ),
-        const SizedBox(height: 8),
-        _NavigationItem(
-          icon: Icons.message_outlined,
-          title: 'Messages',
-          color: const Color(0xFF9F7AEA),
-        ),
-        const SizedBox(height: 8),
-        _NavigationItem(
-          icon: Icons.people_outlined,
-          title: 'Friends',
-          color: const Color(0xFFF56565),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSection(String title, List<Widget> items) {
+  void _showQuickControlPanel() {
     final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 12),
-          child: Text(
-            title,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: const Color(0xFF4A5568),
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.4,
-            ),
-          ),
-        ),
-        ...items.map(
-          (item) =>
-              Padding(padding: const EdgeInsets.only(bottom: 4), child: item),
-        ),
-      ],
+    final navigator = Navigator.of(context);
+    final appSettings = context.read<AppSettings>();
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return _QuickControlPanel(
+          theme: theme,
+          appSettings: appSettings,
+          userCard: _buildUserProfileCard(),
+          onNavigateHome: () {
+            setState(() => _selectedBottomNavIndex = 0);
+          },
+          onCompose: () async {
+            navigator.pop();
+            await _openQuickComposer();
+          },
+          onProfile: () {
+            setState(() => _selectedBottomNavIndex = 4);
+            navigator.push(
+              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -735,6 +565,826 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+class _QuickControlPanel extends StatefulWidget {
+  const _QuickControlPanel({
+    required this.theme,
+    required this.appSettings,
+    required this.userCard,
+    required this.onNavigateHome,
+    required this.onCompose,
+    required this.onProfile,
+  });
+
+  final ThemeData theme;
+  final AppSettings appSettings;
+  final Widget userCard;
+  final VoidCallback onNavigateHome;
+  final VoidCallback onCompose;
+  final VoidCallback onProfile;
+
+  @override
+  State<_QuickControlPanel> createState() => _QuickControlPanelState();
+}
+
+class _QuickControlPanelState extends State<_QuickControlPanel> {
+  late final List<_QuickControlItem> _items;
+  late final List<bool> _activeStates;
+
+  Future<void> _showComingSoon(String feature) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final theme = Theme.of(context);
+    Navigator.of(context).pop();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          '$feature is coming soon',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.black.withValues(alpha: 0.85),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _items = [
+      _QuickControlItem(
+        icon: Icons.home_outlined,
+        label: 'Home Feed',
+        onPressed: () async {
+          Navigator.of(context).pop();
+          widget.onNavigateHome();
+        },
+      ),
+      _QuickControlItem(
+        icon: Icons.mode_edit_outline_rounded,
+        label: 'Compose',
+        onPressed: () async {
+          Navigator.of(context).pop();
+          widget.onCompose();
+        },
+      ),
+      _QuickControlItem(
+        icon: Icons.person_outline_rounded,
+        label: 'Profile',
+        onPressed: () async {
+          Navigator.of(context).pop();
+          widget.onProfile();
+        },
+      ),
+      _QuickControlItem.togglable(
+        icon: Icons.dark_mode_rounded,
+        label: 'Dark Theme',
+        initialValue: widget.appSettings.isDarkMode,
+        onToggle: (value) async {
+          await widget.appSettings.toggleDarkMode(value);
+        },
+      ),
+      _QuickControlItem(
+        icon: Icons.notifications_none_outlined,
+        label: 'Notifications',
+        onPressed: () async => _showComingSoon('Notifications'),
+      ),
+      _QuickControlItem(
+        icon: Icons.forum_outlined,
+        label: 'Messages',
+        onPressed: () async => _showComingSoon('Messages'),
+      ),
+      _QuickControlItem(
+        icon: Icons.school_outlined,
+        label: 'Colleges',
+        onPressed: () async => _showComingSoon('Colleges'),
+      ),
+      _QuickControlItem(
+        icon: Icons.local_fire_department_outlined,
+        label: 'Trending',
+        onPressed: () async => _showComingSoon('Trending topics'),
+      ),
+      _QuickControlItem(
+        icon: Icons.note_alt_outlined,
+        label: 'Notes',
+        onPressed: () async => _showComingSoon('Notes'),
+      ),
+      _QuickControlItem(
+        icon: Icons.quiz_outlined,
+        label: 'Exam Prep',
+        onPressed: () async => _showComingSoon('Exam prep'),
+      ),
+      _QuickControlItem(
+        icon: Icons.settings_outlined,
+        label: 'Settings',
+        onPressed: () async => _showComingSoon('Settings'),
+      ),
+    ];
+
+    _activeStates = _items.map((item) => item.initialValue).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final double sheetHeight = MediaQuery.of(context).size.height * 0.5;
+    final theme = widget.theme;
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 1, end: 0),
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Transform.translate(offset: Offset(0, value * 60), child: child);
+      },
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: ClipRRect(
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(28),
+            topRight: Radius.circular(28),
+          ),
+          child: BackdropFilter(
+            filter: ui.ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+            child: Container(
+              height: sheetHeight,
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+              decoration: BoxDecoration(
+                color: theme.cardColor.withValues(alpha: 0.75),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(28),
+                  topRight: Radius.circular(28),
+                ),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.22)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 24,
+                    offset: const Offset(0, -4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.15,
+                        ),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Quick controls',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: _buildQuickControlGrid(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  widget.userCard,
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleItemInteraction(int index) async {
+    final item = _items[index];
+    final isActive = _activeStates[index];
+    if (item.isTogglable) {
+      setState(() {
+        _activeStates[index] = !isActive;
+      });
+      final handler = item.onToggle;
+      if (handler != null) {
+        await handler(_activeStates[index]);
+      }
+    } else {
+      await item.onPressed?.call();
+    }
+  }
+
+  Widget _buildQuickControlGrid() {
+    if (_items.isEmpty) return const SizedBox.shrink();
+
+    const rows = 3;
+    final columns = (_items.length / rows).ceil().clamp(1, 3);
+    final List<Widget> gridRows = [];
+
+    for (var row = 0; row < rows; row++) {
+      final int startIndex = row * columns;
+      if (startIndex >= _items.length) break;
+
+      final List<Widget> cells = [];
+      for (var column = 0; column < columns; column++) {
+        final index = startIndex + column;
+        final hasItem = index < _items.length;
+        cells.add(
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(right: column == columns - 1 ? 0 : 14),
+              child: hasItem
+                  ? _QuickControlButton(
+                      item: _items[index],
+                      isActive: _activeStates[index],
+                      onPressed: () => _handleItemInteraction(index),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ),
+        );
+      }
+
+      gridRows.add(
+        Padding(
+          padding: EdgeInsets.only(bottom: row == rows - 1 ? 0 : 16),
+          child: Row(children: cells),
+        ),
+      );
+    }
+
+    return Column(children: gridRows);
+  }
+}
+
+class _QuickControlItem {
+  const _QuickControlItem({
+    required this.icon,
+    required this.label,
+    this.onPressed,
+  }) : isTogglable = false,
+       onToggle = null,
+       initialValue = false;
+
+  const _QuickControlItem.togglable({
+    required this.icon,
+    required this.label,
+    required this.initialValue,
+    this.onToggle,
+  }) : isTogglable = true,
+       onPressed = null;
+
+  final IconData icon;
+  final String label;
+  final Future<void> Function()? onPressed;
+  final Future<void> Function(bool)? onToggle;
+  final bool isTogglable;
+  final bool initialValue;
+}
+
+class _QuickControlButton extends StatelessWidget {
+  const _QuickControlButton({
+    required this.item,
+    required this.isActive,
+    required this.onPressed,
+  });
+
+  final _QuickControlItem item;
+  final bool isActive;
+  final Future<void> Function()? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+
+    final Color baseBorder = theme.dividerColor.withValues(
+      alpha: isDark ? 0.35 : 0.35,
+    );
+    final Color activeBorder = theme.colorScheme.primary.withValues(
+      alpha: isDark ? 0.38 : 0.45,
+    );
+    final Color baseBackground = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : Colors.white;
+    final Color activeBackground = isDark
+        ? Colors.white.withValues(alpha: 0.14)
+        : theme.colorScheme.primary.withValues(alpha: 0.08);
+
+    final decoration = BoxDecoration(
+      color: isActive ? activeBackground : baseBackground,
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: isActive ? activeBorder : baseBorder, width: 1),
+    );
+
+    final TextStyle labelStyle =
+        theme.textTheme.bodyMedium?.copyWith(
+          fontWeight: FontWeight.w600,
+          fontSize: 13,
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.82),
+        ) ??
+        const TextStyle(fontSize: 13, fontWeight: FontWeight.w600);
+
+    final Widget content = item.isTogglable
+        ? Row(
+            children: [
+              Expanded(
+                child: Text(
+                  item.label,
+                  style: labelStyle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Transform.scale(
+                scale: 0.82,
+                alignment: Alignment.centerRight,
+                child: CupertinoSwitch(
+                  value: isActive,
+                  activeTrackColor: theme.colorScheme.primary,
+                  onChanged: (_) => onPressed?.call(),
+                ),
+              ),
+            ],
+          )
+        : Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                item.icon,
+                size: 20,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.72),
+              ),
+              const SizedBox(height: 8),
+              Text(item.label, textAlign: TextAlign.center, style: labelStyle),
+            ],
+          );
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        splashColor: theme.colorScheme.primary.withValues(alpha: 0.1),
+        highlightColor: theme.colorScheme.primary.withValues(alpha: 0.05),
+        onTap: onPressed == null ? null : () => onPressed?.call(),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          padding: EdgeInsets.symmetric(
+            horizontal: item.isTogglable ? 12 : 14,
+            vertical: item.isTogglable ? 10 : 16,
+          ),
+          decoration: decoration,
+          child: content,
+        ),
+      ),
+    );
+  }
+}
+
+class _QuickComposerSheet extends StatefulWidget {
+  const _QuickComposerSheet({
+    required this.initials,
+    required this.handle,
+    required this.author,
+    required this.onSubmit,
+    this.onViewProfile,
+    this.avatarBackgroundColor,
+    this.avatarBorderColor,
+  });
+
+  final String initials;
+  final String handle;
+  final String author;
+  final Future<void> Function(String content) onSubmit;
+  final VoidCallback? onViewProfile;
+  final Color? avatarBackgroundColor;
+  final Color? avatarBorderColor;
+
+  @override
+  State<_QuickComposerSheet> createState() => _QuickComposerSheetState();
+}
+
+class _QuickComposerSheetState extends State<_QuickComposerSheet> {
+  final TaggedTextEditingController _controller = TaggedTextEditingController();
+  final FocusNode _focusNode = FocusNode();
+  bool _isPosting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _focusNode.requestFocus();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleSubmit() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty || text.length > 280 || _isPosting) return;
+
+    setState(() {
+      _isPosting = true;
+    });
+    await widget.onSubmit(text);
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
+  void _showActionToast(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        backgroundColor: Colors.black,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        duration: const Duration(milliseconds: 1200),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final Color surface = isDark
+        ? theme.colorScheme.surface.withValues(alpha: 0.96)
+        : Colors.white;
+    final Color glassColor = surface.withValues(alpha: isDark ? 0.82 : 0.88);
+
+    final String trimmed = _controller.text.trim();
+    final bool canPost =
+        trimmed.isNotEmpty && trimmed.length <= 280 && !_isPosting;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16, 0, 16, bottomInset + 16),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: BackdropFilter(
+          filter: ui.ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+          child: Container(
+            decoration: BoxDecoration(
+              color: glassColor,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: isDark ? 0.14 : 0.24),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.18),
+                  blurRadius: 28,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.15,
+                        ),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Share an update',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TweetComposerCard(
+                    controller: _controller,
+                    focusNode: _focusNode,
+                    onSubmit: (_) {
+                    if (canPost) {
+                      _handleSubmit();
+                    }
+                  },
+                  hintText: 'What\'s happening?',
+                  margin: EdgeInsets.zero,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 18,
+                  ),
+                  backgroundColor:
+                      theme.cardColor.withValues(alpha: isDark ? 0.9 : 0.95),
+                  boxShadow: const [],
+                  isSubmitting: _isPosting,
+                  onChanged: (_) => setState(() {}),
+                  onImageTap: null,
+                  onGifTap: null,
+                    footer: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        InkWell(
+                          onTap: widget.onViewProfile,
+                          borderRadius: BorderRadius.circular(12),
+                          child: HexagonAvatar(
+                            size: 44,
+                            backgroundColor: widget.avatarBackgroundColor ??
+                                theme.colorScheme.surfaceContainerHighest,
+                            borderColor: widget.avatarBorderColor ??
+                                theme.colorScheme.primary
+                                    .withValues(alpha: 0.35),
+                            borderWidth: 1.6,
+                            child: Center(
+                              child: Text(
+                                widget.initials,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.colorScheme.onSurface,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: widget.onViewProfile,
+                            child: AnimatedDefaultTextStyle(
+                              duration: const Duration(milliseconds: 180),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurface
+                                        .withValues(alpha: 0.55),
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: -0.1,
+                                  ) ??
+                                  const TextStyle(),
+                              child: Text(
+                                widget.handle,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        AnimatedOpacity(
+                          duration: const Duration(milliseconds: 220),
+                          opacity: trimmed.isEmpty ? 0.45 : 1,
+                          child: _ComposerFooterIcon(
+                            icon: Icons.add_photo_alternate_outlined,
+                            onTap: () => _showActionToast(
+                              'Attach image coming soon',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        AnimatedOpacity(
+                          duration: const Duration(milliseconds: 220),
+                          opacity: trimmed.isEmpty ? 0.45 : 1,
+                          child: _ComposerFooterIcon(
+                            icon: Icons.gif_box_outlined,
+                            onTap: () => _showActionToast(
+                              'GIF library coming soon',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          '${_controller.text.length}/280',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: _controller.text.length > 280
+                                ? Colors.redAccent
+                                : theme.colorScheme.onSurface.withValues(
+                                    alpha: 0.45,
+                                  ),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        FilledButton(
+                          onPressed: canPost ? _handleSubmit : null,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppTheme.buttonPrimary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 18,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          child: _isPosting
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : const Text(
+                                  'Post',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: -0.1,
+                                  ),
+                                ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ComposerFooterIcon extends StatelessWidget {
+  const _ComposerFooterIcon({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final Color iconColor = isDark ? Colors.white : Colors.black;
+    final Color background = isDark
+        ? Colors.white.withValues(alpha: 0.12)
+        : Colors.black.withValues(alpha: 0.08);
+    return Material(
+      color: background,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Icon(
+            icon,
+            size: 18,
+            color: iconColor,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HexagonComposeButton extends StatelessWidget {
+  const _HexagonComposeButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final Color glassColor = theme.cardColor.withValues(alpha: isDark ? 0.22 : 0.65);
+    final Color borderColor =
+        Colors.white.withValues(alpha: isDark ? 0.12 : 0.28);
+
+    return SizedBox(
+      width: 64,
+      height: 64,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          ClipPath(
+            clipper: _HexagonButtonClipper(),
+            child: BackdropFilter(
+              filter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: glassColor,
+                  border: Border.all(color: borderColor, width: 1.2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.15),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Material(
+            color: Colors.transparent,
+            shape: const _HexagonBorder(),
+            child: InkWell(
+              onTap: onTap,
+              customBorder: const _HexagonBorder(),
+              splashColor: theme.colorScheme.primary.withValues(alpha: 0.15),
+              highlightColor: Colors.transparent,
+              child: Center(
+                child: Icon(
+                  Icons.edit_rounded,
+                  color: theme.colorScheme.onSurface,
+                  size: 22,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HexagonButtonClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final Path path = Path();
+    final double w = size.width;
+    final double h = size.height;
+    final double triangleHeight = w * 0.288675;
+
+    path
+      ..moveTo(w / 2, 0)
+      ..lineTo(w, triangleHeight)
+      ..lineTo(w, h - triangleHeight)
+      ..lineTo(w / 2, h)
+      ..lineTo(0, h - triangleHeight)
+      ..lineTo(0, triangleHeight)
+      ..close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+}
+
+class _HexagonBorder extends ShapeBorder {
+  const _HexagonBorder();
+
+  @override
+  EdgeInsetsGeometry get dimensions => EdgeInsets.zero;
+
+  @override
+  ShapeBorder scale(double t) => const _HexagonBorder();
+
+  @override
+  Path getOuterPath(Rect rect, {TextDirection? textDirection}) {
+    final Path path = Path();
+    final double w = rect.width;
+    final double triangleHeight = w * 0.288675; // tan(30°)/2 * w
+
+    path
+      ..moveTo(rect.left + w / 2, rect.top)
+      ..lineTo(rect.right, rect.top + triangleHeight)
+      ..lineTo(rect.right, rect.bottom - triangleHeight)
+      ..lineTo(rect.left + w / 2, rect.bottom)
+      ..lineTo(rect.left, rect.bottom - triangleHeight)
+      ..lineTo(rect.left, rect.top + triangleHeight)
+      ..close();
+    return path;
+  }
+
+  @override
+  Path getInnerPath(Rect rect, {TextDirection? textDirection}) =>
+      getOuterPath(rect, textDirection: textDirection);
+
+  @override
+  void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {}
+}
+
 class _StoryRail extends StatelessWidget {
   const _StoryRail();
 
@@ -845,6 +1495,16 @@ class _PostCard extends StatelessWidget {
     return TweetPostCard(
       post: post,
       currentUserHandle: currentUserHandle,
+      onReply: (_) {
+        final thread = dataService.buildThreadForPost(post.id);
+        Navigator.of(context).push(
+          ThreadScreen.route(
+            entry: thread,
+            currentUserHandle: currentUserHandle,
+            initialReplyPostId: post.id,
+          ),
+        );
+      },
       onTap: () {
         final thread = dataService.buildThreadForPost(post.id);
         Navigator.of(context).push(
@@ -854,67 +1514,6 @@ class _PostCard extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-}
-
-class _NavigationItem extends StatelessWidget {
-  const _NavigationItem({
-    required this.icon,
-    required this.title,
-    required this.color,
-    this.hasBadge = false,
-  });
-
-  final IconData icon;
-  final String title;
-  final Color color;
-  final bool hasBadge;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () {},
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
-              children: [
-                Icon(icon, color: color, size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: const Color(0xFF2D3748),
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: -0.1,
-                    ),
-                  ),
-                ),
-                if (hasBadge)
-                  Container(
-                    width: 6,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: color,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
