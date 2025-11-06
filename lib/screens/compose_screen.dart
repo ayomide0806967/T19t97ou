@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import 'package:provider/provider.dart';
+
 import '../widgets/hexagon_avatar.dart';
 import '../widgets/tagged_text_input.dart';
-import 'package:provider/provider.dart';
+import '../widgets/tweet_composer_card.dart';
 import '../services/data_service.dart';
 
 class ComposeScreen extends StatefulWidget {
@@ -16,7 +18,8 @@ class ComposeScreen extends StatefulWidget {
 }
 
 class _ComposeScreenState extends State<ComposeScreen> {
-  final TextEditingController _controller = TextEditingController();
+  final TaggedTextEditingController _controller =
+      TaggedTextEditingController();
   bool _isPosting = false;
   final List<String> _selectedMedia = [];
   final List<String> _selectedTags = [];
@@ -67,10 +70,10 @@ class _ComposeScreenState extends State<ComposeScreen> {
         children: [
           Expanded(
             child: SingleChildScrollView(
+              padding: const EdgeInsets.only(bottom: 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Current user info
                   Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
@@ -107,199 +110,52 @@ class _ComposeScreenState extends State<ComposeScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-
-                  // Content input field
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: TaggedTextInput(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: TweetComposerCard(
                       controller: _controller,
-                      maxLines: null,
+                      onSubmit: (_) => _postContent(),
                       hintText: 'What\'s happening on the wards today?',
-                      onChanged: (_) => setState(() {}),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Selected media preview
-                  if (_selectedMedia.isNotEmpty) ...[
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: SizedBox(
-                        height: 100,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: _selectedMedia.length,
-                          itemBuilder: (context, index) {
-                            return Container(
-                              width: 100,
-                              margin: const EdgeInsets.only(right: 12),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF1F5F9),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Stack(
-                                children: [
-                                  Center(
-                                    child: Icon(
-                                      Icons.image,
-                                      size: 40,
-                                      color: const Color(0xFF64748B),
-                                    ),
-                                  ),
-                                  Positioned(
-                                    top: 4,
-                                    right: 4,
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        setState(() {
-                                          _selectedMedia.removeAt(index);
-                                        });
-                                      },
-                                      child: Container(
-                                        width: 24,
-                                        height: 24,
-                                        decoration: BoxDecoration(
-                                          color: Colors.black.withValues(
-                                            alpha: 0.6,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                        ),
-                                        child: const Icon(
-                                          Icons.close,
-                                          color: Colors.white,
-                                          size: 16,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
+                      margin: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 18,
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-
-                  // Selected tags
-                  if (_selectedTags.isNotEmpty) ...[
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: _selectedTags
-                            .map(
-                              (tag) => Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.accent.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: AppTheme.accent.withValues(
-                                      alpha: 0.3,
-                                    ),
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      tag,
-                                      style: TextStyle(
-                                        color: AppTheme.accent,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    GestureDetector(
-                                      onTap: () {
-                                        setState(() {
-                                          _selectedTags.remove(tag);
-                                        });
-                                      },
-                                      child: Icon(
-                                        Icons.close,
-                                        size: 16,
-                                        color: AppTheme.accent,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            )
-                            .toList(),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-
-                  // Quick actions
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Quick Actions',
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF1E293B),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            _QuickActionChip(
-                              label: 'Clinical Update',
-                              icon: Icons.campaign_outlined,
-                              onTap: () => _addTag('Clinical Update'),
-                            ),
-                            _QuickActionChip(
-                              label: 'Study Tip',
-                              icon: Icons.event_outlined,
-                              onTap: () => _addTag('Study Tip'),
-                            ),
-                            _QuickActionChip(
-                              label: 'Case Review',
-                              icon: Icons.help_outline,
-                              onTap: () => _addTag('Case Review'),
-                            ),
-                            _QuickActionChip(
-                              label: 'Policy Alert',
-                              icon: Icons.update_outlined,
-                              onTap: () => _addTag('Policy Alert'),
-                            ),
-                            _QuickActionChip(
-                              label: 'Competency Check',
-                              icon: Icons.emoji_events_outlined,
-                              onTap: () => _addTag('Competency Check'),
-                            ),
-                            _QuickActionChip(
-                              label: 'Wellness',
-                              icon: Icons.forum_outlined,
-                              onTap: () => _addTag('Wellness'),
-                            ),
-                          ],
+                      backgroundColor: theme.colorScheme.surface,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                          spreadRadius: 1,
                         ),
                       ],
+                      onImageTap: _addMedia,
+                      onGifTap: () => _showToast('GIF library coming soon'),
+                      textInputAction: TextInputAction.send,
+                      isSubmitting: _isPosting,
+                      onChanged: (_) => setState(() {}),
+                      footer: _ComposerFooter(
+                        selectedMedia: _selectedMedia,
+                        selectedTags: _selectedTags,
+                        onRemoveMedia: (index) {
+                          setState(() {
+                            _selectedMedia.removeAt(index);
+                          });
+                        },
+                        onRemoveTag: (tag) {
+                          setState(() {
+                            _selectedTags.remove(tag);
+                          });
+                        },
+                        onAddTag: _addTag,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
           ),
-
-          // Bottom toolbar
           Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -465,6 +321,178 @@ class _ToolbarButton extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ComposerFooter extends StatelessWidget {
+  const _ComposerFooter({
+    required this.selectedMedia,
+    required this.selectedTags,
+    required this.onRemoveMedia,
+    required this.onRemoveTag,
+    required this.onAddTag,
+  });
+
+  final List<String> selectedMedia;
+  final List<String> selectedTags;
+  final ValueChanged<int> onRemoveMedia;
+  final ValueChanged<String> onRemoveTag;
+  final ValueChanged<String> onAddTag;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 52),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (selectedMedia.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 100,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: selectedMedia.length,
+                itemBuilder: (context, index) {
+                  return Container(
+                    width: 100,
+                    margin: const EdgeInsets.only(right: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Stack(
+                      children: [
+                        const Center(
+                          child: Icon(
+                            Icons.image,
+                            size: 40,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: GestureDetector(
+                            onTap: () => onRemoveMedia(index),
+                            child: Container(
+                              width: 24,
+                              height: 24,
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.6),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.close,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+          if (selectedTags.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: selectedTags
+                  .map(
+                    (tag) => Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.accent.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: AppTheme.accent.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            tag,
+                            style: TextStyle(
+                              color: AppTheme.accent,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          GestureDetector(
+                            onTap: () => onRemoveTag(tag),
+                            child: Icon(
+                              Icons.close,
+                              size: 16,
+                              color: AppTheme.accent,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
+          const SizedBox(height: 16),
+          Text(
+            'Quick Actions',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF1E293B),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _QuickActionChip(
+                label: 'Clinical Update',
+                icon: Icons.campaign_outlined,
+                onTap: () => onAddTag('Clinical Update'),
+              ),
+              _QuickActionChip(
+                label: 'Study Tip',
+                icon: Icons.event_outlined,
+                onTap: () => onAddTag('Study Tip'),
+              ),
+              _QuickActionChip(
+                label: 'Case Review',
+                icon: Icons.help_outline,
+                onTap: () => onAddTag('Case Review'),
+              ),
+              _QuickActionChip(
+                label: 'Policy Alert',
+                icon: Icons.update_outlined,
+                onTap: () => onAddTag('Policy Alert'),
+              ),
+              _QuickActionChip(
+                label: 'Competency Check',
+                icon: Icons.emoji_events_outlined,
+                onTap: () => onAddTag('Competency Check'),
+              ),
+              _QuickActionChip(
+                label: 'Wellness',
+                icon: Icons.forum_outlined,
+                onTap: () => onAddTag('Wellness'),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

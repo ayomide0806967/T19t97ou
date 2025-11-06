@@ -52,10 +52,12 @@ class PostDetailScreen extends StatefulWidget {
     super.key,
     required this.post,
     this.focusComposer = false,
+    this.onReplyPosted,
   });
 
   final PostDetailPayload post;
   final bool focusComposer;
+  final VoidCallback? onReplyPosted;
 
   @override
   State<PostDetailScreen> createState() => _PostDetailScreenState();
@@ -101,6 +103,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         ),
       );
     });
+    widget.onReplyPosted?.call();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Text('Reply added'),

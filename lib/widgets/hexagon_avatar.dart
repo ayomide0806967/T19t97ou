@@ -10,6 +10,8 @@ class HexagonAvatar extends StatelessWidget {
     this.borderColor,
     this.child,
     this.borderWidth = 3,
+    this.image,
+    this.imageFit = BoxFit.cover,
   });
 
   final double size;
@@ -17,6 +19,8 @@ class HexagonAvatar extends StatelessWidget {
   final Color? borderColor;
   final Widget? child;
   final double borderWidth;
+  final ImageProvider<Object>? image;
+  final BoxFit imageFit;
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +41,20 @@ class HexagonAvatar extends StatelessWidget {
             padding: EdgeInsets.all(borderWidth.clamp(0, size / 4)),
             child: ClipPath(
               clipper: _HexagonClipper(),
-              child: Container(color: bg, child: child),
+              child: image != null
+                  ? DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: bg,
+                        image: DecorationImage(
+                          image: image!,
+                          fit: imageFit,
+                        ),
+                      ),
+                      child: child == null
+                          ? null
+                          : Center(child: child),
+                    )
+                  : Container(color: bg, child: child),
             ),
           ),
         ],

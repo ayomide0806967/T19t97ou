@@ -2,6 +2,159 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
+class TaggedTextEditingController extends TextEditingController {
+  TaggedTextEditingController({
+    super.text,
+    this.highlightStyle,
+    RegExp? highlightPattern,
+  }) : _highlightPattern = highlightPattern ?? _defaultPattern;
+
+  static final RegExp _defaultPattern = RegExp(r'(@\w+|#\w+)');
+
+  final TextStyle? highlightStyle;
+  final RegExp _highlightPattern;
+
+  @override
+  TextSpan buildTextSpan({
+    required BuildContext context,
+    TextStyle? style,
+    required bool withComposing,
+  }) {
+    final TextStyle baseStyle =
+        style ?? DefaultTextStyle.of(context).style;
+    final TextStyle accentStyle = (highlightStyle ??
+        baseStyle.copyWith(
+          color: AppTheme.accent,
+          fontWeight: FontWeight.w600,
+        ));
+
+    final String text = value.text;
+    if (text.isEmpty) {
+      if (!withComposing || !value.isComposingRangeValid) {
+        return TextSpan(style: baseStyle);
+      }
+      return TextSpan(
+        style: baseStyle.merge(
+          const TextStyle(decoration: TextDecoration.underline),
+        ),
+      );
+    }
+
+    final List<TextSpan> spans =
+        _collectHighlightedSpans(text, baseStyle, accentStyle);
+
+    if (!withComposing || !value.isComposingRangeValid) {
+      return TextSpan(style: baseStyle, children: spans);
+    }
+
+    final TextStyle composingStyle =
+        const TextStyle(decoration: TextDecoration.underline);
+    final List<InlineSpan> composed =
+        _applyComposing(spans, baseStyle, composingStyle);
+    return TextSpan(style: baseStyle, children: composed);
+  }
+
+  List<TextSpan> _collectHighlightedSpans(
+    String text,
+    TextStyle baseStyle,
+    TextStyle highlight,
+  ) {
+    final List<TextSpan> spans = <TextSpan>[];
+    int lastIndex = 0;
+    for (final RegExpMatch match in _highlightPattern.allMatches(text)) {
+      if (match.start > lastIndex) {
+        spans.add(TextSpan(
+          text: text.substring(lastIndex, match.start),
+          style: baseStyle,
+        ));
+      }
+      final String matched = match.group(0) ?? '';
+      if (matched.isNotEmpty) {
+        spans.add(TextSpan(text: matched, style: highlight));
+      }
+      lastIndex = match.end;
+    }
+
+    if (spans.isEmpty) {
+      spans.add(TextSpan(text: text, style: baseStyle));
+      return spans;
+    }
+
+    if (lastIndex < text.length) {
+      spans.add(
+        TextSpan(
+          text: text.substring(lastIndex),
+          style: baseStyle,
+        ),
+      );
+    }
+
+    return spans;
+  }
+
+  List<InlineSpan> _applyComposing(
+    List<TextSpan> spans,
+    TextStyle baseStyle,
+    TextStyle composingStyle,
+  ) {
+    final TextRange composing = value.composing;
+    final List<InlineSpan> result = <InlineSpan>[];
+    int globalStart = 0;
+
+    for (final TextSpan span in spans) {
+      final String spanText = span.text ?? '';
+      final int spanLength = spanText.length;
+
+      if (spanLength == 0) {
+        result.add(span);
+        continue;
+      }
+
+      final int spanStart = globalStart;
+      final int spanEnd = spanStart + spanLength;
+
+      if (composing.end <= spanStart || composing.start >= spanEnd) {
+        result.add(span);
+      } else {
+        final int composeStart =
+            composing.start.clamp(spanStart, spanEnd);
+        final int composeEnd = composing.end.clamp(spanStart, spanEnd);
+
+        if (composeStart == composeEnd) {
+          result.add(span);
+        } else {
+          if (composeStart > spanStart) {
+            result.add(TextSpan(
+              text: spanText.substring(0, composeStart - spanStart),
+              style: span.style,
+            ));
+          }
+
+          final TextStyle spanBaseStyle = span.style ?? baseStyle;
+          result.add(TextSpan(
+            text: spanText.substring(
+              composeStart - spanStart,
+              composeEnd - spanStart,
+            ),
+            style: spanBaseStyle.merge(composingStyle),
+          ));
+
+          if (composeEnd < spanEnd) {
+            result.add(TextSpan(
+              text: spanText.substring(composeEnd - spanStart),
+              style: span.style,
+            ));
+          }
+        }
+      }
+
+      globalStart += spanLength;
+    }
+
+    return result.isEmpty ? spans : result;
+  }
+}
+
 class TaggedTextInput extends StatefulWidget {
   const TaggedTextInput({
     super.key,
@@ -158,62 +311,37 @@ class _TaggedTextInputState extends State<TaggedTextInput> {
     widget.onChanged?.call(text);
   }
 
-  List<TextSpan> _buildHighlightedSpans(String text, TextStyle baseStyle) {
-    final spans = <TextSpan>[];
-    final regex = RegExp(r'(@\w+|#\w+)');
-
-    int lastIndex = 0;
-    for (final match in regex.allMatches(text)) {
-      // Add text before the match
-      if (match.start > lastIndex) {
-        spans.add(
-          TextSpan(
-            text: text.substring(lastIndex, match.start),
-            style: baseStyle,
-          ),
-        );
-      }
-
-      // Add the highlighted match
-      final matchedText = match.group(0)!;
-      spans.add(
-        TextSpan(
-          text: matchedText,
-          style: baseStyle.copyWith(
-            color: AppTheme.accent,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      );
-
-      lastIndex = match.end;
-    }
-
-    // Add remaining text
-    if (lastIndex < text.length) {
-      spans.add(TextSpan(text: text.substring(lastIndex), style: baseStyle));
-    }
-
-    return spans;
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final TextStyle baseTextStyle =
+        ((widget.style ?? theme.textTheme.bodyLarge) ?? const TextStyle())
+            .copyWith(
+      height: 1.4,
+      color: Colors.black,
+    );
+    final TextStyle defaultHintStyle = TextStyle(
+      color: Colors.black.withValues(alpha: 0.45),
+      fontSize: baseTextStyle.fontSize ?? 16,
+      height: 1.4,
+    );
+    final Color backgroundColor =
+        isDark ? const Color(0xFFF4F1EC) : Colors.white;
+    final Color borderColor = isDark
+        ? Colors.black.withValues(alpha: 0.08)
+        : const Color(0xFFE2E8F0);
 
     return Stack(
       children: [
         Container(
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white,
+            color: backgroundColor,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: _focusNode.hasFocus
                   ? AppTheme.accent
-                  : isDark
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : const Color(0xFFE2E8F0),
+                  : borderColor,
               width: _focusNode.hasFocus ? 2 : 1,
             ),
             boxShadow: isDark
@@ -226,74 +354,28 @@ class _TaggedTextInputState extends State<TaggedTextInput> {
                     ),
                   ],
           ),
-          child: Stack(
-            children: [
-              // Hidden text field for input
-              TextField(
-                controller: widget.controller,
-                focusNode: _focusNode,
-                maxLines: widget.maxLines,
-                style: (widget.style ?? theme.textTheme.bodyLarge)?.copyWith(
-                  color: Colors.transparent,
-                  height: 1.4,
-                ),
-                onChanged: _handleTextChange,
-                onTap: widget.onTap,
-                onSubmitted: widget.onSubmitted,
-                decoration: InputDecoration(
-                  hintText: '',
-                  filled: false,
-                  isDense: true,
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                ),
+          child: TextField(
+            controller: widget.controller,
+            focusNode: _focusNode,
+            maxLines: widget.maxLines,
+            style: baseTextStyle,
+            cursorColor: AppTheme.accent,
+            onChanged: _handleTextChange,
+            onTap: widget.onTap,
+            onSubmitted: widget.onSubmitted,
+            decoration: InputDecoration(
+              hintText: widget.hintText,
+              hintStyle: widget.hintStyle ?? defaultHintStyle,
+              filled: false,
+              isDense: true,
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
               ),
-              // Rich text display
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    alignment: Alignment.centerLeft,
-                    child: widget.controller.text.isEmpty
-                        ? Text(
-                            widget.hintText,
-                            style:
-                                widget.hintStyle ??
-                                TextStyle(
-                                  color: isDark
-                                      ? const Color(0xFF6B7280)
-                                      : const Color(0xFF94A3B8),
-                                  fontSize: 16,
-                                ),
-                          )
-                        : RichText(
-                            text: TextSpan(
-                              children: _buildHighlightedSpans(
-                                widget.controller.text,
-                                (widget.style ?? theme.textTheme.bodyLarge)
-                                        ?.copyWith(
-                                          color: theme.colorScheme.onSurface,
-                                          height: 1.4,
-                                        ) ??
-                                    const TextStyle(
-                                      color: Color(0xFF1E293B),
-                                      height: 1.4,
-                                    ),
-                              ),
-                            ),
-                          ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
         if (_showSuggestions && _focusNode.hasFocus)

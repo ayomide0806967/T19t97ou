@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/tagged_text_input.dart';
+import '../widgets/tweet_shell.dart';
 
 class CommentSection extends StatefulWidget {
   const CommentSection({
@@ -24,7 +25,8 @@ class _CommentSectionState extends State<CommentSection>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
-  final TextEditingController _commentController = TextEditingController();
+  final TaggedTextEditingController _commentController =
+      TaggedTextEditingController();
   bool _isExpanded = false;
 
   @override
@@ -60,7 +62,7 @@ class _CommentSectionState extends State<CommentSection>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final bool isDark = theme.brightness == Brightness.dark;
 
     return AnimatedBuilder(
       animation: _fadeAnimation,
@@ -254,6 +256,12 @@ class _CommentTileState extends State<_CommentTile>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final Color cardBackground =
+        isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white;
+    final Color cornerAccent = AppTheme.accent.withValues(
+      alpha: isDark ? 0.18 : 0.24,
+    );
 
     return AnimatedBuilder(
       animation: _scaleAnimation,
@@ -262,164 +270,173 @@ class _CommentTileState extends State<_CommentTile>
           scale: _scaleAnimation.value,
           child: Container(
             margin: EdgeInsets.only(top: 16, bottom: widget.isLast ? 0 : 16),
-            child: Column(
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Avatar with connector line
-                    Stack(
-                      children: [
-                        Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: widget.comment.avatarColors,
-                            ),
-                            borderRadius: BorderRadius.circular(10),
-                            boxShadow: [
-                              BoxShadow(
-                                color: widget.comment.avatarColors.first
-                                    .withValues(alpha: 0.2),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Center(
-                            child: Text(
-                              widget.comment.initials,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                        if (!widget.isLast && widget.comment.replies.isNotEmpty)
-                          Positioned(
-                            top: 36,
-                            left: 18,
-                            child: Container(
-                              width: 2,
-                              height: 60,
-                              color: theme.dividerColor.withValues(alpha: 0.3),
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(width: 12),
-
-                    // Comment content
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+            child: TweetShell(
+              showBorder: false,
+              backgroundColor: cardBackground,
+              cornerAccentColor: cornerAccent,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Avatar with connector line
+                      Stack(
                         children: [
-                          // Comment header
-                          Row(
-                            children: [
-                              Text(
-                                widget.comment.author,
-                                style: theme.textTheme.titleSmall?.copyWith(
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: widget.comment.avatarColors,
+                              ),
+                              borderRadius: BorderRadius.circular(10),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: widget.comment.avatarColors.first
+                                      .withValues(alpha: 0.2),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Center(
+                              child: Text(
+                                widget.comment.initials,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
                                   fontWeight: FontWeight.w600,
-                                  color: theme.colorScheme.onSurface,
                                 ),
                               ),
-                              const SizedBox(width: 6),
-                              Text(
-                                widget.comment.handle,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurface.withValues(
-                                    alpha: 0.6,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                '·',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurface.withValues(
-                                    alpha: 0.4,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                widget.comment.timeAgo,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurface.withValues(
-                                    alpha: 0.5,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 6),
-
-                          // Comment body
-                          Text(
-                            widget.comment.body,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurface,
-                              height: 1.4,
                             ),
                           ),
-
-                          const SizedBox(height: 8),
-
-                          // Comment actions
-                          Row(
-                            children: [
-                              _CommentAction(
-                                icon: Icons.reply_rounded,
-                                count: widget.comment.replies.length,
-                                onTap: () {},
+                          if (!widget.isLast &&
+                              widget.comment.replies.isNotEmpty)
+                            Positioned(
+                              top: 36,
+                              left: 18,
+                              child: Container(
+                                width: 2,
+                                height: 60,
+                                color:
+                                    theme.dividerColor.withValues(alpha: 0.3),
                               ),
-                              const SizedBox(width: 20),
-                              _CommentAction(
-                                icon: widget.comment.isLiked
-                                    ? Icons.favorite_rounded
-                                    : Icons.favorite_border_rounded,
-                                count: widget.comment.likes,
-                                isActive: widget.comment.isLiked,
-                                onTap: () {
-                                  setState(() {
-                                    widget.comment.isLiked =
-                                        !widget.comment.isLiked;
-                                    widget.comment.likes +=
-                                        widget.comment.isLiked ? 1 : -1;
-                                  });
-                                },
-                              ),
-                              const SizedBox(width: 20),
-                              _CommentAction(
-                                icon: Icons.send_rounded,
-                                onTap: () {},
-                              ),
-                            ],
-                          ),
-
-                          // Replies
-                          if (widget.comment.replies.isNotEmpty) ...[
-                            const SizedBox(height: 16),
-                            ...widget.comment.replies.map((reply) {
-                              return _ReplyTile(
-                                reply: reply,
-                                isLast: reply == widget.comment.replies.last,
-                              );
-                            }),
-                          ],
+                            ),
                         ],
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                      const SizedBox(width: 12),
+
+                      // Comment content
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Comment header
+                            Row(
+                              children: [
+                                Text(
+                                  widget.comment.author,
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: theme.colorScheme.onSurface,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  widget.comment.handle,
+                                  style:
+                                      theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurface
+                                        .withValues(alpha: 0.6),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  '·',
+                                  style:
+                                      theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurface
+                                        .withValues(alpha: 0.4),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  widget.comment.timeAgo,
+                                  style:
+                                      theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurface
+                                        .withValues(alpha: 0.5),
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 6),
+
+                            // Comment body
+                            Text(
+                              widget.comment.body,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurface,
+                                height: 1.4,
+                              ),
+                            ),
+
+                            const SizedBox(height: 8),
+
+                            // Comment actions
+                            Row(
+                              children: [
+                                _CommentAction(
+                                  icon: Icons.reply_rounded,
+                                  count: widget.comment.replies.length,
+                                  onTap: () {},
+                                ),
+                                const SizedBox(width: 20),
+                                _CommentAction(
+                                  icon: widget.comment.isLiked
+                                      ? Icons.favorite_rounded
+                                      : Icons.favorite_border_rounded,
+                                  count: widget.comment.likes,
+                                  isActive: widget.comment.isLiked,
+                                  onTap: () {
+                                    setState(() {
+                                      widget.comment.isLiked =
+                                          !widget.comment.isLiked;
+                                      widget.comment.likes +=
+                                          widget.comment.isLiked ? 1 : -1;
+                                    });
+                                  },
+                                ),
+                                const SizedBox(width: 20),
+                                _CommentAction(
+                                  icon: Icons.send_rounded,
+                                  onTap: () {},
+                                ),
+                              ],
+                            ),
+
+                            // Replies
+                            if (widget.comment.replies.isNotEmpty) ...[
+                              const SizedBox(height: 16),
+                              ...widget.comment.replies.map((reply) {
+                                return _ReplyTile(
+                                  reply: reply,
+                                  isLast:
+                                      reply == widget.comment.replies.last,
+                                );
+                              }),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -466,6 +483,12 @@ class _ReplyTileState extends State<_ReplyTile>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final Color cardBackground =
+        isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white;
+    final Color cornerAccent = AppTheme.accent.withValues(
+      alpha: isDark ? 0.18 : 0.24,
+    );
 
     return AnimatedBuilder(
       animation: _slideAnimation,
@@ -478,101 +501,96 @@ class _ReplyTileState extends State<_ReplyTile>
               bottom: widget.isLast ? 0 : 12,
               left: 48,
             ),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: theme.brightness == Brightness.dark
-                  ? Colors.white.withValues(alpha: 0.03)
-                  : Colors.grey.withValues(alpha: 0.04),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: theme.dividerColor.withValues(alpha: 0.2),
-              ),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: widget.reply.avatarColors,
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Center(
-                    child: Text(
-                      widget.reply.initials,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+            child: TweetShell(
+              showBorder: false,
+              backgroundColor: cardBackground,
+              cornerAccentColor: cornerAccent,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: widget.reply.avatarColors,
                       ),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            widget.reply.author,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: theme.colorScheme.onSurface,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            widget.reply.timeAgo,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withValues(
-                                alpha: 0.5,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        widget.reply.body,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(
-                            alpha: 0.9,
-                          ),
-                          height: 1.3,
+                    child: Center(
+                      child: Text(
+                        widget.reply.initials,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          _CommentAction(
-                            icon: widget.reply.isLiked
-                                ? Icons.favorite_rounded
-                                : Icons.favorite_border_rounded,
-                            count: widget.reply.likes,
-                            isActive: widget.reply.isLiked,
-                            onTap: () {
-                              setState(() {
-                                widget.reply.isLiked = !widget.reply.isLiked;
-                                widget.reply.likes += widget.reply.isLiked
-                                    ? 1
-                                    : -1;
-                              });
-                            },
-                            size: 'small',
-                          ),
-                        ],
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              widget.reply.author,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: theme.colorScheme.onSurface,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              widget.reply.timeAgo,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          widget.reply.body,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.9,
+                            ),
+                            height: 1.3,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            _CommentAction(
+                              icon: widget.reply.isLiked
+                                  ? Icons.favorite_rounded
+                                  : Icons.favorite_border_rounded,
+                              count: widget.reply.likes,
+                              isActive: widget.reply.isLiked,
+                              onTap: () {
+                                setState(() {
+                                  widget.reply.isLiked = !widget.reply.isLiked;
+                                  widget.reply.likes += widget.reply.isLiked
+                                      ? 1
+                                      : -1;
+                                });
+                              },
+                              size: 'small',
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -754,12 +772,12 @@ class _CommentInputState extends State<_CommentInput>
           height: _heightAnimation.value,
           decoration: BoxDecoration(
             color: isDark
-                ? Colors.white.withValues(alpha: 0.06)
+                ? const Color(0xFFF4F1EC)
                 : Colors.grey.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
               color: isDark
-                  ? Colors.white.withValues(alpha: 0.08)
+                  ? Colors.black.withValues(alpha: 0.08)
                   : Colors.black.withValues(alpha: 0.06),
             ),
           ),
@@ -797,12 +815,10 @@ class _CommentInputState extends State<_CommentInput>
                         hintText: 'Add a comment...',
                         maxLines: 2,
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface,
+                          color: Colors.black,
                         ),
                         hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(
-                            alpha: 0.5,
-                          ),
+                          color: Colors.black.withValues(alpha: 0.45),
                         ),
                         onChanged: (text) {
                           setState(() {});

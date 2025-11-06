@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/tagged_text_input.dart';
+import '../widgets/tweet_composer_card.dart';
 import '../widgets/tweet_shell.dart';
 
 class XCommentSection extends StatefulWidget {
@@ -39,7 +40,8 @@ class _XCommentSectionState extends State<XCommentSection>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
-  final TextEditingController _commentController = TextEditingController();
+  final TaggedTextEditingController _commentController =
+      TaggedTextEditingController();
   final ScrollController _scrollController = ScrollController();
   late FocusNode _inputFocusNode;
   bool _isReplying = false;
@@ -430,7 +432,7 @@ class _XCommentSectionState extends State<XCommentSection>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final bool isDark = theme.brightness == Brightness.dark;
     final replyHandle = widget.postHandle.startsWith('@')
         ? widget.postHandle
         : '@${widget.postHandle.toLowerCase().replaceAll(' ', '')}';
@@ -536,135 +538,31 @@ class _XCommentSectionState extends State<XCommentSection>
               ),
 
               // Reply indicator
-              if (_isReplying && _replyingTo != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
+              TweetComposerCard(
+                controller: _commentController,
+                focusNode: _inputFocusNode,
+                replyingTo: _isReplying && _replyingTo != null
+                    ? _replyingTo!.startsWith('@')
+                        ? _replyingTo!.substring(1)
+                        : _replyingTo!
+                    : null,
+                onCancelReply: _isReplying ? _cancelReply : null,
+                hintText: 'Post your reply',
+                backgroundColor:
+                    isDark ? const Color(0xFFF4F1EC) : Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 16,
+                    offset: const Offset(0, -2),
                   ),
-                  decoration: BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(
-                        color: isDark
-                            ? Colors.white.withValues(alpha: 0.08)
-                            : Colors.black.withValues(alpha: 0.08),
-                      ),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Text(
-                        'Replying to $_replyingTo',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppTheme.accent,
-                        ),
-                      ),
-                      const Spacer(),
-                      GestureDetector(
-                        onTap: _cancelReply,
-                        child: Icon(
-                          Icons.close,
-                          size: 16,
-                          color: theme.colorScheme.onSurface.withValues(
-                            alpha: 0.6,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-              // Comment input - X style
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  border: Border(
-                    top: BorderSide(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.08)
-                          : Colors.black.withValues(alpha: 0.08),
-                    ),
-                  ),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-                        ),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.person,
-                        size: 14,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Container(
-                        constraints: const BoxConstraints(minHeight: 32),
-                        child: TaggedTextInput(
-                          controller: _commentController,
-                          hintText: 'Post your reply',
-                          maxLines: 3,
-                          focusNode: _inputFocusNode,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurface,
-                            fontSize: 14,
-                          ),
-                          hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurface.withValues(
-                              alpha: 0.5,
-                            ),
-                            fontSize: 14,
-                          ),
-                          onChanged: (text) {
-                            setState(() {});
-                          },
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: _commentController.text.trim().isNotEmpty
-                            ? AppTheme.accent
-                            : theme.colorScheme.onSurface.withValues(
-                                alpha: 0.1,
-                              ),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(999),
-                          onTap: _commentController.text.trim().isNotEmpty
-                              ? _submitComment
-                              : null,
-                          child: Icon(
-                            Icons.send_rounded,
-                            size: 14,
-                            color: _commentController.text.trim().isNotEmpty
-                                ? Colors.white
-                                : theme.colorScheme.onSurface.withValues(
-                                    alpha: 0.4,
-                                  ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                ],
+                onSubmit: (_) => _submitComment(),
+                isSubmitting: false,
+                onChanged: (_) => setState(() {}),
+                textInputAction: TextInputAction.send,
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               ),
             ],
           ),
@@ -733,6 +631,12 @@ class _XCommentTileState extends State<_XCommentTile>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final Color cardBackground =
+        isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white;
+    final Color cornerAccent = AppTheme.accent.withValues(
+      alpha: isDark ? 0.18 : 0.24,
+    );
 
     return AnimatedBuilder(
       animation: _scaleAnimation,
@@ -741,6 +645,8 @@ class _XCommentTileState extends State<_XCommentTile>
           scale: _scaleAnimation.value,
           child: TweetShell(
             showBorder: false,
+            backgroundColor: cardBackground,
+            cornerAccentColor: cornerAccent,
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(

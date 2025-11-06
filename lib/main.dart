@@ -5,6 +5,7 @@ import 'theme/app_theme.dart';
 import 'screens/auth_wrapper.dart';
 import 'state/app_settings.dart';
 import 'services/data_service.dart';
+import 'services/profile_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,12 +20,15 @@ void main() async {
 // Prepare data service
   final dataService = DataService();
   await dataService.load();
+  final profileService = ProfileService();
+  await profileService.load();
 
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider<AppSettings>.value(value: settings),
         ChangeNotifierProvider<DataService>.value(value: dataService),
+        ChangeNotifierProvider<ProfileService>.value(value: profileService),
       ],
       child: const MyApp(),
     ),

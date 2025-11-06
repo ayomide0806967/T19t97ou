@@ -501,4 +501,43 @@ class DataService extends ChangeNotifier {
   List<PostModel> postsForHandle(String handle) => _posts
       .where((post) => post.handle == handle || post.repostedBy == handle)
       .toList();
+
+  List<PostModel> postsForHandles(Set<String> handles) {
+    if (handles.isEmpty) return const <PostModel>[];
+    final lower = handles.map((h) => h.toLowerCase()).toSet();
+    return _posts
+        .where(
+          (post) => lower.contains(post.handle.toLowerCase()) ||
+              (post.repostedBy != null &&
+                  lower.contains(post.repostedBy!.toLowerCase())),
+        )
+        .toList();
+  }
+
+  List<PostModel> repliesForHandle(String handle, {int minLikes = 0}) {
+    final lowerHandle = handle.toLowerCase();
+    final Set<String> seen = <String>{};
+    final List<PostModel> matches = <PostModel>[];
+
+    void collectReplies(List<ThreadEntry> entries) {
+      for (final ThreadEntry entry in entries) {
+        final post = entry.post;
+        if (post.handle.toLowerCase() == lowerHandle &&
+            post.likes >= minLikes &&
+            seen.add(post.id)) {
+          matches.add(post);
+        }
+        if (entry.replies.isNotEmpty) {
+          collectReplies(entry.replies);
+        }
+      }
+    }
+
+    for (final PostModel root in _posts) {
+      collectReplies(_mockRepliesFor(root));
+    }
+
+    matches.sort((a, b) => b.likes.compareTo(a.likes));
+    return matches;
+  }
 }

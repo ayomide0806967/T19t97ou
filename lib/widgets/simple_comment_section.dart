@@ -27,7 +27,8 @@ class _SimpleCommentSectionState extends State<SimpleCommentSection>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
-  final TextEditingController _commentController = TextEditingController();
+  final TaggedTextEditingController _commentController =
+      TaggedTextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _showReplies = false;
 
@@ -83,7 +84,7 @@ class _SimpleCommentSectionState extends State<SimpleCommentSection>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final bool isDark = theme.brightness == Brightness.dark;
 
     return AnimatedBuilder(
       animation: _fadeAnimation,
@@ -254,11 +255,11 @@ class _SimpleCommentSectionState extends State<SimpleCommentSection>
             bottomNavigationBar: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isDark ? theme.scaffoldBackgroundColor : Colors.white,
+                color: isDark ? const Color(0xFFF4F1EC) : Colors.white,
                 border: Border(
                   top: BorderSide(
                     color: isDark
-                        ? Colors.white.withValues(alpha: 0.08)
+                        ? Colors.black.withValues(alpha: 0.08)
                         : Colors.black.withValues(alpha: 0.08),
                   ),
                 ),
@@ -292,11 +293,11 @@ class _SimpleCommentSectionState extends State<SimpleCommentSection>
                         hintText: 'Post your reply',
                         maxLines: 3,
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface,
+                          color: Colors.black,
                           fontSize: 14,
                         ),
                         hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                          color: Colors.black.withValues(alpha: 0.45),
                           fontSize: 14,
                         ),
                         onChanged: (text) {
@@ -382,6 +383,12 @@ class _SimpleCommentTileState extends State<_SimpleCommentTile>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final Color cardBackground =
+        isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white;
+    final Color cornerAccent = AppTheme.accent.withValues(
+      alpha: isDark ? 0.18 : 0.24,
+    );
 
     return AnimatedBuilder(
       animation: _scaleAnimation,
@@ -390,20 +397,14 @@ class _SimpleCommentTileState extends State<_SimpleCommentTile>
           scale: _scaleAnimation.value,
           child: Container(
             margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: theme.brightness == Brightness.dark
-                  ? Colors.white.withValues(alpha: 0.03)
-                  : Colors.grey.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: theme.dividerColor.withValues(alpha: 0.2),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+            child: TweetShell(
+              showBorder: false,
+              backgroundColor: cardBackground,
+              cornerAccentColor: cornerAccent,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                   children: [
                     Container(
                       width: 32,
@@ -487,7 +488,8 @@ class _SimpleCommentTileState extends State<_SimpleCommentTile>
                     ],
                   ),
                 ),
-              ],
+                ],
+              ),
             ),
           ),
         );

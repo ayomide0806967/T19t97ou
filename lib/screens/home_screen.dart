@@ -18,6 +18,7 @@ import '../widgets/tweet_post_card.dart';
 import 'thread_screen.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
+import 'ios_messages_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -655,7 +656,14 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
       _QuickControlItem(
         icon: Icons.forum_outlined,
         label: 'Messages',
-        onPressed: () async => _showComingSoon('Messages'),
+        onPressed: () async {
+          Navigator.of(context).pop();
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const IosMinimalistMessagePage(),
+            ),
+          );
+        },
       ),
       _QuickControlItem(
         icon: Icons.school_outlined,
