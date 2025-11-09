@@ -1613,104 +1613,32 @@ class _ThreadNodeTile extends StatelessWidget {
     final theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
     final indent = 18.0 * depth;
-    final lineColor = theme.dividerColor.withValues(alpha: isDark ? 0.4 : 0.6);
 
     return Padding(
       padding: EdgeInsets.only(left: indent, bottom: 12),
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SizedBox(
-              width: 22,
-              child: CustomPaint(
-                painter: _ConnectorPainter(
-                  color: lineColor,
-                  drawElbow: depth > 0,
-                  elbowY: 18,
-                  radius: 8,
-                  stopEarly: isLast,
-                ),
-              ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _CommentTile(comment: node.comment, isDark: isDark),
+          if (node.children.isNotEmpty)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (int i = 0; i < node.children.length; i++)
+                  _ThreadNodeTile(
+                    node: node.children[i],
+                    depth: depth + 1,
+                    isLast: i == node.children.length - 1,
+                  ),
+              ],
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _CommentTile(comment: node.comment, isDark: isDark),
-                  if (node.children.isNotEmpty)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (int i = 0; i < node.children.length; i++)
-                          _ThreadNodeTile(
-                            node: node.children[i],
-                            depth: depth + 1,
-                            isLast: i == node.children.length - 1,
-                          ),
-                      ],
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }
 }
 
-class _ConnectorPainter extends CustomPainter {
-  _ConnectorPainter({
-    required this.color,
-    required this.drawElbow,
-    this.elbowY = 16,
-    this.radius = 8,
-    this.stopEarly = false,
-  });
-
-  final Color color;
-  final bool drawElbow;
-  final double elbowY;
-  final double radius;
-  final bool stopEarly;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final p = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2
-      ..strokeCap = StrokeCap.round;
-
-    final double x = size.width - 6; // near content
-    final double bottom = stopEarly ? size.height - 24 : size.height;
-
-    final path = Path()
-      ..moveTo(x, 0)
-      ..lineTo(x, bottom);
-    canvas.drawPath(path, p);
-
-    if (drawElbow) {
-      final double y = elbowY;
-      final path2 = Path()
-        ..moveTo(x, y)
-        ..quadraticBezierTo(x, y + radius, x + radius, y + radius)
-        ..lineTo(size.width, y + radius);
-      canvas.drawPath(path2, p);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _ConnectorPainter oldDelegate) {
-    return oldDelegate.color != color ||
-        oldDelegate.drawElbow != drawElbow ||
-        oldDelegate.elbowY != elbowY ||
-        oldDelegate.radius != radius ||
-        oldDelegate.stopEarly != stopEarly;
-  }
-}
+// WhatsApp-style: no connector painter; indentation only
 
 class _ParentCommentTile extends StatelessWidget {
   const _ParentCommentTile({required this.message});
@@ -1741,63 +1669,30 @@ class _ParentCommentTile extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        // Vertical connector and content
+        // Bubble-only parent (no vertical line)
         Expanded(
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE8F5E9),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Connector line like the screenshot
-                Container(width: 2, color: theme.dividerColor.withValues(alpha: 0.6)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(message.handle, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
-                          const SizedBox(width: 8),
-                          Text(message.timeAgo, style: theme.textTheme.bodySmall?.copyWith(color: meta)),
-                          const Spacer(),
-                          const Icon(Icons.more_vert, size: 18),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        message.body,
-                        style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black, fontSize: 16, height: 1.4),
-                        maxLines: 10,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 12),
-                      // Action row like screenshot
-                      Row(
-                        children: [
-                          const Icon(Icons.thumb_up_alt_outlined, size: 18),
-                          const SizedBox(width: 6),
-                          Text(_formatCount(message.likes), style: theme.textTheme.bodySmall?.copyWith(color: meta)),
-                          const SizedBox(width: 18),
-                          const Icon(CupertinoIcons.hand_thumbsdown, size: 18),
-                          const SizedBox(width: 18),
-                          const Icon(Icons.mode_comment_outlined, size: 18),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      TextButton(
-                        style: TextButton.styleFrom(padding: EdgeInsets.zero, alignment: Alignment.centerLeft, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                        onPressed: () {},
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text('${message.replies} replies', style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black, fontWeight: FontWeight.w600)),
-                            const SizedBox(width: 6),
-                            const Icon(Icons.chevron_right, size: 18, color: Colors.black),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                Row(
+                  children: [
+                    Text(message.handle, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
+                    const SizedBox(width: 8),
+                    Text(message.timeAgo, style: theme.textTheme.bodySmall?.copyWith(color: meta)),
+                    const Spacer(),
+                    const Icon(Icons.more_vert, size: 18),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  message.body,
+                  style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black, fontSize: 16, height: 1.4),
                 ),
               ],
             ),
