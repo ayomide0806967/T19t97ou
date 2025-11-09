@@ -272,8 +272,8 @@ class _TweetPostCardState extends State<TweetPostCard> {
     // Build metric data
     final reply = TweetMetricData(
       type: TweetMetricType.reply,
-      // Rounded chat bubble with left-facing tail
-      icon: Icons.chat_bubble_outline,
+      // Rounded, ball-like chat bubble with left-facing tail
+      icon: Icons.chat_bubble_outline_rounded,
       count: _replies,
     );
     final rein = TweetMetricData(
