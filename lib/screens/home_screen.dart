@@ -12,8 +12,7 @@ import '../theme/app_theme.dart';
 import '../widgets/hexagon_avatar.dart';
 import '../widgets/brand_mark.dart';
 import '../widgets/floating_nav_bar.dart';
-import '../widgets/tagged_text_input.dart';
-import '../widgets/tweet_composer_card.dart';
+import 'compose_screen.dart';
 import '../widgets/tweet_post_card.dart';
 import 'thread_screen.dart';
 import 'profile_screen.dart';
@@ -296,46 +295,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _openQuickComposer() async {
-    final dataService = context.read<DataService>();
-    final initials = _initialsFrom(_authService.currentUserEmail);
-    final handle = _currentUserHandle;
-    const authorName = 'You';
-    final navigator = Navigator.of(context);
-
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
-        return _QuickComposerSheet(
-          initials: initials,
-          handle: handle,
-          author: authorName,
-          onSubmit: (content) async {
-            await dataService.addPost(
-              author: authorName,
-              handle: handle,
-              body: content,
-            );
-          },
-          onViewProfile: () {
-            Navigator.of(sheetContext).pop();
-            navigator.push(
-              MaterialPageRoute(builder: (_) => const ProfileScreen()),
-            );
-          },
-          onOpenQuiz: () async {
-            Navigator.of(sheetContext).pop();
-            await navigator.push(
-              MaterialPageRoute(builder: (_) => const QuizHubScreen()),
-            );
-          },
-          avatarBackgroundColor:
-              Theme.of(context).colorScheme.surfaceContainerHighest,
-          avatarBorderColor:
-              Theme.of(context).colorScheme.primary.withValues(alpha: 0.35),
-        );
-      },
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ComposeScreen()),
     );
   }
 
@@ -358,7 +319,9 @@ class _HomeScreenState extends State<HomeScreen> {
           },
           onCompose: () async {
             navigator.pop();
-            await _openQuickComposer();
+            await navigator.push(
+              MaterialPageRoute(builder: (_) => const ComposeScreen()),
+            );
           },
           onProfile: () {
             setState(() => _selectedBottomNavIndex = 4);
@@ -1031,6 +994,7 @@ class _QuickControlButton extends StatelessWidget {
   }
 }
 
+/* Modal composer (deprecated; replaced by full-screen ComposeScreen)
 class _QuickComposerSheet extends StatefulWidget {
   const _QuickComposerSheet({
     required this.initials,
@@ -1360,6 +1324,7 @@ class _ComposerFooterIcon extends StatelessWidget {
     );
   }
 }
+*/
 
 class _HexagonComposeButton extends StatelessWidget {
   const _HexagonComposeButton({required this.onTap});
