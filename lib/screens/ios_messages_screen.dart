@@ -1466,15 +1466,8 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
   }
 
   void _openComments(BuildContext context, _ClassMessage message) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) => _MessageCommentsSheet(message: message),
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => _MessageCommentsPage(message: message)),
     );
   }
 }
@@ -1507,8 +1500,8 @@ class _IconCountButton extends StatelessWidget {
   }
 }
 
-class _MessageCommentsSheet extends StatelessWidget {
-  const _MessageCommentsSheet({required this.message});
+class _MessageCommentsPage extends StatelessWidget {
+  const _MessageCommentsPage({required this.message});
 
   final _ClassMessage message;
 
@@ -1530,45 +1523,30 @@ class _MessageCommentsSheet extends StatelessWidget {
       ),
     ];
 
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.82,
-      minChildSize: 0.5,
-      maxChildSize: 0.95,
-      builder: (context, controller) {
-        return Column(
-          children: [
-            const SizedBox(height: 8),
-            Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: theme.dividerColor.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: ListView(
-                controller: controller,
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                children: [
-                  // Reuse the note container at the top
-                  _ClassMessageTile(
-                    message: message,
-                    onShare: () async {},
-                  ),
-                  const SizedBox(height: 8),
-                  Text('Comments', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 8),
-                  for (final c in comments)
-                    _CommentTile(comment: c, isDark: isDark),
-                ],
-              ),
-            ),
-          ],
-        );
-      },
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Replies'),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        children: [
+          // Parent note reused at the top
+          _ClassMessageTile(
+            message: message,
+            onShare: () async {},
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Text('All replies', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+              const SizedBox(width: 8),
+              Container(width: 6, height: 6, decoration: BoxDecoration(color: theme.colorScheme.primary, shape: BoxShape.circle)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          for (final c in comments) _CommentTile(comment: c, isDark: isDark),
+        ],
+      ),
     );
   }
 }
