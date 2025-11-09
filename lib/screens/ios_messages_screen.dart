@@ -1613,31 +1613,104 @@ class _ThreadNodeTile extends StatelessWidget {
     final theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
     final indent = 18.0 * depth;
+    final lineColor = theme.dividerColor.withValues(alpha: isDark ? 0.4 : 0.6);
+
     return Padding(
       padding: EdgeInsets.only(left: indent, bottom: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _CommentTile(comment: node.comment, isDark: isDark),
-          if (node.children.isNotEmpty)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                for (int i = 0; i < node.children.length; i++)
-                  _ThreadNodeTile(
-                    node: node.children[i],
-                    depth: depth + 1,
-                    isLast: i == node.children.length - 1,
-                  ),
-              ],
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              width: 22,
+              child: CustomPaint(
+                painter: _ConnectorPainter(
+                  color: lineColor,
+                  drawElbow: depth > 0,
+                  elbowY: 18,
+                  radius: 8,
+                  stopEarly: isLast,
+                ),
+              ),
             ),
-        ],
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _CommentTile(comment: node.comment, isDark: isDark),
+                  if (node.children.isNotEmpty)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (int i = 0; i < node.children.length; i++)
+                          _ThreadNodeTile(
+                            node: node.children[i],
+                            depth: depth + 1,
+                            isLast: i == node.children.length - 1,
+                          ),
+                      ],
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-// Removed connector painter to follow WhatsApp-style interaction with no lines
+class _ConnectorPainter extends CustomPainter {
+  _ConnectorPainter({
+    required this.color,
+    required this.drawElbow,
+    this.elbowY = 16,
+    this.radius = 8,
+    this.stopEarly = false,
+  });
+
+  final Color color;
+  final bool drawElbow;
+  final double elbowY;
+  final double radius;
+  final bool stopEarly;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round;
+
+    final double x = size.width - 6; // near content
+    final double bottom = stopEarly ? size.height - 24 : size.height;
+
+    final path = Path()
+      ..moveTo(x, 0)
+      ..lineTo(x, bottom);
+    canvas.drawPath(path, p);
+
+    if (drawElbow) {
+      final double y = elbowY;
+      final path2 = Path()
+        ..moveTo(x, y)
+        ..quadraticBezierTo(x, y + radius, x + radius, y + radius)
+        ..lineTo(size.width, y + radius);
+      canvas.drawPath(path2, p);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ConnectorPainter oldDelegate) {
+    return oldDelegate.color != color ||
+        oldDelegate.drawElbow != drawElbow ||
+        oldDelegate.elbowY != elbowY ||
+        oldDelegate.radius != radius ||
+        oldDelegate.stopEarly != stopEarly;
+  }
+}
 
 class _ParentCommentTile extends StatelessWidget {
   const _ParentCommentTile({required this.message});
@@ -1769,46 +1842,52 @@ class _CommentTile extends StatelessWidget {
     final meta = theme.colorScheme.onSurface.withValues(alpha: 0.6);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      child: Row(
+      margin: const EdgeInsets.only(bottom: 20),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 14,
-            backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
-            child: Text(
-              comment.author.isNotEmpty ? comment.author.substring(0, 1).toUpperCase() : 'U',
-              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w700),
-            ),
+          Row(
+            children: [
+              Text(comment.author, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
+              const SizedBox(width: 8),
+              Text(comment.timeAgo, style: theme.textTheme.bodySmall?.copyWith(color: meta)),
+              const Spacer(),
+              const Icon(Icons.more_vert, size: 18),
+            ],
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1F2226) : const Color(0xFFEFF6EF), // WhatsApp-like bubble
-                borderRadius: BorderRadius.circular(16),
+          const SizedBox(height: 6),
+          Text(
+            comment.body,
+            style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black, fontSize: 16, height: 1.4),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(Icons.thumb_up_alt_outlined, size: 18, color: meta),
+              const SizedBox(width: 6),
+              Text(_formatCount(comment.likes), style: theme.textTheme.bodySmall?.copyWith(color: meta)),
+              const SizedBox(width: 18),
+              Icon(CupertinoIcons.hand_thumbsdown, size: 18, color: meta),
+              const SizedBox(width: 18),
+              Icon(Icons.mode_comment_outlined, size: 18, color: meta),
+            ],
+          ),
+          if (comment.replies > 0) ...[
+            const SizedBox(height: 10),
+            TextButton(
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                minimumSize: const Size(0, 0),
+                alignment: Alignment.centerLeft,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(comment.author, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
-                      ),
-                      Text(comment.timeAgo, style: theme.textTheme.bodySmall?.copyWith(color: meta)),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    comment.body,
-                    style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black, fontSize: 16, height: 1.4),
-                  ),
-                ],
+              onPressed: () {},
+              child: Text(
+                '${comment.replies} replies >',
+                style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black, fontWeight: FontWeight.w600),
               ),
             ),
-          ),
+          ],
         ],
       ),
     );
