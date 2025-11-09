@@ -1759,45 +1759,55 @@ class _CommentTile extends StatelessWidget {
         ? const Color(0xFFF6E7D8) // brown for me
         : const Color(0xFFF5F7FA); // grey for others
 
+    final bubbleWidget = ConstrainedBox(
+      constraints: BoxConstraints(
+        maxWidth: MediaQuery.of(context).size.width * 0.78,
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: isDark ? (isMine ? const Color(0xFF2A2220) : const Color(0xFF1F2226)) : bubble,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(child: Text(comment.author, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700))),
+                Text(comment.timeAgo, style: theme.textTheme.bodySmall?.copyWith(color: meta)),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              comment.body,
+              style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black, fontSize: 16, height: 1.4),
+            ),
+          ],
+        ),
+      ),
+    );
+
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 14,
-            backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
-            child: Text(
-              comment.author.isNotEmpty ? comment.author.substring(0, 1).toUpperCase() : 'U',
-              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w700),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: isDark ? (isMine ? const Color(0xFF2A2220) : const Color(0xFF1F2226)) : bubble,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(child: Text(comment.author, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700))),
-                      Text(comment.timeAgo, style: theme.textTheme.bodySmall?.copyWith(color: meta)),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    comment.body,
-                    style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black, fontSize: 16, height: 1.4),
-                  ),
-                ],
+          if (!isMine) ...[
+            CircleAvatar(
+              radius: 14,
+              backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
+              child: Text(
+                comment.author.isNotEmpty ? comment.author.substring(0, 1).toUpperCase() : 'U',
+                style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w700),
               ),
             ),
-          ),
+            const SizedBox(width: 8),
+            bubbleWidget,
+          ] else ...[
+            const Spacer(),
+            bubbleWidget,
+          ],
         ],
       ),
     );
