@@ -720,7 +720,11 @@ class TweetMetric extends StatelessWidget {
     final Color activeColor = isRein
         ? Colors.green
         : (isLike ? Colors.red : accent);
-    final color = data.isActive ? activeColor : neutral;
+    final baseColor = data.isActive ? activeColor : neutral;
+    final Color iconColor = isLike
+        ? (data.isActive ? activeColor : neutral)
+        : baseColor;
+    final Color textColor = isLike ? neutral : baseColor;
     final hasIcon = data.icon != null || data.type == TweetMetricType.view;
     final metricCount = data.count;
     final bool highlightRein = isRein && data.isActive;
@@ -762,11 +766,20 @@ class TweetMetric extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (hasIcon) ...[
-            (
-              data.type == TweetMetricType.view
-                  ? Icon(Icons.signal_cellular_alt_rounded, size: iconSize, color: color)
-                  : Icon(data.icon, size: iconSize, color: color)
-            ),
+            (() {
+              Widget icon = data.type == TweetMetricType.view
+                  ? Icon(Icons.signal_cellular_alt_rounded, size: iconSize, color: iconColor)
+                  : Icon(data.icon, size: iconSize, color: iconColor);
+              if (isLike) {
+                icon = AnimatedScale(
+                  duration: const Duration(milliseconds: 140),
+                  curve: Curves.easeOutBack,
+                  scale: data.isActive ? 1.18 : 1.0,
+                  child: icon,
+                );
+              }
+              return icon;
+            })(),
             if (displayLabel != null || metricCount != null)
               SizedBox(width: gap),
           ],
@@ -774,7 +787,7 @@ class TweetMetric extends StatelessWidget {
             Text(
               displayLabel,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: color,
+                color: textColor,
                 fontWeight: isRein ? FontWeight.w700 : FontWeight.w600,
                 fontSize: isRein ? reinFontSize : labelFontSize,
                 letterSpacing: isRein ? 0.3 : null,
@@ -786,7 +799,7 @@ class TweetMetric extends StatelessWidget {
             Text(
               _formatMetric(metricCount),
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: color,
+                color: textColor,
                 fontWeight: FontWeight.w600,
                 fontSize: countFontSize,
               ),
@@ -803,13 +816,13 @@ class TweetMetric extends StatelessWidget {
             minimumSize: const Size(0, 44), // good tap target
             alignment: Alignment.center,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            foregroundColor: color,
+            foregroundColor: textColor,
             shape: const RoundedRectangleBorder(
               borderRadius: BorderRadius.zero,
             ), // edge-to-edge feel
           ).copyWith(
             overlayColor: WidgetStateProperty.all(
-              color.withValues(alpha: 0.08),
+              iconColor.withValues(alpha: 0.08),
             ),
           ),
       child: FittedBox(
