@@ -268,7 +268,6 @@ class _ConversationTile extends StatelessWidget {
         ),
       ),
     );
-    ); // close InkWell
   }
 }
 
