@@ -1668,63 +1668,30 @@ class _ParentCommentTile extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        // Vertical connector and content
+        // Bubble content only (no lines), WhatsApp-like
         Expanded(
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE8F5E9),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Connector line like the screenshot
-                Container(width: 2, color: theme.dividerColor.withValues(alpha: 0.6)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(message.handle, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
-                          const SizedBox(width: 8),
-                          Text(message.timeAgo, style: theme.textTheme.bodySmall?.copyWith(color: meta)),
-                          const Spacer(),
-                          const Icon(Icons.more_vert, size: 18),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        message.body,
-                        style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black, fontSize: 16, height: 1.4),
-                        maxLines: 10,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 12),
-                      // Action row like screenshot
-                      Row(
-                        children: [
-                          const Icon(Icons.thumb_up_alt_outlined, size: 18),
-                          const SizedBox(width: 6),
-                          Text(_formatCount(message.likes), style: theme.textTheme.bodySmall?.copyWith(color: meta)),
-                          const SizedBox(width: 18),
-                          const Icon(CupertinoIcons.hand_thumbsdown, size: 18),
-                          const SizedBox(width: 18),
-                          const Icon(Icons.mode_comment_outlined, size: 18),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      TextButton(
-                        style: TextButton.styleFrom(padding: EdgeInsets.zero, alignment: Alignment.centerLeft, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                        onPressed: () {},
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text('${message.replies} replies', style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black, fontWeight: FontWeight.w600)),
-                            const SizedBox(width: 6),
-                            const Icon(Icons.chevron_right, size: 18, color: Colors.black),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                Row(
+                  children: [
+                    Text(message.handle, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
+                    const SizedBox(width: 8),
+                    Text(message.timeAgo, style: theme.textTheme.bodySmall?.copyWith(color: meta)),
+                    const Spacer(),
+                    const Icon(Icons.more_vert, size: 18),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  message.body,
+                  style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black, fontSize: 16, height: 1.4),
                 ),
               ],
             ),
@@ -1776,10 +1743,7 @@ class _CommentTile extends StatelessWidget {
           CircleAvatar(
             radius: 14,
             backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
-            child: Text(
-              comment.author.isNotEmpty ? comment.author.substring(0, 1).toUpperCase() : 'U',
-              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w700),
-            ),
+            child: Text('@', style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w800)),
           ),
           const SizedBox(width: 8),
           Expanded(
