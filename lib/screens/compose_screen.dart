@@ -6,6 +6,7 @@ import '../widgets/hexagon_avatar.dart';
 import '../widgets/tagged_text_input.dart';
 import '../widgets/tweet_composer_card.dart';
 import '../services/data_service.dart';
+import 'quiz_hub_screen.dart';
 
 class ComposeScreen extends StatefulWidget {
   const ComposeScreen({super.key, this.onPostCreated});
@@ -132,6 +133,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
                       ],
                       onImageTap: _addMedia,
                       onGifTap: () => _showToast('GIF library coming soon'),
+                      onQuizTap: _openQuizHub,
                       textInputAction: TextInputAction.send,
                       isSubmitting: _isPosting,
                       onChanged: (_) => setState(() {}),
@@ -170,6 +172,12 @@ class _ComposeScreenState extends State<ComposeScreen> {
                   icon: Icons.poll_outlined,
                   label: 'Poll',
                   onTap: () => _showToast('Poll creator coming soon'),
+                ),
+                const SizedBox(width: 24),
+                _ToolbarButton(
+                  icon: Icons.quiz_outlined,
+                  label: 'Quiz',
+                  onTap: _openQuizHub,
                 ),
                 const SizedBox(width: 24),
                 _ToolbarButton(
@@ -215,6 +223,12 @@ class _ComposeScreenState extends State<ComposeScreen> {
         _selectedTags.add(tag);
       });
     }
+  }
+
+  Future<void> _openQuizHub() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const QuizHubScreen()),
+    );
   }
 
   void _showCancelDialog() {

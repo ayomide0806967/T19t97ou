@@ -18,6 +18,7 @@ class TweetComposerCard extends StatefulWidget {
     this.footer,
     this.onImageTap,
     this.onGifTap,
+    this.onQuizTap,
     this.textInputAction = TextInputAction.send,
     this.isSubmitting = false,
     this.onChanged,
@@ -38,6 +39,7 @@ class TweetComposerCard extends StatefulWidget {
   final Widget? footer;
   final VoidCallback? onImageTap;
   final VoidCallback? onGifTap;
+  final VoidCallback? onQuizTap;
   final TextInputAction textInputAction;
   final bool isSubmitting;
   final ValueChanged<String>? onChanged;
@@ -271,6 +273,7 @@ class _TweetComposerCardState extends State<TweetComposerCard> {
                               onGifTap: widget.onGifTap,
                               onToggleExpanded: _toggleExpanded,
                               expanded: _expanded,
+                              onQuizTap: widget.onQuizTap,
                             ),
                     ),
                 ],
@@ -296,6 +299,7 @@ class _TweetComposerCardState extends State<TweetComposerCard> {
                         iconColor: iconColorActive,
                         onImageTap: widget.onImageTap,
                         onGifTap: widget.onGifTap,
+                        onQuizTap: widget.onQuizTap,
                         onToggleExpanded: _toggleExpanded,
                         expanded: _expanded,
                       ),
@@ -323,7 +327,9 @@ class _TweetComposerCardState extends State<TweetComposerCard> {
   }
 
   bool get _shouldShowActions {
-    return widget.onImageTap != null || widget.onGifTap != null;
+    return widget.onImageTap != null ||
+        widget.onGifTap != null ||
+        widget.onQuizTap != null;
   }
 }
 
@@ -333,6 +339,7 @@ class _ComposerHorizontalActions extends StatelessWidget {
     required this.iconColor,
     required this.onImageTap,
     required this.onGifTap,
+    required this.onQuizTap,
     required this.onToggleExpanded,
     required this.expanded,
   });
@@ -340,6 +347,7 @@ class _ComposerHorizontalActions extends StatelessWidget {
   final Color iconColor;
   final VoidCallback? onImageTap;
   final VoidCallback? onGifTap;
+  final VoidCallback? onQuizTap;
   final VoidCallback onToggleExpanded;
   final bool expanded;
 
@@ -368,6 +376,14 @@ class _ComposerHorizontalActions extends StatelessWidget {
             ),
             const SizedBox(width: 10),
           ],
+          if (onQuizTap != null) ...[
+            _ComposerIconButton(
+              icon: Icons.quiz_outlined,
+              color: iconColor,
+              onTap: onQuizTap!,
+            ),
+            const SizedBox(width: 10),
+          ],
           _ComposerIconButton(
             icon: expandIcon,
             color: iconColor,
@@ -385,6 +401,7 @@ class _ComposerVerticalActions extends StatelessWidget {
     required this.iconColor,
     required this.onImageTap,
     required this.onGifTap,
+    required this.onQuizTap,
     required this.onToggleExpanded,
     required this.expanded,
   });
@@ -392,6 +409,7 @@ class _ComposerVerticalActions extends StatelessWidget {
   final Color iconColor;
   final VoidCallback? onImageTap;
   final VoidCallback? onGifTap;
+  final VoidCallback? onQuizTap;
   final VoidCallback onToggleExpanded;
   final bool expanded;
 
@@ -417,6 +435,14 @@ class _ComposerVerticalActions extends StatelessWidget {
               icon: Icons.gif_box_outlined,
               color: iconColor,
               onTap: onGifTap!,
+            ),
+            const SizedBox(height: 12),
+          ],
+          if (onQuizTap != null) ...[
+            _ComposerIconButton(
+              icon: Icons.quiz_outlined,
+              color: iconColor,
+              onTap: onQuizTap!,
             ),
             const SizedBox(height: 12),
           ],

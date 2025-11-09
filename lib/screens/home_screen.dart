@@ -19,6 +19,8 @@ import 'thread_screen.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
 import 'ios_messages_screen.dart';
+import 'trending_screen.dart';
+import 'quiz_hub_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -254,12 +256,13 @@ class _HomeScreenState extends State<HomeScreen> {
     final initials = _initialsFrom(_authService.currentUserEmail);
     final handle = _currentUserHandle;
     const authorName = 'You';
+    final navigator = Navigator.of(context);
 
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) {
+      builder: (sheetContext) {
         return _QuickComposerSheet(
           initials: initials,
           handle: handle,
@@ -272,9 +275,15 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           },
           onViewProfile: () {
-            Navigator.of(context).pop();
-            Navigator.of(context).push(
+            Navigator.of(sheetContext).pop();
+            navigator.push(
               MaterialPageRoute(builder: (_) => const ProfileScreen()),
+            );
+          },
+          onOpenQuiz: () async {
+            Navigator.of(sheetContext).pop();
+            await navigator.push(
+              MaterialPageRoute(builder: (_) => const QuizHubScreen()),
             );
           },
           avatarBackgroundColor:
@@ -673,12 +682,31 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
       _QuickControlItem(
         icon: Icons.local_fire_department_outlined,
         label: 'Trending',
-        onPressed: () async => _showComingSoon('Trending topics'),
+        onPressed: () async {
+          Navigator.of(context).pop();
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const TrendingScreen(),
+            ),
+          );
+        },
       ),
       _QuickControlItem(
         icon: Icons.note_alt_outlined,
         label: 'Notes',
         onPressed: () async => _showComingSoon('Notes'),
+      ),
+      _QuickControlItem(
+        icon: Icons.quiz_outlined,
+        label: 'Quiz',
+        onPressed: () async {
+          Navigator.of(context).pop();
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const QuizHubScreen(),
+            ),
+          );
+        },
       ),
       _QuickControlItem(
         icon: Icons.quiz_outlined,
@@ -793,8 +821,9 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
   Widget _buildQuickControlGrid() {
     if (_items.isEmpty) return const SizedBox.shrink();
 
-    const rows = 3;
-    final columns = (_items.length / rows).ceil().clamp(1, 3);
+    const maxColumns = 3;
+    final columns = _items.length < maxColumns ? _items.length : maxColumns;
+    final rows = (_items.length / columns).ceil();
     final List<Widget> gridRows = [];
 
     for (var row = 0; row < rows; row++) {
@@ -965,6 +994,7 @@ class _QuickComposerSheet extends StatefulWidget {
     required this.author,
     required this.onSubmit,
     this.onViewProfile,
+    this.onOpenQuiz,
     this.avatarBackgroundColor,
     this.avatarBorderColor,
   });
@@ -974,6 +1004,7 @@ class _QuickComposerSheet extends StatefulWidget {
   final String author;
   final Future<void> Function(String content) onSubmit;
   final VoidCallback? onViewProfile;
+  final Future<void> Function()? onOpenQuiz;
   final Color? avatarBackgroundColor;
   final Color? avatarBorderColor;
 
@@ -1033,6 +1064,15 @@ class _QuickComposerSheetState extends State<_QuickComposerSheet> {
         duration: const Duration(milliseconds: 1200),
       ),
     );
+  }
+
+  Future<void> _handleQuizTap() async {
+    final callback = widget.onOpenQuiz;
+    if (callback != null) {
+      await callback();
+    } else {
+      _showActionToast('Quiz builder coming soon');
+    }
   }
 
   @override
@@ -1117,6 +1157,7 @@ class _QuickComposerSheetState extends State<_QuickComposerSheet> {
                   onChanged: (_) => setState(() {}),
                   onImageTap: null,
                   onGifTap: null,
+                  onQuizTap: _handleQuizTap,
                     footer: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
@@ -1143,26 +1184,6 @@ class _QuickComposerSheetState extends State<_QuickComposerSheet> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: widget.onViewProfile,
-                            child: AnimatedDefaultTextStyle(
-                              duration: const Duration(milliseconds: 180),
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onSurface
-                                        .withValues(alpha: 0.55),
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: -0.1,
-                                  ) ??
-                                  const TextStyle(),
-                              child: Text(
-                                widget.handle,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
                         AnimatedOpacity(
                           duration: const Duration(milliseconds: 220),
                           opacity: trimmed.isEmpty ? 0.45 : 1,
@@ -1184,6 +1205,27 @@ class _QuickComposerSheetState extends State<_QuickComposerSheet> {
                             ),
                           ),
                         ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: widget.onViewProfile,
+                            child: AnimatedDefaultTextStyle(
+                              duration: const Duration(milliseconds: 180),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurface
+                                        .withValues(alpha: 0.55),
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: -0.1,
+                                  ) ??
+                                  const TextStyle(),
+                              child: Text(
+                                widget.handle,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
                         const SizedBox(width: 12),
                         Text(
                           '${_controller.text.length}/280',
