@@ -59,10 +59,6 @@ class _IosMinimalistMessagePageState extends State<IosMinimalistMessagePage> {
         ),
       ),
     );
-    // Close InkWell wrapper
-    );
-    );
-    );
   }
 
   List<_Conversation> _filteredConversations() {
@@ -166,7 +162,6 @@ class _SchoolTabBar extends StatelessWidget {
           Tab(text: 'Classes'),
         ],
       ),
-    );
     );
   }
 }
@@ -298,7 +293,6 @@ class _ConversationAvatar extends StatelessWidget {
           ),
         ),
       ),
-    );
     );
   }
 }
