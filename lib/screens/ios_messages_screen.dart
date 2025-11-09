@@ -1466,8 +1466,18 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
   }
 
   void _openComments(BuildContext context, _ClassMessage message) {
+    String me = '@yourprofile';
+    final email = SimpleAuthService().currentUserEmail;
+    if (email != null && email.isNotEmpty) {
+      final normalized = email
+          .split('@')
+          .first
+          .replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '')
+          .toLowerCase();
+      if (normalized.isNotEmpty) me = '@' + normalized;
+    }
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => _MessageCommentsPage(message: message)),
+      MaterialPageRoute(builder: (_) => _MessageCommentsPage(message: message, currentUserHandle: me)),
     );
   }
 }
@@ -1501,9 +1511,10 @@ class _IconCountButton extends StatelessWidget {
 }
 
 class _MessageCommentsPage extends StatelessWidget {
-  const _MessageCommentsPage({required this.message});
+  const _MessageCommentsPage({required this.message, required this.currentUserHandle});
 
   final _ClassMessage message;
+  final String currentUserHandle;
 
   @override
   Widget build(BuildContext context) {
@@ -1576,7 +1587,7 @@ class _MessageCommentsPage extends StatelessWidget {
             onShare: () async {},
           ),
           const SizedBox(height: 12),
-          _ThreadCommentsView(nodes: threads),
+          _ThreadCommentsView(nodes: threads, currentUserHandle: currentUserHandle),
         ],
       ),
     );
@@ -1590,8 +1601,9 @@ class _ThreadNode {
 }
 
 class _ThreadCommentsView extends StatelessWidget {
-  const _ThreadCommentsView({required this.nodes});
+  const _ThreadCommentsView({required this.nodes, required this.currentUserHandle});
   final List<_ThreadNode> nodes;
+  final String currentUserHandle;
 
   @override
   Widget build(BuildContext context) {
@@ -1599,17 +1611,18 @@ class _ThreadCommentsView extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         for (int i = 0; i < nodes.length; i++)
-          _ThreadNodeTile(node: nodes[i], depth: 0, isLast: i == nodes.length - 1),
+          _ThreadNodeTile(node: nodes[i], depth: 0, isLast: i == nodes.length - 1, currentUserHandle: currentUserHandle),
       ],
     );
   }
 }
 
 class _ThreadNodeTile extends StatelessWidget {
-  const _ThreadNodeTile({required this.node, required this.depth, required this.isLast});
+  const _ThreadNodeTile({required this.node, required this.depth, required this.isLast, required this.currentUserHandle});
   final _ThreadNode node;
   final int depth;
   final bool isLast;
+  final String currentUserHandle;
 
   @override
   Widget build(BuildContext context) {
@@ -1622,7 +1635,7 @@ class _ThreadNodeTile extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _CommentTile(comment: node.comment, isDark: isDark),
+          _CommentTile(comment: node.comment, isDark: isDark, currentUserHandle: currentUserHandle),
           if (node.children.isNotEmpty)
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1632,6 +1645,7 @@ class _ThreadNodeTile extends StatelessWidget {
                     node: node.children[i],
                     depth: depth + 1,
                     isLast: i == node.children.length - 1,
+                    currentUserHandle: currentUserHandle,
                   ),
               ],
             ),
@@ -1724,9 +1738,10 @@ class _ThreadComment {
 }
 
 class _CommentTile extends StatelessWidget {
-  const _CommentTile({required this.comment, required this.isDark});
+  const _CommentTile({required this.comment, required this.isDark, required this.currentUserHandle});
   final _ThreadComment comment;
   final bool isDark;
+  final String currentUserHandle;
 
   String _formatCount(int n) {
     if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(n % 1000000 == 0 ? 0 : 1)}M';
@@ -1739,53 +1754,50 @@ class _CommentTile extends StatelessWidget {
     final theme = Theme.of(context);
     final meta = theme.colorScheme.onSurface.withValues(alpha: 0.6);
 
+    final bool isMine = comment.author == currentUserHandle || comment.author == 'You';
+    final Color bubble = isMine
+        ? const Color(0xFFF6E7D8) // brown for me
+        : const Color(0xFFF5F7FA); // grey for others
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      child: Column(
+      margin: const EdgeInsets.only(bottom: 14),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Text(comment.author, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
-              const SizedBox(width: 8),
-              Text(comment.timeAgo, style: theme.textTheme.bodySmall?.copyWith(color: meta)),
-              const Spacer(),
-              const Icon(Icons.more_vert, size: 18),
-            ],
+          CircleAvatar(
+            radius: 14,
+            backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
+            child: Text(
+              comment.author.isNotEmpty ? comment.author.substring(0, 1).toUpperCase() : 'U',
+              style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w700),
+            ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            comment.body,
-            style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black, fontSize: 16, height: 1.4),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Icon(Icons.thumb_up_alt_outlined, size: 18, color: meta),
-              const SizedBox(width: 6),
-              Text(_formatCount(comment.likes), style: theme.textTheme.bodySmall?.copyWith(color: meta)),
-              const SizedBox(width: 18),
-              Icon(CupertinoIcons.hand_thumbsdown, size: 18, color: meta),
-              const SizedBox(width: 18),
-              Icon(Icons.mode_comment_outlined, size: 18, color: meta),
-            ],
-          ),
-          if (comment.replies > 0) ...[
-            const SizedBox(height: 10),
-            TextButton(
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                minimumSize: const Size(0, 0),
-                alignment: Alignment.centerLeft,
+          const SizedBox(width: 8),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: isDark ? (isMine ? const Color(0xFF2A2220) : const Color(0xFF1F2226)) : bubble,
+                borderRadius: BorderRadius.circular(16),
               ),
-              onPressed: () {},
-              child: Text(
-                '${comment.replies} replies >',
-                style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black, fontWeight: FontWeight.w600),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(child: Text(comment.author, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700))),
+                      Text(comment.timeAgo, style: theme.textTheme.bodySmall?.copyWith(color: meta)),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    comment.body,
+                    style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black, fontSize: 16, height: 1.4),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
         ],
       ),
     );
