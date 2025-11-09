@@ -1570,8 +1570,11 @@ class _MessageCommentsPage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         children: [
-          // Parent comment styled like the reference
-          _ParentCommentTile(message: message),
+          // Show the original note UI unchanged at the top
+          _ClassMessageTile(
+            message: message,
+            onShare: () async {},
+          ),
           const SizedBox(height: 12),
           _ThreadCommentsView(nodes: threads),
         ],
