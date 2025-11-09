@@ -1334,10 +1334,9 @@ class _HexagonComposeButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final bool isDark = theme.brightness == Brightness.dark;
-    final Color glassColor = theme.cardColor.withValues(alpha: isDark ? 0.22 : 0.65);
-    final Color borderColor =
-        Colors.white.withValues(alpha: isDark ? 0.12 : 0.28);
+    // Solid black floating composer button
+    final Color glassColor = Colors.black;
+    final Color borderColor = Colors.black;
 
     return SizedBox(
       width: 64,
@@ -1375,7 +1374,7 @@ class _HexagonComposeButton extends StatelessWidget {
               child: Center(
                 child: Icon(
                   Icons.edit_rounded,
-                  color: theme.colorScheme.onSurface,
+                  color: Colors.white,
                   size: 22,
                 ),
               ),
