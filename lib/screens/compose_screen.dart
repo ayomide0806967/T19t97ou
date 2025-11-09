@@ -42,7 +42,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.close, color: Color(0xFF64748B)),
-          onPressed: () => _showCancelDialog(),
+          onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'New Post',
@@ -231,34 +231,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
     );
   }
 
-  void _showCancelDialog() {
-    if (_controller.text.trim().isNotEmpty ||
-        _selectedMedia.isNotEmpty ||
-        _selectedTags.isNotEmpty) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Discard post?'),
-          content: const Text('Any content you\'ve added will be lost.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Keep editing'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.pop(context);
-              },
-              child: const Text('Discard'),
-            ),
-          ],
-        ),
-      );
-    } else {
-      Navigator.pop(context);
-    }
-  }
+  // No cancel modal — close directly via leading button
 
   void _postContent() async {
     if (!_canPost()) return;
@@ -357,8 +330,6 @@ class _ComposerFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Padding(
       padding: const EdgeInsets.only(left: 52),
       child: Column(
@@ -461,95 +432,10 @@ class _ComposerFooter extends StatelessWidget {
                   .toList(),
             ),
           ],
-          const SizedBox(height: 16),
-          Text(
-            'Quick Actions',
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF1E293B),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _QuickActionChip(
-                label: 'Clinical Update',
-                icon: Icons.campaign_outlined,
-                onTap: () => onAddTag('Clinical Update'),
-              ),
-              _QuickActionChip(
-                label: 'Study Tip',
-                icon: Icons.event_outlined,
-                onTap: () => onAddTag('Study Tip'),
-              ),
-              _QuickActionChip(
-                label: 'Case Review',
-                icon: Icons.help_outline,
-                onTap: () => onAddTag('Case Review'),
-              ),
-              _QuickActionChip(
-                label: 'Policy Alert',
-                icon: Icons.update_outlined,
-                onTap: () => onAddTag('Policy Alert'),
-              ),
-              _QuickActionChip(
-                label: 'Competency Check',
-                icon: Icons.emoji_events_outlined,
-                onTap: () => onAddTag('Competency Check'),
-              ),
-              _QuickActionChip(
-                label: 'Wellness',
-                icon: Icons.forum_outlined,
-                onTap: () => onAddTag('Wellness'),
-              ),
-            ],
-          ),
         ],
       ),
     );
   }
 }
 
-class _QuickActionChip extends StatelessWidget {
-  const _QuickActionChip({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-  });
-
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF1F5F9),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 16, color: const Color(0xFF64748B)),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Color(0xFF475569),
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+// Quick action chip removed (no quick actions on composer page)
