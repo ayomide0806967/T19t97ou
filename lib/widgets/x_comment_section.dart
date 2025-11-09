@@ -754,7 +754,7 @@ class _XCommentTileState extends State<_XCommentTile>
                                     child: Center(
                                       child: _XActionButton(
                                         icon: Icons.repeat_rounded,
-                                        label: 'Repost',
+                                        label: 'REPOST',
                                         onTap: () {},
                                       ),
                                     ),

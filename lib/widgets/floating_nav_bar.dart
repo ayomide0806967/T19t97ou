@@ -18,7 +18,7 @@ class FloatingNavBar extends StatelessWidget {
     required this.currentIndex,
     required this.destinations,
     this.onIndexChange,
-    this.margin = const EdgeInsets.fromLTRB(24, 0, 24, 16),
+    this.margin = const EdgeInsets.fromLTRB(12, 0, 12, 12),
   }) : assert(destinations.length >= 2);
 
   final int currentIndex;
@@ -57,7 +57,7 @@ class FloatingNavBar extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(
-              height: 56,
+              height: 64,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: List.generate(destinations.length, (index) {
@@ -76,8 +76,8 @@ class FloatingNavBar extends StatelessWidget {
                       child: Center(
                         child: isCenter
                             ? Container(
-                                height: 48,
-                                width: 72,
+                                height: 56,
+                                width: 84,
                                 decoration: BoxDecoration(
                                   color: centralBackground,
                                   borderRadius: BorderRadius.circular(18),
@@ -94,13 +94,13 @@ class FloatingNavBar extends StatelessWidget {
                                 ),
                                 child: Icon(
                                   destination.icon,
-                                  size: 26,
+                                  size: 28,
                                   color: centralIconColor,
                                 ),
                               )
                             : Icon(
                                 destination.icon,
-                                size: isActive ? 28 : 26,
+                                size: isActive ? 30 : 28,
                                 color: isActive ? activeColor : inactiveColor,
                               ),
                       ),
@@ -111,7 +111,7 @@ class FloatingNavBar extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Container(
-              width: 96,
+              width: 120,
               height: 3,
               decoration: BoxDecoration(
                 color: indicatorColor,

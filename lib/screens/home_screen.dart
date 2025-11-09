@@ -20,6 +20,7 @@ import 'profile_screen.dart';
 import 'settings_screen.dart';
 import 'ios_messages_screen.dart';
 import 'trending_screen.dart';
+import 'notifications_screen.dart';
 import 'quiz_hub_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -149,21 +150,37 @@ class _HomeScreenState extends State<HomeScreen> {
               delegate: SliverChildBuilderDelegate((context, index) {
                 final post = posts[index];
                 return RepaintBoundary(
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 24),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 720),
-                          child: _PostCard(
-                            post: post,
-                            currentUserHandle: currentUserHandle,
+                  child: Builder(builder: (context) {
+                    final theme = Theme.of(context);
+                    final bool isDark = theme.brightness == Brightness.dark;
+                    // Softer divider like X
+                    final Color line = theme.colorScheme.onSurface
+                        .withValues(alpha: isDark ? 0.12 : 0.06);
+
+                    final Border border = Border(
+                      top: index == 0
+                          ? BorderSide(color: line, width: 0.6)
+                          : BorderSide.none,
+                      bottom: BorderSide(color: line, width: 0.6),
+                    );
+
+                    return Container(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      decoration: BoxDecoration(border: border),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 720),
+                            child: _PostCard(
+                              post: post,
+                              currentUserHandle: currentUserHandle,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ),
+                    );
+                  }),
                 );
               }, childCount: posts.length),
             ),
@@ -193,7 +210,8 @@ class _HomeScreenState extends State<HomeScreen> {
     return FloatingNavBar(
       currentIndex: _selectedBottomNavIndex,
       onIndexChange: (index) {
-        if (index == 1) {
+        // Center button is at index 2 when there are 5 destinations
+        if (index == 2) {
           _showQuickControlPanel();
           return;
         }
@@ -210,7 +228,33 @@ class _HomeScreenState extends State<HomeScreen> {
             }
           },
         ),
+        // Messages
+        FloatingNavBarDestination(
+          icon: Icons.mail_outline_rounded,
+          onTap: () {
+            Navigator.of(context)
+                .push(
+                  MaterialPageRoute(
+                    builder: (context) => const IosMinimalistMessagePage(),
+                  ),
+                )
+                .then((_) => resetToHome());
+          },
+        ),
         FloatingNavBarDestination(icon: Icons.add, onTap: null),
+        // Notifications (love/heart)
+        FloatingNavBarDestination(
+          icon: Icons.favorite_border_rounded,
+          onTap: () {
+            Navigator.of(context)
+                .push(
+                  MaterialPageRoute(
+                    builder: (context) => const NotificationsScreen(),
+                  ),
+                )
+                .then((_) => resetToHome());
+          },
+        ),
         FloatingNavBarDestination(
           icon: Icons.person_outline_rounded,
           onTap: () {

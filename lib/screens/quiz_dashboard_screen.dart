@@ -26,12 +26,15 @@ class QuizDashboardScreen extends StatelessWidget {
           _DashboardCard(
             title: 'Previous quizzes',
             subtitle: 'Track performance from your published quizzes.',
-            child: Column(
-              children: results.take(2).map((summary) => _ResultPreview(summary: summary)).toList(),
-            ),
             actionLabel: 'View results',
             onActionTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const QuizResultsScreen()),
+            ),
+            child: Column(
+              children: results
+                  .take(2)
+                  .map((summary) => _ResultPreview(summary: summary))
+                  .toList(),
             ),
           ),
           const SizedBox(height: 16),
@@ -40,23 +43,26 @@ class QuizDashboardScreen extends StatelessWidget {
             subtitle: drafts.isEmpty
                 ? 'No drafts saved yet.'
                 : 'You have ${drafts.length} drafts waiting to publish.',
-            child: Column(
-              children: drafts.take(2).map((draft) => _DraftPreview(draft: draft)).toList(),
-            ),
             actionLabel: 'Open drafts',
             onActionTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const QuizDraftsScreen()),
+            ),
+            child: Column(
+              children: drafts
+                  .take(2)
+                  .map((draft) => _DraftPreview(draft: draft))
+                  .toList(),
             ),
           ),
           const SizedBox(height: 16),
           _DashboardCard(
             title: 'Results overview',
             subtitle: 'High-level metrics that update live.',
-            child: _ResultsOverview(results: results),
             actionLabel: 'Export summaries',
             onActionTap: () => ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Export coming soon')),
             ),
+            child: _ResultsOverview(results: results),
           ),
         ],
       ),
@@ -189,7 +195,6 @@ class _ResultsOverview extends StatelessWidget {
     if (results.isEmpty) {
       return const Text('No published quizzes yet.');
     }
-    final theme = Theme.of(context);
     final double avgScore = results.map((r) => r.averageScore).fold<double>(0, (a, b) => a + b) / results.length;
     final int totalResponses = results.map((r) => r.responses).fold<int>(0, (a, b) => a + b);
 

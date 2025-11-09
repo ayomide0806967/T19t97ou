@@ -37,7 +37,7 @@ class _TrendingScreenState extends State<TrendingScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final onSurface = theme.colorScheme.onSurface;
-    final subtle = onSurface.withValues(alpha: isDark ? 0.65 : 0.6);
+    // removed unused `subtle`
 
     final items = _selected == 'Trending Topics'
         ? _demoTrending

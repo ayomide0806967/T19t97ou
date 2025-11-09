@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+// No Flutter imports needed here
 
 class QuizDraft {
   QuizDraft({

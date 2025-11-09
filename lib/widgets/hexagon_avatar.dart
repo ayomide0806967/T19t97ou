@@ -24,66 +24,34 @@ class HexagonAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Render as a sharp rectangle avatar (four corners),
+    // keeping the existing API for drop-in replacement.
     final bg = backgroundColor ?? AppTheme.buttonSecondary;
-    final border = borderColor ?? AppTheme.accent.withValues(alpha: 0.4);
+    final br = BorderRadius.zero;
+    final Color borderCol =
+        (borderColor ?? AppTheme.accent.withValues(alpha: 0.35));
 
     return SizedBox(
       width: size,
       height: size,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          ClipPath(
-            clipper: _HexagonClipper(),
-            child: Container(color: border),
-          ),
-          Padding(
-            padding: EdgeInsets.all(borderWidth.clamp(0, size / 4)),
-            child: ClipPath(
-              clipper: _HexagonClipper(),
-              child: image != null
-                  ? DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: bg,
-                        image: DecorationImage(
-                          image: image!,
-                          fit: imageFit,
-                        ),
-                      ),
-                      child: child == null
-                          ? null
-                          : Center(child: child),
-                    )
-                  : Container(color: bg, child: child),
-            ),
-          ),
-        ],
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: br,
+          border: Border.all(color: borderCol, width: borderWidth.clamp(0, 6)),
+        ),
+        child: ClipRRect(
+          borderRadius: br,
+          child: image != null
+              ? DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: bg,
+                    image: DecorationImage(image: image!, fit: imageFit),
+                  ),
+                  child: child == null ? null : Center(child: child),
+                )
+              : Container(color: bg, child: child),
+        ),
       ),
     );
   }
-}
-
-class _HexagonClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    final w = size.width;
-    final h = size.height;
-    final side = w / 2;
-    final triangleHeight = (side * 0.57735); // tan(30deg)
-
-    path
-      ..moveTo(w / 2, 0)
-      ..lineTo(w, triangleHeight)
-      ..lineTo(w, h - triangleHeight)
-      ..lineTo(w / 2, h)
-      ..lineTo(0, h - triangleHeight)
-      ..lineTo(0, triangleHeight)
-      ..close();
-
-    return path;
-  }
-
-  @override
-  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }

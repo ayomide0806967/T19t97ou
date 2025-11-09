@@ -1,12 +1,13 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart';
 import 'quiz_hub_screen.dart';
 import 'package:provider/provider.dart';
 import '../services/data_service.dart';
 import '../services/simple_auth_service.dart';
-import '../widgets/tweet_composer_card.dart';
-import '../widgets/tweet_post_card.dart';
+import '../widgets/hexagon_avatar.dart';
+// Removed unused tweet widgets imports
 
 /// Minimalist iOS-style messages inbox page.
 class IosMinimalistMessagePage extends StatefulWidget {
@@ -510,37 +511,7 @@ child: Row(
   }
 }
 
-class _ClassStatChip extends StatelessWidget {
-  const _ClassStatChip({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        color: const Color(0xFFF1F5F9),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: const Color(0xFF475569)),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Color(0xFF475569),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+// Removed unused _ClassStatChip widget
 
 class _LibraryChip extends StatelessWidget {
   const _LibraryChip({required this.resource});
@@ -583,125 +554,9 @@ class _LibraryChip extends StatelessWidget {
   }
 }
 
-class _TweetCard extends StatelessWidget {
-  const _TweetCard({required this.tweet});
+// Removed unused _TweetCard widget
 
-  final _TweetMessage tweet;
-
-  String get _initials {
-    final cleanedParts = tweet.author
-        .trim()
-        .split(RegExp(r'\s+'))
-        .where((segment) => segment.isNotEmpty)
-        .toList();
-    if (cleanedParts.isEmpty) return '?';
-    if (cleanedParts.length == 1) {
-      return cleanedParts.first.substring(0, 1).toUpperCase();
-    }
-    final first = cleanedParts.first.substring(0, 1).toUpperCase();
-    final last = cleanedParts.last.substring(0, 1).toUpperCase();
-    return '$first$last';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.2)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
-                  child: Text(
-                    _initials,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        tweet.author,
-                        style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                      Text(
-                        '${tweet.handle} • ${tweet.timeAgo}',
-                        style: theme.textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
-                ),
-                if (tweet.pinned)
-                  Icon(CupertinoIcons.pin_fill, size: 16, color: theme.colorScheme.error),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(
-              tweet.body,
-              style: theme.textTheme.bodyMedium?.copyWith(height: 1.35),
-            ),
-            if (tweet.hashtags.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: [
-                  for (final tag in tweet.hashtags)
-                    Text('#$tag', style: theme.textTheme.labelMedium),
-                ],
-              ),
-            ],
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                _TweetStat(icon: CupertinoIcons.chat_bubble, value: tweet.replies),
-                const SizedBox(width: 16),
-                _TweetStat(icon: CupertinoIcons.heart, value: tweet.likes),
-                const SizedBox(width: 16),
-                _TweetStat(icon: CupertinoIcons.arrowshape_turn_up_right, value: tweet.shares),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TweetStat extends StatelessWidget {
-  const _TweetStat({required this.icon, required this.value});
-
-  final IconData icon;
-  final int value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: const Color(0xFF94A3B8)),
-        const SizedBox(width: 4),
-        Text(
-          '$value',
-          style: const TextStyle(
-            color: Color(0xFF64748B),
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    );
-  }
-}
+// Removed unused _TweetStat widget
 
 class College {
   const College({
@@ -751,29 +606,7 @@ class LectureNote {
   final String? size; // e.g., 540 KB
 }
 
-class _TweetMessage {
-  const _TweetMessage({
-    required this.author,
-    required this.handle,
-    required this.timeAgo,
-    required this.body,
-    this.hashtags = const <String>[],
-    this.replies = 0,
-    this.likes = 0,
-    this.shares = 0,
-    this.pinned = false,
-  });
-
-  final String author;
-  final String handle;
-  final String timeAgo;
-  final String body;
-  final List<String> hashtags;
-  final int replies;
-  final int likes;
-  final int shares;
-  final bool pinned;
-}
+// Removed unused _TweetMessage model
 
 
 const List<_Conversation> _demoConversations = <_Conversation>[
@@ -1050,10 +883,10 @@ Mock exam briefing extended update: please review chapters one through five, pra
                 await context.read<DataService>().addPost(
                       author: msg.author,
                       handle: _currentUserHandle,
-                      body: truncated + '  #${college.code}',
+                      body: '$truncated  #${college.code}',
                       tags: <String>[college.code],
                     );
-                if (!mounted) return;
+                if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Shared to your page')),
                 );
@@ -1083,11 +916,11 @@ Mock exam briefing extended update: please review chapters one through five, pra
             onPressed: () {
               String h = controller.text.trim();
               if (h.isEmpty) return;
-              if (!h.startsWith('@')) h = '@' + h;
+              if (!h.startsWith('@')) h = '@$h';
               setState(() => _members.add(h));
               Navigator.of(ctx).pop();
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Added ' + h)),
+                SnackBar(content: Text('Added $h')),
               );
             },
             child: const Text('Add'),
@@ -1236,10 +1069,12 @@ class _ClassMessageTile extends StatefulWidget {
   const _ClassMessageTile({
     required this.message,
     required this.onShare,
+    this.showReplyButton = true,
   });
 
   final _ClassMessage message;
   final Future<void> Function() onShare;
+  final bool showReplyButton;
 
   @override
   State<_ClassMessageTile> createState() => _ClassMessageTileState();
@@ -1248,6 +1083,17 @@ class _ClassMessageTile extends StatefulWidget {
 class _ClassMessageTileState extends State<_ClassMessageTile> {
   bool _expanded = false;
   bool _saved = false;
+  int _good = 0;
+  int _bad = 0;
+  bool _goodActive = false;
+  bool _badActive = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _good = widget.message.likes;
+    _bad = widget.message.heartbreaks;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1258,7 +1104,7 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
 
     final message = widget.message;
 
-    String _avatarText() {
+    String avatarText() {
       final base = message.author.isNotEmpty ? message.author : message.handle;
       final t = base.trim();
       if (t.isEmpty) return '?';
@@ -1287,7 +1133,7 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                     ? theme.colorScheme.primary.withValues(alpha: 0.25)
                     : theme.colorScheme.primary.withValues(alpha: 0.15),
                 child: Text(
-                  _avatarText(),
+                  avatarText(),
                   style: theme.textTheme.labelMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                     color: theme.colorScheme.primary,
@@ -1332,7 +1178,7 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
           LayoutBuilder(builder: (context, constraints) {
             // Determine if text exceeds 22 lines (truncate threshold)
             final textStyle = theme.textTheme.bodyMedium?.copyWith(
-              color: Colors.black,
+              color: theme.colorScheme.onSurface,
               fontSize: 16,
               height: 1.4,
               fontWeight: FontWeight.w400,
@@ -1353,7 +1199,7 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
               int low = 0, high = message.body.length, best = 0;
               while (low <= high) {
                 final mid = (low + high) >> 1;
-                final prefix = message.body.substring(0, mid).trimRight() + ' ';
+                final prefix = '${message.body.substring(0, mid).trimRight()} ';
                 final spanTry = TextSpan(
                   style: textStyle,
                   children: [
@@ -1385,7 +1231,7 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                 TextSpan(
                   style: textStyle,
                   children: [
-                    TextSpan(text: visibleTrimmed + ' '),
+                    TextSpan(text: '$visibleTrimmed '),
                     TextSpan(
                       text: 'Read more',
                       style: linkStyle,
@@ -1399,15 +1245,13 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
               );
             }
 
-            return Text(
-              message.body,
-              style: textStyle,
-            );
+            return Text(message.body, style: textStyle);
           }),
           const SizedBox(height: 8),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              if (message.replies > 0)
+              if (widget.showReplyButton && message.replies > 0)
                 TextButton(
                   onPressed: () => _openComments(context, message),
                   style: TextButton.styleFrom(
@@ -1423,38 +1267,84 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                       border: Border.all(color: theme.colorScheme.primary),
                     ),
                     child: Text(
-                      'View ${message.replies} ' + (message.replies == 1 ? 'reply' : 'replies'),
+                      'View ${message.replies} ${
+                        message.replies == 1 ? 'reply' : 'replies'
+                      }',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.black,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                )
+              else
+                const SizedBox.shrink(),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                      _LabelCountButton(
+                        label: 'Good',
+                        count: _good,
+                        color: _goodActive ? Colors.green : null,
+                        onPressed: () {
+                          HapticFeedback.lightImpact();
+                          setState(() {
+                            if (_goodActive) {
+                              _good = (_good - 1).clamp(0, 1 << 30);
+                              _goodActive = false;
+                            } else {
+                              _good += 1;
+                              _goodActive = true;
+                              if (_badActive) {
+                                _bad = (_bad - 1).clamp(0, 1 << 30);
+                                _badActive = false;
+                              }
+                            }
+                          });
+                        },
+                      ),
+                      _LabelCountButton(
+                        label: 'Bad',
+                        count: _bad,
+                        color: _badActive ? Colors.red : null,
+                        onPressed: () {
+                          HapticFeedback.lightImpact();
+                          setState(() {
+                            if (_badActive) {
+                              _bad = (_bad - 1).clamp(0, 1 << 30);
+                              _badActive = false;
+                            } else {
+                              _bad += 1;
+                              _badActive = true;
+                              if (_goodActive) {
+                                _good = (_good - 1).clamp(0, 1 << 30);
+                                _goodActive = false;
+                              }
+                            }
+                          });
+                        },
+                      ),
+                _ScaleTap(
+                  onTap: () => setState(() => _saved = !_saved),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    child: Text(
+                      'repost',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: meta,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
                 ),
-              const Spacer(),
-              _IconCountButton(
-                icon: Icons.favorite_border,
-                count: message.likes,
-                onPressed: () {},
-              ),
-              const SizedBox(width: 12),
-              _IconCountButton(
-                icon: CupertinoIcons.hand_thumbsdown,
-                count: message.heartbreaks,
-                onPressed: () {},
-              ),
-              const SizedBox(width: 12),
-              TextButton(
-                onPressed: () => setState(() => _saved = !_saved),
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                  minimumSize: const Size(0, 0),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: Text(
-                  'Repost',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: meta,
-                    fontWeight: _saved ? FontWeight.w700 : FontWeight.w500,
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -1474,7 +1364,7 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
           .first
           .replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '')
           .toLowerCase();
-      if (normalized.isNotEmpty) me = '@' + normalized;
+      if (normalized.isNotEmpty) me = '@$normalized';
     }
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => _MessageCommentsPage(message: message, currentUserHandle: me)),
@@ -1482,46 +1372,121 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
   }
 }
 
-class _IconCountButton extends StatelessWidget {
-  const _IconCountButton({required this.icon, required this.count, required this.onPressed});
-  final IconData icon;
+class _LabelCountButton extends StatefulWidget {
+  const _LabelCountButton({
+    required this.label,
+    required this.count,
+    required this.onPressed,
+    this.color,
+  });
+  final String label;
   final int count;
   final VoidCallback onPressed;
+  final Color? color;
+
+  @override
+  State<_LabelCountButton> createState() => _LabelCountButtonState();
+}
+
+class _LabelCountButtonState extends State<_LabelCountButton> {
+  bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final Color meta = theme.colorScheme.onSurface.withValues(alpha: 0.6);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(20),
+    final Color meta = widget.color ?? theme.colorScheme.onSurface.withValues(alpha: 0.6);
+    return AnimatedScale(
+      duration: const Duration(milliseconds: 120),
+      curve: Curves.easeOutCubic,
+      scale: _pressed ? 1.08 : 1.0,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: widget.onPressed,
+          onTapDown: (_) => setState(() => _pressed = true),
+          onTapCancel: () => setState(() => _pressed = false),
+          onTapUp: (_) => setState(() => _pressed = false),
           child: Padding(
-            padding: const EdgeInsets.all(2),
-            child: Icon(icon, size: 18, color: meta),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  widget.label,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: meta,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '${widget.count}',
+                  style: theme.textTheme.bodySmall?.copyWith(color: meta),
+                ),
+              ],
+            ),
           ),
         ),
-        const SizedBox(width: 4),
-        Text('$count', style: theme.textTheme.bodySmall?.copyWith(color: meta)),
-      ],
+      ),
     );
   }
 }
 
-class _MessageCommentsPage extends StatelessWidget {
+class _ScaleTap extends StatefulWidget {
+  const _ScaleTap({required this.onTap, required this.child});
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  State<_ScaleTap> createState() => _ScaleTapState();
+}
+
+class _ScaleTapState extends State<_ScaleTap> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedScale(
+      duration: const Duration(milliseconds: 120),
+      curve: Curves.easeOutCubic,
+      scale: _pressed ? 1.08 : 1.0,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: widget.onTap,
+          onTapDown: (_) => setState(() => _pressed = true),
+          onTapCancel: () => setState(() => _pressed = false),
+          onTapUp: (_) => setState(() => _pressed = false),
+          child: widget.child,
+        ),
+      ),
+    );
+  }
+}
+
+// Repost now rendered as text label "repost"
+
+class _MessageCommentsPage extends StatefulWidget {
   const _MessageCommentsPage({required this.message, required this.currentUserHandle});
 
   final _ClassMessage message;
   final String currentUserHandle;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+  State<_MessageCommentsPage> createState() => _MessageCommentsPageState();
+}
 
-    final List<_ThreadNode> threads = <_ThreadNode>[
+class _MessageCommentsPageState extends State<_MessageCommentsPage> {
+  final TextEditingController _composer = TextEditingController();
+  _ThreadNode? _replyTarget;
+  late List<_ThreadNode> _threads;
+
+  @override
+  void initState() {
+    super.initState();
+    _threads = <_ThreadNode>[
       _ThreadNode(
         comment: _ThreadComment(
           author: '@Naureen Ali',
@@ -1573,21 +1538,119 @@ class _MessageCommentsPage extends StatelessWidget {
         ],
       ),
     ];
+  }
 
+  @override
+  void dispose() {
+    _composer.dispose();
+    super.dispose();
+  }
+
+  void _setReplyTarget(_ThreadNode node) {
+    setState(() => _replyTarget = node);
+  }
+
+  void _sendReply() {
+    final text = _composer.text.trim();
+    if (text.isEmpty) return;
+
+    final _ThreadNode newNode = _ThreadNode(
+      comment: _ThreadComment(
+        author: 'You',
+        timeAgo: 'now',
+        body: text,
+        quotedFrom: _replyTarget?.comment.author,
+        quotedBody: _replyTarget?.comment.body,
+      ),
+    );
+
+    bool appended = false;
+    if (_replyTarget != null) {
+      _replyTarget!.children.add(newNode);
+      appended = true;
+    }
+    if (!appended) {
+      _threads.add(newNode);
+    }
+
+    setState(() {
+      _replyTarget = null;
+      _composer.clear();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Replies'),
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      body: Column(
         children: [
-          // Show the original note UI unchanged at the top
-          _ClassMessageTile(
-            message: message,
-            onShare: () async {},
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              children: [
+                _ClassMessageTile(
+                  message: widget.message,
+                  onShare: () async {},
+                  showReplyButton: false,
+                ),
+                const SizedBox(height: 12),
+                _ThreadCommentsView(
+                  nodes: _threads,
+                  currentUserHandle: widget.currentUserHandle,
+                  onReply: _setReplyTarget,
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 12),
-          _ThreadCommentsView(nodes: threads, currentUserHandle: currentUserHandle),
+          if (_replyTarget != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: theme.dividerColor.withValues(alpha: 0.2)),
+                ),
+                padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+                child: Row(
+                  children: [
+                    Container(width: 3, height: 36, color: theme.colorScheme.primary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(_replyTarget!.comment.author, style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700)),
+                          Text(
+                            _replyTarget!.comment.body,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => setState(() => _replyTarget = null),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          SafeArea(
+            top: false,
+            minimum: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: _ClassComposer(
+              controller: _composer,
+              hintText: _replyTarget == null ? 'Write a reply…' : 'Replying to ${_replyTarget!.comment.author}',
+              onSend: _sendReply,
+            ),
+          ),
         ],
       ),
     );
@@ -1595,15 +1658,17 @@ class _MessageCommentsPage extends StatelessWidget {
 }
 
 class _ThreadNode {
-  _ThreadNode({required this.comment, this.children = const <_ThreadNode>[]});
+  _ThreadNode({required this.comment, List<_ThreadNode>? children})
+      : children = children != null ? List<_ThreadNode>.from(children) : <_ThreadNode>[];
   final _ThreadComment comment;
   final List<_ThreadNode> children;
 }
 
 class _ThreadCommentsView extends StatelessWidget {
-  const _ThreadCommentsView({required this.nodes, required this.currentUserHandle});
+  const _ThreadCommentsView({required this.nodes, required this.currentUserHandle, this.onReply});
   final List<_ThreadNode> nodes;
   final String currentUserHandle;
+  final ValueChanged<_ThreadNode>? onReply;
 
   @override
   Widget build(BuildContext context) {
@@ -1611,18 +1676,31 @@ class _ThreadCommentsView extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         for (int i = 0; i < nodes.length; i++)
-          _ThreadNodeTile(node: nodes[i], depth: 0, isLast: i == nodes.length - 1, currentUserHandle: currentUserHandle),
+          _ThreadNodeTile(
+            node: nodes[i],
+            depth: 0,
+            isLast: i == nodes.length - 1,
+            currentUserHandle: currentUserHandle,
+            onReply: onReply,
+          ),
       ],
     );
   }
 }
 
 class _ThreadNodeTile extends StatelessWidget {
-  const _ThreadNodeTile({required this.node, required this.depth, required this.isLast, required this.currentUserHandle});
+  const _ThreadNodeTile({
+    required this.node,
+    required this.depth,
+    required this.isLast,
+    required this.currentUserHandle,
+    this.onReply,
+  });
   final _ThreadNode node;
   final int depth;
   final bool isLast;
   final String currentUserHandle;
+  final ValueChanged<_ThreadNode>? onReply;
 
   @override
   Widget build(BuildContext context) {
@@ -1635,7 +1713,12 @@ class _ThreadNodeTile extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _CommentTile(comment: node.comment, isDark: isDark, currentUserHandle: currentUserHandle),
+          _CommentTile(
+            comment: node.comment,
+            isDark: isDark,
+            currentUserHandle: currentUserHandle,
+            onSwipeReply: () => onReply?.call(node),
+          ),
           if (node.children.isNotEmpty)
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1646,6 +1729,7 @@ class _ThreadNodeTile extends StatelessWidget {
                     depth: depth + 1,
                     isLast: i == node.children.length - 1,
                     currentUserHandle: currentUserHandle,
+                    onReply: onReply,
                   ),
               ],
             ),
@@ -1657,68 +1741,7 @@ class _ThreadNodeTile extends StatelessWidget {
 
 // WhatsApp-style: no connector painter; indentation only
 
-class _ParentCommentTile extends StatelessWidget {
-  const _ParentCommentTile({required this.message});
-
-  final _ClassMessage message;
-
-  String _formatCount(int n) {
-    if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(n % 1000000 == 0 ? 0 : 1)}M';
-    if (n >= 1000) return '${(n / 1000).toStringAsFixed(n % 1000 == 0 ? 0 : 1)}K';
-    return '$n';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final meta = theme.colorScheme.onSurface.withValues(alpha: 0.6);
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Avatar
-        CircleAvatar(
-          radius: 18,
-          backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.15),
-          child: Text(
-            message.author.isNotEmpty ? message.author.substring(0, 1).toUpperCase() : 'U',
-            style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w700),
-          ),
-        ),
-        const SizedBox(width: 12),
-        // Bubble-only parent (no vertical line)
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE8F5E9),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(message.handle, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
-                    const SizedBox(width: 8),
-                    Text(message.timeAgo, style: theme.textTheme.bodySmall?.copyWith(color: meta)),
-                    const Spacer(),
-                    const Icon(Icons.more_vert, size: 18),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  message.body,
-                  style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black, fontSize: 16, height: 1.4),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
+// Removed unused _ParentCommentTile widget
 
 class _ThreadComment {
   const _ThreadComment({
@@ -1726,27 +1749,47 @@ class _ThreadComment {
     required this.timeAgo,
     required this.body,
     this.likes = 0,
-    this.dislikes = 0,
-    this.replies = 0,
+    this.quotedFrom,
+    this.quotedBody,
   });
   final String author;
   final String timeAgo;
   final String body;
   final int likes;
-  final int dislikes;
-  final int replies;
+  final String? quotedFrom;
+  final String? quotedBody;
 }
 
-class _CommentTile extends StatelessWidget {
-  const _CommentTile({required this.comment, required this.isDark, required this.currentUserHandle});
+class _CommentTile extends StatefulWidget {
+  const _CommentTile({
+    required this.comment,
+    required this.isDark,
+    required this.currentUserHandle,
+    this.onSwipeReply,
+  });
   final _ThreadComment comment;
   final bool isDark;
   final String currentUserHandle;
+  final VoidCallback? onSwipeReply;
 
-  String _formatCount(int n) {
-    if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(n % 1000000 == 0 ? 0 : 1)}M';
-    if (n >= 1000) return '${(n / 1000).toStringAsFixed(n % 1000 == 0 ? 0 : 1)}K';
-    return '$n';
+  @override
+  State<_CommentTile> createState() => _CommentTileState();
+}
+
+class _CommentTileState extends State<_CommentTile> {
+  bool _highlight = false;
+  double _dx = 0;
+  double _dragOffset = 0; // visual slide during swipe-to-reply
+  int _likes = 0;
+  int _dislikes = 0;
+  bool _liked = false;
+  bool _disliked = false;
+  bool _reposted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _likes = widget.comment.likes;
   }
 
   @override
@@ -1754,61 +1797,220 @@ class _CommentTile extends StatelessWidget {
     final theme = Theme.of(context);
     final meta = theme.colorScheme.onSurface.withValues(alpha: 0.6);
 
-    final bool isMine = comment.author == currentUserHandle || comment.author == 'You';
+    final _ThreadComment comment = widget.comment;
+    final bool isMine =
+        comment.author == widget.currentUserHandle || comment.author == 'You';
     final Color bubble = isMine
-        ? const Color(0xFFF6E7D8) // brown for me
-        : const Color(0xFFF5F7FA); // grey for others
+        ? const Color(0xFFF6E7D8)
+        : const Color(0xFFF5F7FA);
 
-    final bubbleWidget = ConstrainedBox(
-      constraints: BoxConstraints(
-        maxWidth: MediaQuery.of(context).size.width * 0.78,
-      ),
-      child: Container(
+    final Widget bubbleCore = Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: isDark ? (isMine ? const Color(0xFF2A2220) : const Color(0xFF1F2226)) : bubble,
+          color: widget.isDark
+              ? (isMine ? const Color(0xFF2A2220) : const Color(0xFF1F2226))
+              : bubble,
           borderRadius: BorderRadius.circular(16),
+          border: _highlight
+              ? Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.35))
+              : null,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Expanded(child: Text(comment.author, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700))),
+                // Hexagonal framed avatar inside the bubble
+                HexagonAvatar(
+                  size: 22,
+                  borderWidth: 1.0,
+                  borderColor: theme.dividerColor,
+                  backgroundColor: theme.colorScheme.surface,
+                  child: Text(
+                    (comment.author.isNotEmpty
+                            ? comment.author.substring(0, 1)
+                            : 'U')
+                        .toUpperCase(),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    comment.author,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
                 Text(comment.timeAgo, style: theme.textTheme.bodySmall?.copyWith(color: meta)),
               ],
             ),
             const SizedBox(height: 6),
+            if (comment.quotedBody != null) ...[
+              Container(
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: theme.dividerColor.withValues(alpha: 0.2)),
+                ),
+                padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(width: 3, height: 36, color: theme.colorScheme.primary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            comment.quotedFrom ?? 'Reply',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: meta,
+                            ),
+                          ),
+                          Text(
+                            comment.quotedBody!,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 6),
+            ],
             Text(
               comment.body,
-              style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black, fontSize: 16, height: 1.4),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: widget.isDark
+                    ? Colors.white
+                    : theme.colorScheme.onSurface,
+                fontSize: 16,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _LabelCountButton(
+                  label: 'Good',
+                  count: _likes,
+                  color: _liked ? Colors.green : null,
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    setState(() {
+                      if (_liked) {
+                        _likes = (_likes - 1).clamp(0, 1 << 30);
+                        _liked = false;
+                      } else {
+                        _likes += 1;
+                        _liked = true;
+                        if (_disliked) {
+                          _dislikes = (_dislikes - 1).clamp(0, 1 << 30);
+                          _disliked = false;
+                        }
+                      }
+                    });
+                  },
+                ),
+                const SizedBox(width: 16),
+                _LabelCountButton(
+                  label: 'Bad',
+                  count: _dislikes,
+                  color: _disliked ? Colors.red : null,
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    setState(() {
+                      if (_disliked) {
+                        _dislikes = (_dislikes - 1).clamp(0, 1 << 30);
+                        _disliked = false;
+                      } else {
+                        _dislikes += 1;
+                        _disliked = true;
+                        if (_liked) {
+                          _likes = (_likes - 1).clamp(0, 1 << 30);
+                          _liked = false;
+                        }
+                      }
+                    });
+                  },
+                ),
+                const SizedBox(width: 16),
+                _ScaleTap(
+                  onTap: () => setState(() => _reposted = !_reposted),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    child: Text(
+                      'repost',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                        fontWeight: _reposted ? FontWeight.w700 : FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
-      ),
-    );
+      );
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (!isMine) ...[
-            CircleAvatar(
-              radius: 14,
-              backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
-              child: Text(
-                comment.author.isNotEmpty ? comment.author.substring(0, 1).toUpperCase() : 'U',
-                style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w700),
-              ),
-            ),
-            const SizedBox(width: 8),
-            bubbleWidget,
-          ] else ...[
-            const Spacer(),
+    final Widget bubbleWidget = isMine
+        ? Expanded(child: bubbleCore)
+        : Flexible(child: bubbleCore);
+
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _highlight = true),
+      onTapUp: (_) => setState(() => _highlight = false),
+      onTapCancel: () => setState(() => _highlight = false),
+      onHorizontalDragUpdate: (details) {
+        _dx += details.delta.dx;
+        // visual slide to the right only
+        final double next = (_dragOffset + details.delta.dx).clamp(0, 56);
+        setState(() {
+          _dragOffset = next;
+          _highlight = true;
+        });
+        if (_dx > 42) {
+          _dx = 0;
+          widget.onSwipeReply?.call();
+        }
+      },
+      onHorizontalDragEnd: (details) {
+        final bool trigger =
+            (details.primaryVelocity != null && details.primaryVelocity! > 250) ||
+            _dragOffset >= 42;
+        if (trigger) {
+          widget.onSwipeReply?.call();
+        }
+        setState(() {
+          _highlight = false;
+          _dragOffset = 0; // animate back to rest
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 140),
+        curve: Curves.easeOutCubic,
+        transform: Matrix4.translationValues(_dragOffset, 0, 0),
+        margin: const EdgeInsets.only(bottom: 14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment:
+              isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
+          children: [
             bubbleWidget,
           ],
-        ],
+        ),
       ),
     );
   }
@@ -2063,43 +2265,4 @@ class _ClassTopInfo extends StatelessWidget {
     );
   }
 }
-class _CollegeHeader extends StatelessWidget {
-  const _CollegeHeader({required this.college});
-  final College college;
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surface = isDark ? const Color(0xFF0E0F12) : Colors.white;
-    final border = theme.dividerColor.withValues(alpha: isDark ? 0.3 : 0.2);
-    return Container(
-      decoration: BoxDecoration(color: surface, borderRadius: BorderRadius.circular(20), border: Border.all(color: border)),
-      padding: const EdgeInsets.all(16),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: theme.colorScheme.primary.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(14)), child: Text(college.code, style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700))),
-          const Spacer(),
-          Text('${college.members} members', style: theme.textTheme.bodySmall),
-        ]),
-        const SizedBox(height: 10),
-        Text(college.name, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-        const SizedBox(height: 4),
-        Text(college.facilitator, style: theme.textTheme.bodyMedium),
-        const SizedBox(height: 12),
-        Text('Library', style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700)),
-        const SizedBox(height: 8),
-        Wrap(spacing: 8, runSpacing: 8, children: [
-          for (final r in college.resources)
-            Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), border: Border.all(color: theme.dividerColor.withValues(alpha: 0.2))), child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Icon(Icons.picture_as_pdf, size: 18, color: theme.colorScheme.primary),
-              const SizedBox(width: 8),
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(r.title, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
-                Text('${r.fileType.toUpperCase()} • ${r.size}', style: theme.textTheme.bodySmall),
-              ]),
-            ])),
-        ]),
-      ]),
-    );
-  }
-}
+// Removed unused _CollegeHeader widget

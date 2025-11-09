@@ -26,6 +26,7 @@ class TweetShell extends StatelessWidget {
     final Color bg =
         backgroundColor ??
         (isDark ? Colors.white.withValues(alpha: 0.04) : Colors.white);
+    final bool outlineOnly = bg.a == 0.0; // transparent
     final Color border = isDark
         ? Colors.white.withValues(alpha: 0.08)
         : AppTheme.accent.withValues(alpha: 0.3);
@@ -39,7 +40,7 @@ class TweetShell extends StatelessWidget {
         color: bg,
         borderRadius: _radius,
         border: showBorder ? Border.all(color: border) : null,
-        boxShadow: isDark
+        boxShadow: (isDark || outlineOnly)
             ? const []
             : [
                 BoxShadow(

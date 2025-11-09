@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -9,7 +7,7 @@ import '../services/simple_auth_service.dart';
 import '../services/data_service.dart';
 import '../widgets/hexagon_avatar.dart';
 import '../widgets/tweet_post_card.dart';
-import 'thread_screen.dart';
+import 'screens/thread_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -21,8 +19,6 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   int _selectedTab = 0;
   int _headerThemeIndex = 0;
-  Uint8List? _headerImage;
-  Uint8List? _headerImage;
   Uint8List? _headerImage;
   final ImagePicker _picker = ImagePicker();
   SimpleAuthService get _authService => SimpleAuthService();
@@ -234,6 +230,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           showToast('Cover photo updated');
           break;
         case _HeaderAction.pickGradient:
+          if (!context.mounted) return;
           final themeChoice = await showModalBottomSheet<int>(
             context: context,
             shape: const RoundedRectangleBorder(
@@ -325,6 +322,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   _ProfileHeader(
                     headerColors: _headerThemes[_headerThemeIndex],
+                    headerImage: _headerImage,
                     onChangeCover: handleChangeHeader,
                     onEditProfile: handleEditProfile,
                     onShareProfile: handleShareProfile,
@@ -382,12 +380,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 class _ProfileHeader extends StatelessWidget {
   const _ProfileHeader({
     required this.headerColors,
+    required this.headerImage,
     required this.onChangeCover,
     required this.onEditProfile,
     required this.onShareProfile,
   });
 
   final List<Color> headerColors;
+  final Uint8List? headerImage;
   final VoidCallback onChangeCover;
   final VoidCallback onEditProfile;
   final VoidCallback onShareProfile;
@@ -425,10 +425,10 @@ class _ProfileHeader extends StatelessWidget {
               children: [
                 Container(
                   height: 120,
-                  decoration: _headerImage != null
+                  decoration: headerImage != null
                       ? BoxDecoration(
                           image: DecorationImage(
-                            image: MemoryImage(_headerImage!),
+                            image: MemoryImage(headerImage!),
                             fit: BoxFit.cover,
                           ),
                         )

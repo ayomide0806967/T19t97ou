@@ -197,10 +197,10 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
                         onPressed: _currentStep == 0
                             ? () => Navigator.of(context).maybePop()
                             : _goToPreviousStep,
-                        child: Text(_currentStep == 0 ? 'Cancel' : 'Back'),
                         style: TextButton.styleFrom(
                           foregroundColor: theme.colorScheme.onSurface,
                         ),
+                        child: Text(_currentStep == 0 ? 'Cancel' : 'Back'),
                       ),
                       const SizedBox(width: 8),
                       OutlinedButton(
@@ -275,24 +275,27 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
   }
 
   Future<void> _pickDeadline() async {
+    final BuildContext ctx = context;
     final now = DateTime.now();
     final DateTime initialDate = _closingDate ?? now.add(const Duration(days: 1));
     final DateTime? pickedDate = await showDatePicker(
-      context: context,
+      context: ctx,
       initialDate: initialDate.isAfter(now) ? initialDate : now,
       firstDate: now,
       lastDate: now.add(const Duration(days: 365)),
     );
     if (pickedDate == null) return;
+    if (!ctx.mounted) return;
 
     final TimeOfDay initialTime = _closingDate != null
         ? TimeOfDay.fromDateTime(_closingDate!)
         : const TimeOfDay(hour: 9, minute: 0);
     final TimeOfDay? pickedTime = await showTimePicker(
-      context: context,
+      context: ctx,
       initialTime: initialTime,
     );
     if (pickedTime == null) return;
+    if (!ctx.mounted) return;
 
     setState(() {
       _closingDate = DateTime(
@@ -608,7 +611,6 @@ class _SettingsStep extends StatelessWidget {
                 title: const Text('Timed quiz'),
                 subtitle: const Text('Set a time limit learners must complete within'),
                 contentPadding: EdgeInsets.zero,
-                activeColor: isDark ? Colors.white : Colors.black,
                 activeTrackColor: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.3),
               ),
               if (isTimed) ...[
@@ -669,7 +671,6 @@ class _SettingsStep extends StatelessWidget {
                 title: const Text('Close automatically'),
                 subtitle: const Text('Choose when the quiz stops accepting responses'),
                 contentPadding: EdgeInsets.zero,
-                activeColor: isDark ? Colors.white : Colors.black,
                 activeTrackColor: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.3),
               ),
               AnimatedSwitcher(
@@ -718,7 +719,7 @@ class _SettingsStep extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         DropdownButtonFormField<int?>(
-                          value: attemptLimit,
+                          initialValue: attemptLimit,
                           items: attemptItems,
                           onChanged: onAttemptsChanged,
                           decoration: InputDecoration(
@@ -746,7 +747,6 @@ class _SettingsStep extends StatelessWidget {
                 title: const Text('Require PIN to join'),
                 subtitle: const Text('Participants must enter a PIN before starting'),
                 contentPadding: EdgeInsets.zero,
-                activeColor: isDark ? Colors.white : Colors.black,
                 activeTrackColor: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.3),
               ),
               AnimatedSwitcher(
