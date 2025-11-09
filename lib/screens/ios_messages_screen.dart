@@ -1512,14 +1512,22 @@ class _MessageCommentsPage extends StatelessWidget {
 
     final List<_ThreadComment> comments = <_ThreadComment>[
       _ThreadComment(
-        author: '@chinedu',
-        timeAgo: '3h',
-        body: 'Thanks for the update! Will there be a formula sheet included or should we memorise the derivations?',
+        author: '@amoghthegreat',
+        timeAgo: '3mo ago',
+        body:
+            'Because everyone puts a screen protector on their phones then it stops working. I KNOW they sell their own protectors which don’t butcher the coating but they price it at diabolical levels for a screen.',
+        likes: 3600,
+        dislikes: 0,
+        replies: 97,
       ),
       _ThreadComment(
-        author: '@amina',
-        timeAgo: '1h',
-        body: 'Please confirm if calculators with CAS are allowed. Also, can we staple extra working pages or will additional sheets be provided in the hall?',
+        author: '@Mhz_AE',
+        timeAgo: '3mo ago',
+        body:
+            'The dex mode is also underrated and should be in all phones (including iPhones 😂).',
+        likes: 744,
+        dislikes: 0,
+        replies: 33,
       ),
     ];
 
@@ -1552,10 +1560,20 @@ class _MessageCommentsPage extends StatelessWidget {
 }
 
 class _ThreadComment {
-  const _ThreadComment({required this.author, required this.timeAgo, required this.body});
+  const _ThreadComment({
+    required this.author,
+    required this.timeAgo,
+    required this.body,
+    this.likes = 0,
+    this.dislikes = 0,
+    this.replies = 0,
+  });
   final String author;
   final String timeAgo;
   final String body;
+  final int likes;
+  final int dislikes;
+  final int replies;
 }
 
 class _CommentTile extends StatelessWidget {
@@ -1563,53 +1581,79 @@ class _CommentTile extends StatelessWidget {
   final _ThreadComment comment;
   final bool isDark;
 
+  String _formatCount(int n) {
+    if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(n % 1000000 == 0 ? 0 : 1)}M';
+    if (n >= 1000) return '${(n / 1000).toStringAsFixed(n % 1000 == 0 ? 0 : 1)}K';
+    return '$n';
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final meta = theme.colorScheme.onSurface.withValues(alpha: 0.6);
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Vertical descriptive line
-            Container(
-              width: 2.5,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: isDark ? theme.colorScheme.surface : const Color(0xFFFAFAFA),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: theme.dividerColor.withValues(alpha: isDark ? 0.3 : 0.18)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+      margin: const EdgeInsets.only(bottom: 20),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Vertical thread line
+          Container(width: 2, height: 92, margin: const EdgeInsets.only(top: 8), color: theme.dividerColor.withValues(alpha: 0.6)),
+          const SizedBox(width: 8),
+          // Comment content block
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Row(
-                      children: [
-                        Text(comment.author, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
-                        const SizedBox(width: 8),
-                        Text(comment.timeAgo, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      comment.body,
-                      style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black, fontSize: 16, height: 1.4),
-                    ),
+                    Text(comment.author, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
+                    const SizedBox(width: 8),
+                    Text(comment.timeAgo, style: theme.textTheme.bodySmall?.copyWith(color: meta)),
+                    const Spacer(),
+                    const Icon(Icons.more_vert, size: 18),
                   ],
                 ),
-              ),
+                const SizedBox(height: 6),
+                Text(
+                  comment.body,
+                  style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black, fontSize: 16, height: 1.4),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    // like
+                    Icon(Icons.thumb_up_alt_outlined, size: 18, color: meta),
+                    const SizedBox(width: 6),
+                    Text(_formatCount(comment.likes), style: theme.textTheme.bodySmall?.copyWith(color: meta)),
+                    const SizedBox(width: 18),
+                    // dislike thin line
+                    Icon(CupertinoIcons.hand_thumbsdown, size: 18, color: meta),
+                    const SizedBox(width: 18),
+                    // comment icon
+                    Icon(Icons.mode_comment_outlined, size: 18, color: meta),
+                  ],
+                ),
+                if (comment.replies > 0) ...[
+                  const SizedBox(height: 10),
+                  TextButton(
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      minimumSize: const Size(0, 0),
+                      alignment: Alignment.centerLeft,
+                    ),
+                    onPressed: () {},
+                    child: Text(
+                      '${comment.replies} replies >',
+                      style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
