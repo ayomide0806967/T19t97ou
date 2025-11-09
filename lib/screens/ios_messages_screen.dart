@@ -1510,24 +1510,56 @@ class _MessageCommentsPage extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final List<_ThreadComment> comments = <_ThreadComment>[
-      _ThreadComment(
-        author: '@amoghthegreat',
-        timeAgo: '3mo ago',
-        body:
-            'Because everyone puts a screen protector on their phones then it stops working. I KNOW they sell their own protectors which don’t butcher the coating but they price it at diabolical levels for a screen.',
-        likes: 3600,
-        dislikes: 0,
-        replies: 97,
+    final List<_ThreadNode> threads = <_ThreadNode>[
+      _ThreadNode(
+        comment: _ThreadComment(
+          author: '@Naureen Ali',
+          timeAgo: '14h',
+          body: 'Use Google authenticator instead of recovery Gmail and no what\'s ths??',
+          likes: 1,
+        ),
+        children: [
+          _ThreadNode(
+            comment: _ThreadComment(
+              author: '@Athisham Nawaz',
+              timeAgo: '14h',
+              body: 'Google authenticator app ha',
+            ),
+            children: [
+              _ThreadNode(
+                comment: _ThreadComment(
+                  author: '@Jan Mi',
+                  timeAgo: '2h',
+                  body: 'Naureen Ali Google auth app is more reliable.',
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
-      _ThreadComment(
-        author: '@Mhz_AE',
-        timeAgo: '3mo ago',
-        body:
-            'The dex mode is also underrated and should be in all phones (including iPhones 😂).',
-        likes: 744,
-        dislikes: 0,
-        replies: 33,
+      _ThreadNode(
+        comment: _ThreadComment(
+          author: '@Mahan Rehman',
+          timeAgo: '13h',
+          body:
+              'Meny koi alag content ya kuch be policies k against nae kia but my channel is also suspended and this is the notification i get what to do',
+        ),
+        children: [
+          _ThreadNode(
+            comment: _ThreadComment(
+              author: 'Gilchrist Calunia · Follow',
+              timeAgo: '9h',
+              body: 'Mahan Rehman make an appeal',
+            ),
+          ),
+          _ThreadNode(
+            comment: _ThreadComment(
+              author: '@Ata Ur Rehman',
+              timeAgo: '9h',
+              body: 'Niche kya hai bro?\nSee translation',
+            ),
+          ),
+        ],
       ),
     ];
 
@@ -1538,23 +1570,240 @@ class _MessageCommentsPage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         children: [
-          // Parent note reused at the top
-          _ClassMessageTile(
-            message: message,
-            onShare: () async {},
-          ),
+          // Parent comment styled like the reference
+          _ParentCommentTile(message: message),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Text('All replies', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-              const SizedBox(width: 8),
-              Container(width: 6, height: 6, decoration: BoxDecoration(color: theme.colorScheme.primary, shape: BoxShape.circle)),
-            ],
-          ),
-          const SizedBox(height: 12),
-          for (final c in comments) _CommentTile(comment: c, isDark: isDark),
+          _ThreadCommentsView(nodes: threads),
         ],
       ),
+    );
+  }
+}
+
+class _ThreadNode {
+  _ThreadNode({required this.comment, this.children = const <_ThreadNode>[]});
+  final _ThreadComment comment;
+  final List<_ThreadNode> children;
+}
+
+class _ThreadCommentsView extends StatelessWidget {
+  const _ThreadCommentsView({required this.nodes});
+  final List<_ThreadNode> nodes;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (int i = 0; i < nodes.length; i++)
+          _ThreadNodeTile(node: nodes[i], depth: 0, isLast: i == nodes.length - 1),
+      ],
+    );
+  }
+}
+
+class _ThreadNodeTile extends StatelessWidget {
+  const _ThreadNodeTile({required this.node, required this.depth, required this.isLast});
+  final _ThreadNode node;
+  final int depth;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final indent = 18.0 * depth;
+    final lineColor = theme.dividerColor.withValues(alpha: isDark ? 0.4 : 0.6);
+
+    return Padding(
+      padding: EdgeInsets.only(left: indent, bottom: 12),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              width: 22,
+              child: CustomPaint(
+                painter: _ConnectorPainter(
+                  color: lineColor,
+                  drawElbow: depth > 0,
+                  elbowY: 18,
+                  radius: 8,
+                  stopEarly: isLast,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _CommentTile(comment: node.comment, isDark: isDark),
+                  if (node.children.isNotEmpty)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (int i = 0; i < node.children.length; i++)
+                          _ThreadNodeTile(
+                            node: node.children[i],
+                            depth: depth + 1,
+                            isLast: i == node.children.length - 1,
+                          ),
+                      ],
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ConnectorPainter extends CustomPainter {
+  _ConnectorPainter({
+    required this.color,
+    required this.drawElbow,
+    this.elbowY = 16,
+    this.radius = 8,
+    this.stopEarly = false,
+  });
+
+  final Color color;
+  final bool drawElbow;
+  final double elbowY;
+  final double radius;
+  final bool stopEarly;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round;
+
+    final double x = size.width - 6; // near content
+    final double bottom = stopEarly ? size.height - 24 : size.height;
+
+    final path = Path()
+      ..moveTo(x, 0)
+      ..lineTo(x, bottom);
+    canvas.drawPath(path, p);
+
+    if (drawElbow) {
+      final double y = elbowY;
+      final path2 = Path()
+        ..moveTo(x, y)
+        ..quadraticBezierTo(x, y + radius, x + radius, y + radius)
+        ..lineTo(size.width, y + radius);
+      canvas.drawPath(path2, p);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ConnectorPainter oldDelegate) {
+    return oldDelegate.color != color ||
+        oldDelegate.drawElbow != drawElbow ||
+        oldDelegate.elbowY != elbowY ||
+        oldDelegate.radius != radius ||
+        oldDelegate.stopEarly != stopEarly;
+  }
+}
+
+class _ParentCommentTile extends StatelessWidget {
+  const _ParentCommentTile({required this.message});
+
+  final _ClassMessage message;
+
+  String _formatCount(int n) {
+    if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(n % 1000000 == 0 ? 0 : 1)}M';
+    if (n >= 1000) return '${(n / 1000).toStringAsFixed(n % 1000 == 0 ? 0 : 1)}K';
+    return '$n';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final meta = theme.colorScheme.onSurface.withValues(alpha: 0.6);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Avatar
+        CircleAvatar(
+          radius: 18,
+          backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.15),
+          child: Text(
+            message.author.isNotEmpty ? message.author.substring(0, 1).toUpperCase() : 'U',
+            style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w700),
+          ),
+        ),
+        const SizedBox(width: 12),
+        // Vertical connector and content
+        Expanded(
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Connector line like the screenshot
+                Container(width: 2, color: theme.dividerColor.withValues(alpha: 0.6)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(message.handle, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
+                          const SizedBox(width: 8),
+                          Text(message.timeAgo, style: theme.textTheme.bodySmall?.copyWith(color: meta)),
+                          const Spacer(),
+                          const Icon(Icons.more_vert, size: 18),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        message.body,
+                        style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black, fontSize: 16, height: 1.4),
+                        maxLines: 10,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 12),
+                      // Action row like screenshot
+                      Row(
+                        children: [
+                          const Icon(Icons.thumb_up_alt_outlined, size: 18),
+                          const SizedBox(width: 6),
+                          Text(_formatCount(message.likes), style: theme.textTheme.bodySmall?.copyWith(color: meta)),
+                          const SizedBox(width: 18),
+                          const Icon(CupertinoIcons.hand_thumbsdown, size: 18),
+                          const SizedBox(width: 18),
+                          const Icon(Icons.mode_comment_outlined, size: 18),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      TextButton(
+                        style: TextButton.styleFrom(padding: EdgeInsets.zero, alignment: Alignment.centerLeft, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                        onPressed: () {},
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('${message.replies} replies', style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black, fontWeight: FontWeight.w600)),
+                            const SizedBox(width: 6),
+                            const Icon(Icons.chevron_right, size: 18, color: Colors.black),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1594,68 +1843,52 @@ class _CommentTile extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Vertical thread connector spanning the full reply height
-            Container(width: 2, color: theme.dividerColor.withValues(alpha: 0.6)),
-            const SizedBox(width: 8),
-            // Comment content block
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                Row(
-                  children: [
-                    Text(comment.author, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
-                    const SizedBox(width: 8),
-                    Text(comment.timeAgo, style: theme.textTheme.bodySmall?.copyWith(color: meta)),
-                    const Spacer(),
-                    const Icon(Icons.more_vert, size: 18),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  comment.body,
-                  style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black, fontSize: 16, height: 1.4),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    // like
-                    Icon(Icons.thumb_up_alt_outlined, size: 18, color: meta),
-                    const SizedBox(width: 6),
-                    Text(_formatCount(comment.likes), style: theme.textTheme.bodySmall?.copyWith(color: meta)),
-                    const SizedBox(width: 18),
-                    // dislike thin line
-                    Icon(CupertinoIcons.hand_thumbsdown, size: 18, color: meta),
-                    const SizedBox(width: 18),
-                    // comment icon
-                    Icon(Icons.mode_comment_outlined, size: 18, color: meta),
-                  ],
-                ),
-                if (comment.replies > 0) ...[
-                  const SizedBox(height: 10),
-                  TextButton(
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      minimumSize: const Size(0, 0),
-                      alignment: Alignment.centerLeft,
-                    ),
-                    onPressed: () {},
-                    child: Text(
-                      '${comment.replies} replies >',
-                      style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ],
-              ],
-            ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(comment.author, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
+              const SizedBox(width: 8),
+              Text(comment.timeAgo, style: theme.textTheme.bodySmall?.copyWith(color: meta)),
+              const Spacer(),
+              const Icon(Icons.more_vert, size: 18),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            comment.body,
+            style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black, fontSize: 16, height: 1.4),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(Icons.thumb_up_alt_outlined, size: 18, color: meta),
+              const SizedBox(width: 6),
+              Text(_formatCount(comment.likes), style: theme.textTheme.bodySmall?.copyWith(color: meta)),
+              const SizedBox(width: 18),
+              Icon(CupertinoIcons.hand_thumbsdown, size: 18, color: meta),
+              const SizedBox(width: 18),
+              Icon(Icons.mode_comment_outlined, size: 18, color: meta),
+            ],
+          ),
+          if (comment.replies > 0) ...[
+            const SizedBox(height: 10),
+            TextButton(
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                minimumSize: const Size(0, 0),
+                alignment: Alignment.centerLeft,
+              ),
+              onPressed: () {},
+              child: Text(
+                '${comment.replies} replies >',
+                style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black, fontWeight: FontWeight.w600),
+              ),
             ),
           ],
-        ),
+        ],
       ),
     );
   }
