@@ -59,6 +59,10 @@ class _IosMinimalistMessagePageState extends State<IosMinimalistMessagePage> {
         ),
       ),
     );
+    // Close InkWell wrapper
+    );
+    );
+    );
   }
 
   List<_Conversation> _filteredConversations() {
@@ -163,6 +167,7 @@ class _SchoolTabBar extends StatelessWidget {
         ],
       ),
     );
+    );
   }
 }
 
@@ -263,6 +268,7 @@ class _ConversationTile extends StatelessWidget {
         ),
       ),
     );
+    ); // close InkWell
   }
 }
 
@@ -293,6 +299,7 @@ class _ConversationAvatar extends StatelessWidget {
           ),
         ),
       ),
+    );
     );
   }
 }
@@ -1266,6 +1273,7 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
       return first.toUpperCase();
     }
 
+    // Card container for note
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(12),
@@ -1352,7 +1360,7 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
               int low = 0, high = message.body.length, best = 0;
               while (low <= high) {
                 final mid = (low + high) >> 1;
-                final prefix = message.body.substring(0, mid).trimRight() + ' … ';
+                final prefix = message.body.substring(0, mid).trimRight() + ' ';
                 final spanTry = TextSpan(
                   style: textStyle,
                   children: [
@@ -1373,11 +1381,18 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                 }
               }
               final visible = message.body.substring(0, best).trimRight();
+              // Reserve extra room by removing the last 3 words so the link
+              // reliably sits on the same final line and not below.
+              String visibleTrimmed = visible;
+              final words = visibleTrimmed.split(RegExp(r"\s+"));
+              if (words.length > 3) {
+                visibleTrimmed = words.sublist(0, words.length - 3).join(' ');
+              }
               return Text.rich(
                 TextSpan(
                   style: textStyle,
                   children: [
-                    TextSpan(text: visible + ' … '),
+                    TextSpan(text: visibleTrimmed + ' '),
                     TextSpan(
                       text: 'Read more',
                       style: linkStyle,
@@ -1456,6 +1471,19 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
       ),
     );
   }
+
+  void _openComments(BuildContext context, _ClassMessage message) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => _MessageCommentsSheet(message: message),
+    );
+  }
 }
 
 class _IconCountButton extends StatelessWidget {
@@ -1482,6 +1510,136 @@ class _IconCountButton extends StatelessWidget {
         const SizedBox(width: 4),
         Text('$count', style: theme.textTheme.bodySmall?.copyWith(color: meta)),
       ],
+    );
+  }
+}
+
+class _MessageCommentsSheet extends StatelessWidget {
+  const _MessageCommentsSheet({required this.message});
+
+  final _ClassMessage message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final List<_ThreadComment> comments = <_ThreadComment>[
+      _ThreadComment(
+        author: '@chinedu',
+        timeAgo: '3h',
+        body: 'Thanks for the update! Will there be a formula sheet included or should we memorise the derivations?',
+      ),
+      _ThreadComment(
+        author: '@amina',
+        timeAgo: '1h',
+        body: 'Please confirm if calculators with CAS are allowed. Also, can we staple extra working pages or will additional sheets be provided in the hall?',
+      ),
+    ];
+
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.82,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      builder: (context, controller) {
+        return Column(
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: theme.dividerColor.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: ListView(
+                controller: controller,
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                children: [
+                  // Reuse the note container at the top
+                  _ClassMessageTile(
+                    message: message,
+                    onShare: () async {},
+                  ),
+                  const SizedBox(height: 8),
+                  Text('Comments', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 8),
+                  for (final c in comments)
+                    _CommentTile(comment: c, isDark: isDark),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _ThreadComment {
+  const _ThreadComment({required this.author, required this.timeAgo, required this.body});
+  final String author;
+  final String timeAgo;
+  final String body;
+}
+
+class _CommentTile extends StatelessWidget {
+  const _CommentTile({required this.comment, required this.isDark});
+  final _ThreadComment comment;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Vertical descriptive line
+            Container(
+              width: 2.5,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isDark ? theme.colorScheme.surface : const Color(0xFFFAFAFA),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: theme.dividerColor.withValues(alpha: isDark ? 0.3 : 0.18)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(comment.author, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
+                        const SizedBox(width: 8),
+                        Text(comment.timeAgo, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      comment.body,
+                      style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black, fontSize: 16, height: 1.4),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
