@@ -1409,7 +1409,7 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
             children: [
               if (message.replies > 0)
                 TextButton(
-                  onPressed: () {},
+                  onPressed: () => _openComments(context, message),
                   style: TextButton.styleFrom(
                     padding: EdgeInsets.zero,
                     minimumSize: const Size(0, 0),
