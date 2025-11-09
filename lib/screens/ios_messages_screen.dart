@@ -1594,17 +1594,18 @@ class _CommentTile extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Vertical thread line
-          Container(width: 2, height: 92, margin: const EdgeInsets.only(top: 8), color: theme.dividerColor.withValues(alpha: 0.6)),
-          const SizedBox(width: 8),
-          // Comment content block
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Vertical thread connector spanning the full reply height
+            Container(width: 2, color: theme.dividerColor.withValues(alpha: 0.6)),
+            const SizedBox(width: 8),
+            // Comment content block
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                 Row(
                   children: [
                     Text(comment.author, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
@@ -1652,8 +1653,9 @@ class _CommentTile extends StatelessWidget {
                 ],
               ],
             ),
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
