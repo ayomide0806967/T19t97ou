@@ -1333,115 +1333,47 @@ class _HexagonComposeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    // Solid black floating composer button
-    final Color glassColor = Colors.black;
-    final Color borderColor = Colors.black;
+    // Solid black rectangular composer button
+    final Color buttonColor = Colors.black;
+    final BorderRadius radius = BorderRadius.circular(12);
 
     return SizedBox(
       width: 64,
       height: 64,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          ClipPath(
-            clipper: _HexagonButtonClipper(),
-            child: BackdropFilter(
-              filter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: glassColor,
-                  border: Border.all(color: borderColor, width: 1.2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.15),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: radius,
+          splashColor: Colors.white.withValues(alpha: 0.15),
+          highlightColor: Colors.white.withValues(alpha: 0.08),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: buttonColor,
+              borderRadius: radius,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.18),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
                 ),
+              ],
+            ),
+            child: const Center(
+              child: Icon(
+                Icons.edit_rounded,
+                color: Colors.white,
+                size: 22,
               ),
             ),
           ),
-          Material(
-            color: Colors.transparent,
-            shape: const _HexagonBorder(),
-            child: InkWell(
-              onTap: onTap,
-              customBorder: const _HexagonBorder(),
-              splashColor: theme.colorScheme.primary.withValues(alpha: 0.15),
-              highlightColor: Colors.transparent,
-              child: Center(
-                child: Icon(
-                  Icons.edit_rounded,
-                  color: Colors.white,
-                  size: 22,
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 }
 
-class _HexagonButtonClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final Path path = Path();
-    final double w = size.width;
-    final double h = size.height;
-    final double triangleHeight = w * 0.288675;
-
-    path
-      ..moveTo(w / 2, 0)
-      ..lineTo(w, triangleHeight)
-      ..lineTo(w, h - triangleHeight)
-      ..lineTo(w / 2, h)
-      ..lineTo(0, h - triangleHeight)
-      ..lineTo(0, triangleHeight)
-      ..close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
-}
-
-class _HexagonBorder extends ShapeBorder {
-  const _HexagonBorder();
-
-  @override
-  EdgeInsetsGeometry get dimensions => EdgeInsets.zero;
-
-  @override
-  ShapeBorder scale(double t) => const _HexagonBorder();
-
-  @override
-  Path getOuterPath(Rect rect, {TextDirection? textDirection}) {
-    final Path path = Path();
-    final double w = rect.width;
-    final double triangleHeight = w * 0.288675; // tan(30°)/2 * w
-
-    path
-      ..moveTo(rect.left + w / 2, rect.top)
-      ..lineTo(rect.right, rect.top + triangleHeight)
-      ..lineTo(rect.right, rect.bottom - triangleHeight)
-      ..lineTo(rect.left + w / 2, rect.bottom)
-      ..lineTo(rect.left, rect.bottom - triangleHeight)
-      ..lineTo(rect.left, rect.top + triangleHeight)
-      ..close();
-    return path;
-  }
-
-  @override
-  Path getInnerPath(Rect rect, {TextDirection? textDirection}) =>
-      getOuterPath(rect, textDirection: textDirection);
-
-  @override
-  void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {}
-}
+// Legacy hexagon button shapes removed after switching to rectangular FAB
 
 class _StoryRail extends StatelessWidget {
   const _StoryRail();
