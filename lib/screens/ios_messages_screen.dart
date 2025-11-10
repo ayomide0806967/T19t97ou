@@ -1926,27 +1926,17 @@ class _CommentTileState extends State<_CommentTile> {
     final Color meta = theme.colorScheme.onSurface.withValues(alpha: 0.6);
 
     final bool isDark = widget.isDark;
-    final List<BoxShadow>? popShadow = widget.selected
-        ? [
-            BoxShadow(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.40)
-                  : Colors.white.withValues(alpha: 0.80),
-              blurRadius: 30,
-              spreadRadius: 3,
-              offset: const Offset(0, 14),
-            ),
-          ]
-        : [
-            BoxShadow(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.24)
-                  : Colors.white.withValues(alpha: 0.55),
-              blurRadius: 18,
-              spreadRadius: 1,
-              offset: const Offset(0, 6),
-            ),
-          ];
+    final Color cyan = theme.colorScheme.primary;
+    final List<BoxShadow>? popShadow = [
+      BoxShadow(
+        color: isDark
+            ? cyan.withValues(alpha: widget.selected ? 0.70 : 0.45)
+            : cyan.withValues(alpha: widget.selected ? 0.45 : 0.25),
+        blurRadius: widget.selected ? 30 : 18,
+        spreadRadius: widget.selected ? 2 : 1,
+        offset: widget.selected ? const Offset(0, 14) : const Offset(0, 6),
+      ),
+    ];
 
     final Widget bubbleCore = Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -2092,7 +2082,7 @@ class _CommentTileState extends State<_CommentTile> {
     final Widget poppedCard = AnimatedScale(
       duration: const Duration(milliseconds: 160),
       curve: Curves.easeOutBack,
-      scale: widget.selected ? 1.06 : 1.0,
+      scale: widget.selected ? 1.06 : 1.02,
       child: bubbleCore,
     );
 
