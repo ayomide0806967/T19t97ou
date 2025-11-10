@@ -209,9 +209,11 @@ class _HomeScreenState extends State<HomeScreen> {
     return FloatingNavBar(
       currentIndex: _selectedBottomNavIndex,
       onIndexChange: (index) {
-        // Center button is at index 2 when there are 5 destinations
+        // Center button opens full-page composer (no modal)
         if (index == 2) {
-          _showQuickControlPanel();
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const ComposeScreen()),
+          );
           return;
         }
         if (mounted) {

@@ -34,6 +34,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -158,8 +159,10 @@ class _ComposeScreenState extends State<ComposeScreen> {
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(16),
+          AnimatedPadding(
+            duration: const Duration(milliseconds: 150),
+            curve: Curves.easeOut,
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomInset),
             child: Row(
               children: [
                 _ToolbarButton(
