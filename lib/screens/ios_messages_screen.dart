@@ -1810,7 +1810,7 @@ class _ThreadNodeTile extends StatelessWidget {
     final indent = 18.0 * depth;
 
     return Padding(
-      padding: EdgeInsets.only(left: indent, bottom: 12),
+      padding: EdgeInsets.only(left: indent, bottom: 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2115,12 +2115,12 @@ class _CommentTileState extends State<_CommentTile> {
         duration: const Duration(milliseconds: 140),
         curve: Curves.easeOutCubic,
         transform: Matrix4.translationValues(_dragOffset, 0, 0),
-        margin: const EdgeInsets.only(bottom: 14),
+        margin: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
           color: widget.selected
               ? (widget.isDark
-                  ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.22)
-                  : Theme.of(context).colorScheme.primary.withValues(alpha: 0.16))
+                  ? Colors.white.withValues(alpha: 0.14)
+                  : Colors.black.withValues(alpha: 0.12))
               : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
         ),
