@@ -77,9 +77,10 @@ class _XCommentSectionState extends State<XCommentSection>
         children: [
           Expanded(
             child: Center(
-              child: action(
-                Icons.chat_outlined,
-                label: metrics != null ? _formatCount(metrics.replyCount) : null,
+              child: _XActionButton(
+                icon: Icons.chat_outlined,
+                label: 'View replies',
+                onTap: () {},
               ),
             ),
           ),
