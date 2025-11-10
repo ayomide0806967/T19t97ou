@@ -1047,11 +1047,13 @@ class _ClassComposer extends StatelessWidget {
     required this.controller,
     required this.onSend,
     required this.hintText,
+    this.focusNode,
   });
 
   final TextEditingController controller;
   final VoidCallback onSend;
   final String hintText;
+  final FocusNode? focusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -1062,27 +1064,34 @@ class _ClassComposer extends StatelessWidget {
     // A compact, modern input with the send action built-in as a suffix icon.
     return TextField(
       controller: controller,
+      focusNode: focusNode,
       maxLines: null,
       minLines: 1,
+      textCapitalization: TextCapitalization.sentences,
       textInputAction: TextInputAction.newline,
+      style: theme.textTheme.bodyMedium?.copyWith(
+        color: theme.colorScheme.onSurface,
+        fontSize: 16,
+        height: 1.4,
+      ),
       decoration: InputDecoration(
         hintText: hintText,
         isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         filled: true,
-        fillColor: theme.colorScheme.surface,
+        fillColor: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white,
         suffixIcon: IconButton(
           tooltip: 'Send',
           onPressed: onSend,
           icon: Icon(Icons.send_rounded, color: theme.colorScheme.primary),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: border),
+          borderRadius: BorderRadius.circular(18),
+          borderSide: BorderSide(color: border, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.55), width: 1.2),
+          borderRadius: BorderRadius.circular(18),
+          borderSide: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.75), width: 1.6),
         ),
       ),
       onSubmitted: (_) => onSend(),
@@ -1505,6 +1514,7 @@ class _MessageCommentsPage extends StatefulWidget {
 
 class _MessageCommentsPageState extends State<_MessageCommentsPage> {
   final TextEditingController _composer = TextEditingController();
+  final FocusNode _composerFocusNode = FocusNode();
   _ThreadNode? _replyTarget;
   late List<_ThreadNode> _threads;
   final Set<_ThreadNode> _selected = <_ThreadNode>{};
@@ -1569,11 +1579,18 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
   @override
   void dispose() {
     _composer.dispose();
+    _composerFocusNode.dispose();
     super.dispose();
   }
 
   void _setReplyTarget(_ThreadNode node) {
     setState(() => _replyTarget = node);
+    // Bring up keyboard for quick reply
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _composerFocusNode.requestFocus();
+      }
+    });
   }
 
   void _sendReply() {
@@ -1729,6 +1746,7 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
             minimum: const EdgeInsets.fromLTRB(16, 4, 16, 8),
             child: _ClassComposer(
               controller: _composer,
+              focusNode: _composerFocusNode,
               hintText: _replyTarget == null ? 'Write a reply…' : 'Replying to ${_replyTarget!.comment.author}',
               onSend: _sendReply,
             ),
