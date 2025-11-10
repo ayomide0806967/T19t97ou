@@ -1507,6 +1507,7 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
   final TextEditingController _composer = TextEditingController();
   _ThreadNode? _replyTarget;
   late List<_ThreadNode> _threads;
+  final Set<_ThreadNode> _selected = <_ThreadNode>{};
 
   @override
   void initState() {
@@ -1604,12 +1605,65 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
     });
   }
 
+  void _toggleSelection(_ThreadNode node) {
+    setState(() {
+      if (_selected.contains(node)) {
+        _selected.remove(node);
+      } else {
+        _selected.add(node);
+      }
+    });
+  }
+
+  void _clearSelection() {
+    if (_selected.isEmpty) return;
+    setState(() => _selected.clear());
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final bool selectionMode = _selected.isNotEmpty;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Replies'),
+        leading: selectionMode
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                onPressed: _clearSelection,
+              )
+            : null,
+        title: selectionMode
+            ? Text('${_selected.length}')
+            : const Text('Replies'),
+        actions: selectionMode
+            ? [
+                IconButton(
+                  tooltip: 'Reply',
+                  icon: const Icon(Icons.reply_outlined),
+                  onPressed: () {},
+                ),
+                IconButton(
+                  tooltip: 'Info',
+                  icon: const Icon(Icons.info_outline),
+                  onPressed: () {},
+                ),
+                IconButton(
+                  tooltip: 'Delete',
+                  icon: const Icon(Icons.delete_outline_rounded),
+                  onPressed: () {},
+                ),
+                IconButton(
+                  tooltip: 'Forward',
+                  icon: const Icon(Icons.redo_rounded),
+                  onPressed: () {},
+                ),
+                IconButton(
+                  tooltip: 'More',
+                  icon: const Icon(Icons.more_vert),
+                  onPressed: () {},
+                ),
+              ]
+            : null,
       ),
       body: Column(
         children: [
@@ -1627,6 +1681,9 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
                   nodes: _threads,
                   currentUserHandle: widget.currentUserHandle,
                   onReply: _setReplyTarget,
+                  selectionMode: selectionMode,
+                  selected: _selected,
+                  onToggleSelect: _toggleSelection,
                 ),
               ],
             ),
@@ -1690,10 +1747,20 @@ class _ThreadNode {
 }
 
 class _ThreadCommentsView extends StatelessWidget {
-  const _ThreadCommentsView({required this.nodes, required this.currentUserHandle, this.onReply});
+  const _ThreadCommentsView({
+    required this.nodes,
+    required this.currentUserHandle,
+    this.onReply,
+    required this.selectionMode,
+    required this.selected,
+    required this.onToggleSelect,
+  });
   final List<_ThreadNode> nodes;
   final String currentUserHandle;
   final ValueChanged<_ThreadNode>? onReply;
+  final bool selectionMode;
+  final Set<_ThreadNode> selected;
+  final void Function(_ThreadNode node) onToggleSelect;
 
   @override
   Widget build(BuildContext context) {
@@ -1707,6 +1774,9 @@ class _ThreadCommentsView extends StatelessWidget {
             isLast: i == nodes.length - 1,
             currentUserHandle: currentUserHandle,
             onReply: onReply,
+            selectionMode: selectionMode,
+            isSelected: selected.contains(nodes[i]),
+            onToggleSelect: () => onToggleSelect(nodes[i]),
           ),
       ],
     );
@@ -1720,12 +1790,18 @@ class _ThreadNodeTile extends StatelessWidget {
     required this.isLast,
     required this.currentUserHandle,
     this.onReply,
+    required this.selectionMode,
+    required this.isSelected,
+    required this.onToggleSelect,
   });
   final _ThreadNode node;
   final int depth;
   final bool isLast;
   final String currentUserHandle;
   final ValueChanged<_ThreadNode>? onReply;
+  final bool selectionMode;
+  final bool isSelected;
+  final VoidCallback onToggleSelect;
 
   @override
   Widget build(BuildContext context) {
@@ -1742,7 +1818,10 @@ class _ThreadNodeTile extends StatelessWidget {
             comment: node.comment,
             isDark: isDark,
             currentUserHandle: currentUserHandle,
-            onSwipeReply: () => onReply?.call(node),
+            onSwipeReply: selectionMode ? null : () => onReply?.call(node),
+            selected: isSelected,
+            onLongPress: onToggleSelect,
+            onTap: selectionMode ? onToggleSelect : null,
           ),
           if (node.children.isNotEmpty)
             Column(
@@ -1755,6 +1834,9 @@ class _ThreadNodeTile extends StatelessWidget {
                     isLast: i == node.children.length - 1,
                     currentUserHandle: currentUserHandle,
                     onReply: onReply,
+                    selectionMode: selectionMode,
+                    isSelected: isSelected, // nested selection follows parent default
+                    onToggleSelect: onToggleSelect,
                   ),
               ],
             ),
@@ -1791,11 +1873,17 @@ class _CommentTile extends StatefulWidget {
     required this.isDark,
     required this.currentUserHandle,
     this.onSwipeReply,
+    this.selected = false,
+    this.onLongPress,
+    this.onTap,
   });
   final _ThreadComment comment;
   final bool isDark;
   final String currentUserHandle;
   final VoidCallback? onSwipeReply;
+  final bool selected;
+  final VoidCallback? onLongPress;
+  final VoidCallback? onTap;
 
   @override
   State<_CommentTile> createState() => _CommentTileState();
@@ -1842,7 +1930,7 @@ class _CommentTileState extends State<_CommentTile> {
         decoration: BoxDecoration(
           color: bubble,
           borderRadius: BorderRadius.circular(16),
-          border: _highlight
+          border: (_highlight || widget.selected)
               ? Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.35))
               : null,
         ),
@@ -1999,6 +2087,8 @@ class _CommentTileState extends State<_CommentTile> {
       onTapDown: (_) => setState(() => _highlight = true),
       onTapUp: (_) => setState(() => _highlight = false),
       onTapCancel: () => setState(() => _highlight = false),
+      onTap: widget.onTap,
+      onLongPress: widget.onLongPress,
       onHorizontalDragUpdate: (details) {
         _dx += details.delta.dx;
         // visual slide to the right only
