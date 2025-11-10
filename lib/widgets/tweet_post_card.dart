@@ -23,6 +23,7 @@ class TweetPostCard extends StatefulWidget {
     this.showCornerAccent = true,
     this.onTap,
     this.showRepostBanner = false,
+    this.showActions = true,
   });
 
   final PostModel post;
@@ -34,6 +35,7 @@ class TweetPostCard extends StatefulWidget {
   final bool showCornerAccent;
   final VoidCallback? onTap;
   final bool showRepostBanner;
+  final bool showActions;
 
   @override
   State<TweetPostCard> createState() => _TweetPostCardState();
@@ -387,16 +389,18 @@ class _TweetPostCardState extends State<TweetPostCard> {
           const SizedBox(height: 6),
           QuotePreview(snapshot: widget.post.quoted!),
         ],
-        // Hashtags removed from containers by request
-        const SizedBox(height: 4),
-        _buildMetricsRow(
-          theme: theme,
-          leftMetrics: leftMetrics,
-          share: share,
-          isCompact: isCompact,
-          onSurfaceColor: primaryTextColor,
-          forceContrast: usesLightCardOnDarkTheme,
-        ),
+        // Action row (reply/repost/like/view/share)
+        if (widget.showActions) ...[
+          const SizedBox(height: 4),
+          _buildMetricsRow(
+            theme: theme,
+            leftMetrics: leftMetrics,
+            share: share,
+            isCompact: isCompact,
+            onSurfaceColor: primaryTextColor,
+            forceContrast: usesLightCardOnDarkTheme,
+          ),
+        ],
       ],
     );
 

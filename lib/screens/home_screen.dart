@@ -1487,6 +1487,7 @@ class _PostCard extends StatelessWidget {
     return TweetPostCard(
       post: post,
       currentUserHandle: currentUserHandle,
+      showActions: false,
       onReply: (_) {
         final payload = PostDetailPayload(
           author: post.author,
