@@ -85,9 +85,12 @@ class _XCommentSectionState extends State<XCommentSection>
           ),
           Expanded(
             child: Center(
-              child: action(
-                Icons.repeat_rounded,
-                label: metrics != null ? _formatCount(metrics.reposts) : null,
+              child: Transform.translate(
+                offset: const Offset(8, 0),
+                child: action(
+                  Icons.repeat_rounded,
+                  label: metrics != null ? _formatCount(metrics.reposts) : null,
+                ),
               ),
             ),
           ),
@@ -752,10 +755,13 @@ class _XCommentTileState extends State<_XCommentTile>
                                   ),
                                   Expanded(
                                     child: Center(
-                                      child: _XActionButton(
-                                        icon: Icons.repeat_rounded,
-                                        label: 'REPOST',
-                                        onTap: () {},
+                                      child: Transform.translate(
+                                        offset: const Offset(8, 0),
+                                        child: _XActionButton(
+                                          icon: Icons.repeat_rounded,
+                                          label: 'REPOST',
+                                          onTap: () {},
+                                        ),
                                       ),
                                     ),
                                   ),

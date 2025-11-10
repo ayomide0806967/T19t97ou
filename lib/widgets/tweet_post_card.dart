@@ -293,22 +293,18 @@ class _TweetPostCardState extends State<TweetPostCard> {
       // Icon rendered by TweetMetric using StatsThinIcon
       count: _views,
     );
-    final save = TweetMetricData(
-      type: TweetMetricType.bookmark,
-      icon: Icons.bookmark_outline_rounded,
-      isActive: _bookmarked,
-    );
     const share = TweetMetricData(
       type: TweetMetricType.share,
       icon: Icons.send_rounded,
     );
 
-    // Left group fills remaining width; Share hugs the right edge.
-    final leftMetrics = [reply, rein, like, view, save];
+    // Left group fills remaining width; order: Comment, Repost, Like, View
+    final leftMetrics = [reply, rein, like, view];
 
     // Auto-compact based on screen width and total items (6)
     final screenW = MediaQuery.of(context).size.width;
-    final isCompact = (screenW / 6) < 80;
+    final items = leftMetrics.length + 1; // +1 for share
+    final isCompact = (screenW / items) < 80;
 
     final List<Widget> header = [];
     if (widget.replyContext != null) {
@@ -391,23 +387,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
           const SizedBox(height: 6),
           QuotePreview(snapshot: widget.post.quoted!),
         ],
-        if (widget.post.tags.isNotEmpty) ...[
-          const SizedBox(height: 6),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            child: Row(
-              children: widget.post.tags
-                  .map(
-                    (tag) => Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: TagChip(tag),
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
-        ],
+        // Hashtags removed from containers by request
         const SizedBox(height: 4),
         _buildMetricsRow(
           theme: theme,
@@ -479,44 +459,70 @@ class _TweetPostCardState extends State<TweetPostCard> {
     required Color onSurfaceColor,
     required bool forceContrast,
   }) {
-    // Two groups:
-    //   A (with counts): reply, REPOST, like, view → spread evenly
-    //   B (compact): bookmark + share → tight cluster at the far right
-    final List<TweetMetricData> groupA = leftMetrics
-        .where((m) => m.type == TweetMetricType.reply ||
-            m.type == TweetMetricType.rein ||
-            m.type == TweetMetricType.like ||
-            m.type == TweetMetricType.view)
-        .toList();
-    final TweetMetricData bookmark =
-        leftMetrics.firstWhere((m) => m.type == TweetMetricType.bookmark);
-    final double gapBetweenGroups = isCompact ? 12.0 : 16.0;
-    final double tightGap = isCompact ? 8.0 : 10.0;
+    // Layout groups:
+    //   Left group (auto/equal): COMMENT, REPOST, LIKE, VIEW → share the
+    //   remaining width equally. This keeps all actions sized fairly.
+    //   Right edge: SHARE pinned at extreme right with a small gap from VIEW.
+    final TweetMetricData replyMetric =
+        leftMetrics.firstWhere((m) => m.type == TweetMetricType.reply);
+    final TweetMetricData reinMetric =
+        leftMetrics.firstWhere((m) => m.type == TweetMetricType.rein);
+    final TweetMetricData likeMetric =
+        leftMetrics.firstWhere((m) => m.type == TweetMetricType.like);
+    final TweetMetricData viewMetric =
+        leftMetrics.firstWhere((m) => m.type == TweetMetricType.view);
+    final List<TweetMetricData> leftGroup = [
+      replyMetric,
+      reinMetric,
+      likeMetric,
+      viewMetric,
+    ];
+    final double tightGap = isCompact ? 8.0 : 10.0; // small gap before Share
 
     Widget row = SizedBox(
       width: double.infinity,
       child: Row(
         mainAxisSize: MainAxisSize.max,
         children: [
-          // Group A: starts at the content's left edge and spreads evenly
+          // Left group: four equal cells, each scales down if needed
           Expanded(
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                for (final m in groupA)
-                  _EdgeCell(child: _buildMetricButton(m, compact: isCompact)),
+                for (int i = 0; i < leftGroup.length; i++)
+                  Expanded(
+                    child: Align(
+                      alignment: (i == 1 || i == 2)
+                          ? Alignment.centerRight // nudge REPOST and LIKE rightward
+                          : Alignment.center,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: (i == 1 || i == 2)
+                            ? Alignment.centerRight
+                            : Alignment.center,
+                        child: _EdgeCell(
+                          child: i == 1
+                              ? Transform.translate(
+                                  offset: const Offset(8, 0),
+                                  child: _buildMetricButton(
+                                    leftGroup[i],
+                                    compact: isCompact,
+                                  ),
+                                )
+                              : _buildMetricButton(
+                                  leftGroup[i],
+                                  compact: isCompact,
+                                ),
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
-          SizedBox(width: gapBetweenGroups),
-          // Group B: compact on the far right
-          Row(
-            children: [
-              _EdgeCell(child: _buildMetricButton(bookmark, compact: isCompact)),
-              SizedBox(width: tightGap),
-              _EdgeCell(child: _buildMetricButton(share, compact: isCompact)),
-            ],
-          ),
+          // View should be close to Share → keep only a tight gap here
+          SizedBox(width: tightGap),
+          // Share stays pinned at extreme right
+          _EdgeCell(child: _buildMetricButton(share, compact: isCompact)),
         ],
       ),
     );
@@ -566,7 +572,54 @@ class _TweetPostCardState extends State<TweetPostCard> {
         break;
     }
 
-    return TweetMetric(data: data, onTap: onTap, compact: compact);
+    // Build responsive metric content inside a LayoutBuilder so we can
+    // adapt when the available width becomes extremely tight.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxW = constraints.maxWidth;
+        final bool ultraTight = maxW.isFinite && maxW < 56; // ~ icon + tiny text
+        final bool tight = maxW.isFinite && maxW < 80;
+        // Special-case: compress VIEW under very tight width (icon only)
+        if (data.type == TweetMetricType.view && ultraTight) {
+          final compactView = TweetMetricData(type: data.type, icon: Icons.signal_cellular_alt_rounded);
+          return FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: TweetMetric(data: compactView, onTap: onTap, compact: true),
+          );
+        }
+        // Special-case: compress COMMENT pill under very tight width
+        if (data.type == TweetMetricType.reply && ultraTight) {
+          // Replace long label with a short token (or just the count if present)
+          final shortLabel = 'C';
+          final shortData = TweetMetricData(type: data.type, label: shortLabel);
+          return FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: TweetMetric(data: shortData, onTap: onTap, compact: true),
+          );
+        }
+        // For reply/view with limited width but not ultraTight, still allow scaling
+        if (data.type == TweetMetricType.reply || data.type == TweetMetricType.view) {
+          return FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: data.type == TweetMetricType.reply
+                ? Alignment.centerLeft
+                : Alignment.centerRight,
+            child: TweetMetric(data: data, onTap: onTap, compact: compact),
+          );
+        }
+        // For other metrics (repost/like), scale down under tight width
+        if (tight) {
+          return FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.center,
+            child: TweetMetric(data: data, onTap: onTap, compact: compact),
+          );
+        }
+        return TweetMetric(data: data, onTap: onTap, compact: compact);
+      },
+    );
   }
 
   Future<void> _openReplyComposer() async {
@@ -733,7 +786,48 @@ class TweetMetric extends StatelessWidget {
 
     Widget content;
 
-    if (highlightRein) {
+    // Special case: Reply button shown as a grey, thin bordered pill
+    if (data.type == TweetMetricType.reply) {
+      final Color pillText = theme.colorScheme.onSurface.withValues(alpha: 0.45);
+      final Color pillBorder = theme.dividerColor.withValues(alpha: 0.9);
+      final String? countLabel =
+          metricCount != null ? _formatMetric(metricCount) : null;
+      final String labelText = data.label ?? 'COMMENT';
+      final Widget pill = Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: pillBorder, width: 1),
+          color: Colors.transparent,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              labelText,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: pillText,
+                fontWeight: FontWeight.w600, // match non-highlight action label
+                fontSize: labelFontSize, // consistent with other labels
+              ),
+            ),
+            if (countLabel != null) ...[
+              const SizedBox(width: 4),
+              Text(
+                countLabel,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: pillText,
+                  fontWeight: FontWeight.w600,
+                  fontSize: countFontSize,
+                ),
+              ),
+            ],
+          ],
+        ),
+      );
+      // Entire content is the pill itself so the number sits inside the rounded box
+      content = pill;
+    } else if (highlightRein) {
       final highlightColor = Colors.green;
       content = Row(
         mainAxisSize: MainAxisSize.min,
@@ -743,7 +837,7 @@ class TweetMetric extends StatelessWidget {
             style: theme.textTheme.bodyMedium?.copyWith(
               color: highlightColor,
               fontWeight: FontWeight.w800,
-              fontSize: reinFontSize,
+              fontSize: labelFontSize,
               letterSpacing: 0.35,
             ),
           ),
@@ -825,11 +919,7 @@ class TweetMetric extends StatelessWidget {
               iconColor.withValues(alpha: 0.08),
             ),
           ),
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        alignment: Alignment.center,
-        child: content,
-      ),
+      child: content,
     );
   }
 }
@@ -893,7 +983,9 @@ class QuotePreview extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return Container(
-      margin: const EdgeInsets.only(left: 16),
+      // Make the quoted capsule align with the main text/author column.
+      // No extra left inset so it starts where the content starts.
+      margin: EdgeInsets.zero,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isDark ? Colors.white.withAlpha(15) : const Color(0xFFF8FAFC),
