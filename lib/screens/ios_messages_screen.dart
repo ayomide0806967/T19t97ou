@@ -1820,20 +1820,25 @@ class _CommentTileState extends State<_CommentTile> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final meta = theme.colorScheme.onSurface.withValues(alpha: 0.6);
 
     final _ThreadComment comment = widget.comment;
     final bool isMine =
         comment.author == widget.currentUserHandle || comment.author == 'You';
-    // Cyan for my comments, white for others (light theme).
+    // Cyan for my comments, dark cyan for others (light theme).
     // In dark theme, use a subtle cyan tint for mine, and a dark surface for others.
-    final Color lightMine = Theme.of(context).colorScheme.primary.withValues(alpha: 0.14);
-    final Color darkMine = Theme.of(context).colorScheme.primary.withValues(alpha: 0.22);
-    final Color lightOther = Colors.white;
+    final Color lightMine = theme.colorScheme.primary.withValues(alpha: 0.14);
+    final Color darkMine = theme.colorScheme.primary.withValues(alpha: 0.22);
+    final Color lightOtherDarkCyan = const Color(0xFF0E7490); // dark cyan
     final Color darkOther = const Color(0xFF1F2226);
+    final bool otherDarkCyan = !isMine && !widget.isDark;
     final Color bubble = widget.isDark
         ? (isMine ? darkMine : darkOther)
-        : (isMine ? lightMine : lightOther);
+        : (isMine ? lightMine : lightOtherDarkCyan);
+
+    // Meta text color adapts to background
+    final Color meta = otherDarkCyan
+        ? Colors.white.withValues(alpha: 0.85)
+        : theme.colorScheme.onSurface.withValues(alpha: 0.6);
 
     final Widget bubbleCore = Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -1872,10 +1877,14 @@ class _CommentTileState extends State<_CommentTile> {
                     comment.author,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w700,
+                      color: otherDarkCyan ? Colors.white : null,
                     ),
                   ),
                 ),
-                Text(comment.timeAgo, style: theme.textTheme.bodySmall?.copyWith(color: meta)),
+                Text(
+                  comment.timeAgo,
+                  style: theme.textTheme.bodySmall?.copyWith(color: meta),
+                ),
               ],
             ),
             const SizedBox(height: 6),
@@ -1920,7 +1929,7 @@ class _CommentTileState extends State<_CommentTile> {
             Text(
               comment.body,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: widget.isDark
+                color: (widget.isDark || otherDarkCyan)
                     ? Colors.white
                     : theme.colorScheme.onSurface,
                 fontSize: 16,
@@ -1934,7 +1943,11 @@ class _CommentTileState extends State<_CommentTile> {
                 _LabelCountButton(
                   label: 'Good',
                   count: _likes,
-                  color: _liked ? Colors.green : null,
+                  color: _liked
+                      ? Colors.green
+                      : (otherDarkCyan
+                          ? Colors.white.withValues(alpha: 0.9)
+                          : null),
                   onPressed: () {
                     HapticFeedback.lightImpact();
                     setState(() {
@@ -1956,7 +1969,11 @@ class _CommentTileState extends State<_CommentTile> {
                 _LabelCountButton(
                   label: 'Bad',
                   count: _dislikes,
-                  color: _disliked ? Colors.red : null,
+                  color: _disliked
+                      ? Colors.red
+                      : (otherDarkCyan
+                          ? Colors.white.withValues(alpha: 0.9)
+                          : null),
                   onPressed: () {
                     HapticFeedback.lightImpact();
                     setState(() {
@@ -1982,7 +1999,10 @@ class _CommentTileState extends State<_CommentTile> {
                     child: Text(
                       'repost',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                        color: otherDarkCyan
+                            ? Colors.white.withValues(alpha: 0.9)
+                            : theme.colorScheme.onSurface
+                                .withValues(alpha: 0.6),
                         fontWeight: _reposted ? FontWeight.w700 : FontWeight.w500,
                       ),
                     ),
