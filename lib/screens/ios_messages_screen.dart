@@ -1930,9 +1930,6 @@ class _CommentTileState extends State<_CommentTile> {
         decoration: BoxDecoration(
           color: bubble,
           borderRadius: BorderRadius.circular(16),
-          border: (_highlight || widget.selected)
-              ? Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.35))
-              : null,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2119,6 +2116,11 @@ class _CommentTileState extends State<_CommentTile> {
         curve: Curves.easeOutCubic,
         transform: Matrix4.translationValues(_dragOffset, 0, 0),
         margin: const EdgeInsets.only(bottom: 14),
+        color: widget.selected
+            ? (widget.isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : const Color(0xFFE5E7EB))
+            : Colors.transparent,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
