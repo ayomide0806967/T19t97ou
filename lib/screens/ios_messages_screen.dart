@@ -1898,6 +1898,7 @@ class _CommentTileState extends State<_CommentTile> {
   bool _liked = false;
   bool _disliked = false;
   bool _reposted = false;
+  bool _swipeHapticFired = false;
 
   @override
   void initState() {
@@ -2088,6 +2089,28 @@ class _CommentTileState extends State<_CommentTile> {
       child: bubbleCore,
     );
 
+    // Swipe progress (0..1) for extra effects
+    final double swipeT = (_dragOffset / 80.0).clamp(0.0, 1.0);
+    final Widget swipeBackground = IgnorePointer(
+      child: Opacity(
+        opacity: swipeT,
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Container(
+            width: 56,
+            height: double.infinity,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withValues(alpha: widget.isDark ? 0.18 : 0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: Icon(Icons.reply_outlined, color: theme.colorScheme.primary),
+            ),
+          ),
+        ),
+      ),
+    );
+
     // Prepare left-aligned avatar (fixed size), separate from content card
     final Widget avatar = HexagonAvatar(
       size: 40,
@@ -2118,6 +2141,10 @@ class _CommentTileState extends State<_CommentTile> {
           _dragOffset = next;
           _highlight = true;
         });
+        if (!_swipeHapticFired && _dragOffset > 42) {
+          HapticFeedback.mediumImpact();
+          _swipeHapticFired = true;
+        }
         if (_dx > 42) {
           _dx = 0;
           widget.onSwipeReply?.call();
@@ -2134,11 +2161,12 @@ class _CommentTileState extends State<_CommentTile> {
           _highlight = false;
           _dragOffset = 0; // animate back to rest
         });
+        _swipeHapticFired = false;
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 140),
         curve: Curves.easeOutCubic,
-        transform: Matrix4.translationValues(_dragOffset, 0, 0),
+        transform: Matrix4.identity,
         margin: const EdgeInsets.symmetric(vertical: 12),
         decoration: const BoxDecoration(
           color: Colors.transparent,
@@ -2148,7 +2176,24 @@ class _CommentTileState extends State<_CommentTile> {
           children: [
             avatar,
             const SizedBox(width: 4),
-            Expanded(child: poppedCard),
+            Expanded(
+              child: Stack(
+                alignment: Alignment.centerLeft,
+                children: [
+                  Positioned.fill(child: swipeBackground),
+                  Transform.translate(
+                    offset: Offset(_dragOffset, 0),
+                    child: Transform.rotate(
+                      angle: -0.03 * swipeT,
+                      child: Transform.scale(
+                        scale: 1.0 + (0.02 * swipeT),
+                        child: poppedCard,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
