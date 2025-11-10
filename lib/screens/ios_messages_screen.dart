@@ -1851,24 +1851,6 @@ class _CommentTileState extends State<_CommentTile> {
           children: [
             Row(
               children: [
-                // Hexagonal framed avatar inside the bubble
-                HexagonAvatar(
-                  size: 22,
-                  borderWidth: 1.0,
-                  borderColor: theme.dividerColor,
-                  backgroundColor: theme.colorScheme.surface,
-                  child: Text(
-                    (comment.author.isNotEmpty
-                            ? comment.author.substring(0, 1)
-                            : 'U')
-                        .toUpperCase(),
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: theme.colorScheme.onSurface,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     comment.author,
@@ -1997,9 +1979,21 @@ class _CommentTileState extends State<_CommentTile> {
         ),
       );
 
-    final Widget bubbleWidget = isMine
-        ? Expanded(child: bubbleCore)
-        : Flexible(child: bubbleCore);
+    // Prepare left-aligned avatar (fixed size), separate from content card
+    final Widget avatar = HexagonAvatar(
+      size: 40,
+      borderWidth: 1.0,
+      borderColor: theme.dividerColor,
+      backgroundColor: theme.colorScheme.surface,
+      child: Text(
+        (comment.author.isNotEmpty ? comment.author.substring(0, 1) : 'U')
+            .toUpperCase(),
+        style: theme.textTheme.labelMedium?.copyWith(
+          fontWeight: FontWeight.w700,
+          color: theme.colorScheme.onSurface,
+        ),
+      ),
+    );
 
     return GestureDetector(
       onTapDown: (_) => setState(() => _highlight = true),
@@ -2037,10 +2031,10 @@ class _CommentTileState extends State<_CommentTile> {
         margin: const EdgeInsets.only(bottom: 14),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment:
-              isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
           children: [
-            bubbleWidget,
+            avatar,
+            const SizedBox(width: 12),
+            Expanded(child: bubbleCore),
           ],
         ),
       ),
