@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
@@ -2064,6 +2065,17 @@ class _CommentTileState extends State<_CommentTile> {
         ),
       );
 
+    // Apply a subtle blur to the message container itself when selected
+    final Widget blurredCard = widget.selected
+        ? ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: ImageFiltered(
+              imageFilter: ui.ImageFilter.blur(sigmaX: 2.0, sigmaY: 2.0),
+              child: bubbleCore,
+            ),
+          )
+        : bubbleCore;
+
     // Prepare left-aligned avatar (fixed size), separate from content card
     final Widget avatar = HexagonAvatar(
       size: 40,
@@ -2129,7 +2141,7 @@ class _CommentTileState extends State<_CommentTile> {
           children: [
             avatar,
             const SizedBox(width: 4),
-            Expanded(child: bubbleCore),
+            Expanded(child: blurredCard),
           ],
         ),
       ),
