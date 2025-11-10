@@ -1930,11 +1930,11 @@ class _CommentTileState extends State<_CommentTile> {
         ? [
             BoxShadow(
               color: isDark
-                  ? Colors.black.withValues(alpha: 0.5)
-                  : Colors.black.withValues(alpha: 0.18),
-              blurRadius: 20,
-              spreadRadius: 1,
-              offset: const Offset(0, 8),
+                  ? Colors.black.withValues(alpha: 0.6)
+                  : Colors.black.withValues(alpha: 0.28),
+              blurRadius: 26,
+              spreadRadius: 2,
+              offset: const Offset(0, 12),
             ),
           ]
         : null;
@@ -2081,9 +2081,9 @@ class _CommentTileState extends State<_CommentTile> {
 
     // Pop effect on selection
     final Widget poppedCard = AnimatedScale(
-      duration: const Duration(milliseconds: 140),
+      duration: const Duration(milliseconds: 160),
       curve: Curves.easeOutBack,
-      scale: widget.selected ? 1.025 : 1.0,
+      scale: widget.selected ? 1.06 : 1.0,
       child: bubbleCore,
     );
 
