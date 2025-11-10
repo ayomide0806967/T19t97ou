@@ -1825,16 +1825,20 @@ class _CommentTileState extends State<_CommentTile> {
     final _ThreadComment comment = widget.comment;
     final bool isMine =
         comment.author == widget.currentUserHandle || comment.author == 'You';
-    final Color bubble = isMine
-        ? const Color(0xFFF6E7D8)
-        : const Color(0xFFF5F7FA);
+    // Cyan for my comments, white for others (light theme).
+    // In dark theme, use a subtle cyan tint for mine, and a dark surface for others.
+    final Color lightMine = Theme.of(context).colorScheme.primary.withValues(alpha: 0.14);
+    final Color darkMine = Theme.of(context).colorScheme.primary.withValues(alpha: 0.22);
+    final Color lightOther = Colors.white;
+    final Color darkOther = const Color(0xFF1F2226);
+    final Color bubble = widget.isDark
+        ? (isMine ? darkMine : darkOther)
+        : (isMine ? lightMine : lightOther);
 
     final Widget bubbleCore = Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: widget.isDark
-              ? (isMine ? const Color(0xFF2A2220) : const Color(0xFF1F2226))
-              : bubble,
+          color: bubble,
           borderRadius: BorderRadius.circular(16),
           border: _highlight
               ? Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.35))
