@@ -9,6 +9,31 @@ import '../services/simple_auth_service.dart';
 import '../widgets/hexagon_avatar.dart';
 // Removed unused tweet widgets imports
 
+/// Public helper to open the "Replies" UI (classes/messages style)
+/// for a given timeline post. This keeps the private types local to this
+/// file while exposing a simple route factory for other screens.
+Route<void> messageRepliesRouteFromPost({
+  required PostModel post,
+  required String currentUserHandle,
+}) {
+  final _ClassMessage msg = _ClassMessage(
+    id: post.id,
+    author: post.author,
+    handle: post.handle,
+    timeAgo: post.timeAgo,
+    body: post.body,
+    likes: post.likes,
+    replies: post.replies,
+    heartbreaks: 0,
+  );
+  return MaterialPageRoute<void>(
+    builder: (_) => _MessageCommentsPage(
+      message: msg,
+      currentUserHandle: currentUserHandle,
+    ),
+  );
+}
+
 /// Minimalist iOS-style messages inbox page.
 class IosMinimalistMessagePage extends StatefulWidget {
   const IosMinimalistMessagePage({super.key});

@@ -14,7 +14,7 @@ import '../widgets/brand_mark.dart';
 import '../widgets/floating_nav_bar.dart';
 import 'compose_screen.dart';
 import '../widgets/tweet_post_card.dart';
-import 'thread_screen.dart';
+import 'ios_messages_screen.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
 import 'ios_messages_screen.dart';
@@ -1488,20 +1488,17 @@ class _PostCard extends StatelessWidget {
       post: post,
       currentUserHandle: currentUserHandle,
       onReply: (_) {
-        final thread = dataService.buildThreadForPost(post.id);
         Navigator.of(context).push(
-          ThreadScreen.route(
-            entry: thread,
+          messageRepliesRouteFromPost(
+            post: post,
             currentUserHandle: currentUserHandle,
-            initialReplyPostId: post.id,
           ),
         );
       },
       onTap: () {
-        final thread = dataService.buildThreadForPost(post.id);
         Navigator.of(context).push(
-          ThreadScreen.route(
-            entry: thread,
+          messageRepliesRouteFromPost(
+            post: post,
             currentUserHandle: currentUserHandle,
           ),
         );
