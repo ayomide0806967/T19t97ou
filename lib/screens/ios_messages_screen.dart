@@ -1775,7 +1775,7 @@ class _ThreadCommentsView extends StatelessWidget {
             currentUserHandle: currentUserHandle,
             onReply: onReply,
             selectionMode: selectionMode,
-            isSelected: selected.contains(nodes[i]),
+            selected: selected,
             onToggleSelect: () => onToggleSelect(nodes[i]),
           ),
       ],
@@ -1791,7 +1791,7 @@ class _ThreadNodeTile extends StatelessWidget {
     required this.currentUserHandle,
     this.onReply,
     required this.selectionMode,
-    required this.isSelected,
+    required this.selected,
     required this.onToggleSelect,
   });
   final _ThreadNode node;
@@ -1800,7 +1800,7 @@ class _ThreadNodeTile extends StatelessWidget {
   final String currentUserHandle;
   final ValueChanged<_ThreadNode>? onReply;
   final bool selectionMode;
-  final bool isSelected;
+  final Set<_ThreadNode> selected;
   final VoidCallback onToggleSelect;
 
   @override
@@ -1819,7 +1819,7 @@ class _ThreadNodeTile extends StatelessWidget {
             isDark: isDark,
             currentUserHandle: currentUserHandle,
             onSwipeReply: selectionMode ? null : () => onReply?.call(node),
-            selected: isSelected,
+            selected: selected.contains(node),
             onLongPress: onToggleSelect,
             onTap: selectionMode ? onToggleSelect : null,
           ),
@@ -1835,7 +1835,7 @@ class _ThreadNodeTile extends StatelessWidget {
                     currentUserHandle: currentUserHandle,
                     onReply: onReply,
                     selectionMode: selectionMode,
-                    isSelected: isSelected, // nested selection follows parent default
+                    selected: selected,
                     onToggleSelect: onToggleSelect,
                   ),
               ],
@@ -2116,11 +2116,14 @@ class _CommentTileState extends State<_CommentTile> {
         curve: Curves.easeOutCubic,
         transform: Matrix4.translationValues(_dragOffset, 0, 0),
         margin: const EdgeInsets.only(bottom: 14),
-        color: widget.selected
-            ? (widget.isDark
-                ? Colors.white.withValues(alpha: 0.08)
-                : const Color(0xFFE5E7EB))
-            : Colors.transparent,
+        decoration: BoxDecoration(
+          color: widget.selected
+              ? (widget.isDark
+                  ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.22)
+                  : Theme.of(context).colorScheme.primary.withValues(alpha: 0.16))
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
