@@ -1930,14 +1930,23 @@ class _CommentTileState extends State<_CommentTile> {
         ? [
             BoxShadow(
               color: isDark
-                  ? Colors.black.withValues(alpha: 0.6)
-                  : Colors.black.withValues(alpha: 0.28),
-              blurRadius: 26,
-              spreadRadius: 2,
-              offset: const Offset(0, 12),
+                  ? Colors.white.withValues(alpha: 0.40)
+                  : Colors.white.withValues(alpha: 0.80),
+              blurRadius: 30,
+              spreadRadius: 3,
+              offset: const Offset(0, 14),
             ),
           ]
-        : null;
+        : [
+            BoxShadow(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.24)
+                  : Colors.white.withValues(alpha: 0.55),
+              blurRadius: 18,
+              spreadRadius: 1,
+              offset: const Offset(0, 6),
+            ),
+          ];
 
     final Widget bubbleCore = Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
