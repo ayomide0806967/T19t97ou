@@ -2166,7 +2166,7 @@ class _CommentTileState extends State<_CommentTile> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 140),
         curve: Curves.easeOutCubic,
-        transform: Matrix4.identity,
+        transform: Matrix4.identity(),
         margin: const EdgeInsets.symmetric(vertical: 12),
         decoration: const BoxDecoration(
           color: Colors.transparent,
