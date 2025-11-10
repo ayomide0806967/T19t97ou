@@ -1824,21 +1824,18 @@ class _CommentTileState extends State<_CommentTile> {
     final _ThreadComment comment = widget.comment;
     final bool isMine =
         comment.author == widget.currentUserHandle || comment.author == 'You';
-    // Cyan for my comments, dark cyan for others (light theme).
-    // In dark theme, use a subtle cyan tint for mine, and a dark surface for others.
-    final Color lightMine = theme.colorScheme.primary.withValues(alpha: 0.14);
+    // Light theme: mine = offwhite, others = very light cyan.
+    // Dark theme: mine = subtle cyan tint, others = dark surface.
+    final Color lightMineOffwhite = const Color(0xFFF8FAFC);
+    final Color lightOtherVeryLightCyan = const Color(0xFFE0F7FA); // cyan 50
     final Color darkMine = theme.colorScheme.primary.withValues(alpha: 0.22);
-    final Color lightOtherDarkCyan = const Color(0xFF0E7490); // dark cyan
     final Color darkOther = const Color(0xFF1F2226);
-    final bool otherDarkCyan = !isMine && !widget.isDark;
     final Color bubble = widget.isDark
         ? (isMine ? darkMine : darkOther)
-        : (isMine ? lightMine : lightOtherDarkCyan);
+        : (isMine ? lightMineOffwhite : lightOtherVeryLightCyan);
 
-    // Meta text color adapts to background
-    final Color meta = otherDarkCyan
-        ? Colors.white.withValues(alpha: 0.85)
-        : theme.colorScheme.onSurface.withValues(alpha: 0.6);
+    // Meta text color uses default onSurface alpha in light theme
+    final Color meta = theme.colorScheme.onSurface.withValues(alpha: 0.6);
 
     final Widget bubbleCore = Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -1877,7 +1874,6 @@ class _CommentTileState extends State<_CommentTile> {
                     comment.author,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: otherDarkCyan ? Colors.white : null,
                     ),
                   ),
                 ),
@@ -1929,9 +1925,7 @@ class _CommentTileState extends State<_CommentTile> {
             Text(
               comment.body,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: (widget.isDark || otherDarkCyan)
-                    ? Colors.white
-                    : theme.colorScheme.onSurface,
+                color: widget.isDark ? Colors.white : theme.colorScheme.onSurface,
                 fontSize: 16,
                 height: 1.4,
               ),
@@ -1943,11 +1937,7 @@ class _CommentTileState extends State<_CommentTile> {
                 _LabelCountButton(
                   label: 'Good',
                   count: _likes,
-                  color: _liked
-                      ? Colors.green
-                      : (otherDarkCyan
-                          ? Colors.white.withValues(alpha: 0.9)
-                          : null),
+                  color: _liked ? Colors.green : null,
                   onPressed: () {
                     HapticFeedback.lightImpact();
                     setState(() {
@@ -1969,11 +1959,7 @@ class _CommentTileState extends State<_CommentTile> {
                 _LabelCountButton(
                   label: 'Bad',
                   count: _dislikes,
-                  color: _disliked
-                      ? Colors.red
-                      : (otherDarkCyan
-                          ? Colors.white.withValues(alpha: 0.9)
-                          : null),
+                  color: _disliked ? Colors.red : null,
                   onPressed: () {
                     HapticFeedback.lightImpact();
                     setState(() {
@@ -1999,10 +1985,7 @@ class _CommentTileState extends State<_CommentTile> {
                     child: Text(
                       'repost',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: otherDarkCyan
-                            ? Colors.white.withValues(alpha: 0.9)
-                            : theme.colorScheme.onSurface
-                                .withValues(alpha: 0.6),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                         fontWeight: _reposted ? FontWeight.w700 : FontWeight.w500,
                       ),
                     ),
