@@ -2033,7 +2033,7 @@ class _CommentTileState extends State<_CommentTile> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             avatar,
-            const SizedBox(width: 12),
+            const SizedBox(width: 4),
             Expanded(child: bubbleCore),
           ],
         ),
