@@ -14,7 +14,7 @@ import '../widgets/brand_mark.dart';
 import '../widgets/floating_nav_bar.dart';
 import 'compose_screen.dart';
 import '../widgets/tweet_post_card.dart';
-import 'post_detail_screen.dart';
+import 'thread_screen.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
 import 'ios_messages_screen.dart';
@@ -1487,63 +1487,22 @@ class _PostCard extends StatelessWidget {
     return TweetPostCard(
       post: post,
       currentUserHandle: currentUserHandle,
-      // Show action row (reply/repost/like/view/share)
       onReply: (_) {
-        final payload = PostDetailPayload(
-          author: post.author,
-          handle: post.handle,
-          timeAgo: post.timeAgo,
-          body: post.body,
-          initials: _initialsFrom(post.author),
-          tags: post.tags,
-          replies: post.replies,
-          reposts: post.reposts,
-          likes: post.likes,
-          bookmarks: post.bookmarks,
-          views: post.views,
-          quoted: post.quoted == null
-              ? null
-              : PostDetailQuote(
-                  author: post.quoted!.author,
-                  handle: post.quoted!.handle,
-                  timeAgo: post.quoted!.timeAgo,
-                  body: post.quoted!.body,
-                ),
-        );
+        final thread = dataService.buildThreadForPost(post.id);
         Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => PostDetailScreen(
-              post: payload,
-              focusComposer: true,
-            ),
+          ThreadScreen.route(
+            entry: thread,
+            currentUserHandle: currentUserHandle,
+            initialReplyPostId: post.id,
           ),
         );
       },
       onTap: () {
-        final payload = PostDetailPayload(
-          author: post.author,
-          handle: post.handle,
-          timeAgo: post.timeAgo,
-          body: post.body,
-          initials: _initialsFrom(post.author),
-          tags: post.tags,
-          replies: post.replies,
-          reposts: post.reposts,
-          likes: post.likes,
-          bookmarks: post.bookmarks,
-          views: post.views,
-          quoted: post.quoted == null
-              ? null
-              : PostDetailQuote(
-                  author: post.quoted!.author,
-                  handle: post.quoted!.handle,
-                  timeAgo: post.quoted!.timeAgo,
-                  body: post.quoted!.body,
-                ),
-        );
+        final thread = dataService.buildThreadForPost(post.id);
         Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => PostDetailScreen(post: payload),
+          ThreadScreen.route(
+            entry: thread,
+            currentUserHandle: currentUserHandle,
           ),
         );
       },
