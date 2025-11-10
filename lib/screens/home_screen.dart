@@ -1487,7 +1487,7 @@ class _PostCard extends StatelessWidget {
     return TweetPostCard(
       post: post,
       currentUserHandle: currentUserHandle,
-      showActions: false,
+      // Show action row (reply/repost/like/view/share)
       onReply: (_) {
         final payload = PostDetailPayload(
           author: post.author,
