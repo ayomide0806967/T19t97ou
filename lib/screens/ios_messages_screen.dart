@@ -1926,12 +1926,14 @@ class _CommentTileState extends State<_CommentTile> {
     final Color meta = theme.colorScheme.onSurface.withValues(alpha: 0.6);
 
     final bool isDark = widget.isDark;
-    final Color cyan = theme.colorScheme.primary;
+    // Neutral grey shadow for all messages; selected gets stronger shadow
     final List<BoxShadow>? popShadow = [
       BoxShadow(
-        color: isDark
-            ? cyan.withValues(alpha: widget.selected ? 0.70 : 0.45)
-            : cyan.withValues(alpha: widget.selected ? 0.45 : 0.25),
+        color: Colors.grey.withValues(
+          alpha: widget.selected
+              ? (isDark ? 0.60 : 0.45)
+              : (isDark ? 0.35 : 0.25),
+        ),
         blurRadius: widget.selected ? 30 : 18,
         spreadRadius: widget.selected ? 2 : 1,
         offset: widget.selected ? const Offset(0, 14) : const Offset(0, 6),
