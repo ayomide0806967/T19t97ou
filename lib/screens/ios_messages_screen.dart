@@ -1359,10 +1359,11 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     child: Text(
-                      'repost',
+                      'REPOST',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: meta,
-                        fontWeight: FontWeight.w500,
+                        color: _saved ? Colors.green : meta,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.3,
                       ),
                     ),
                   ),
@@ -2121,10 +2122,11 @@ class _CommentTileState extends State<_CommentTile> {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     child: Text(
-                      'repost',
+                      'REPOST',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                        fontWeight: _reposted ? FontWeight.w700 : FontWeight.w500,
+                        color: _reposted ? Colors.green : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.3,
                       ),
                     ),
                   ),
