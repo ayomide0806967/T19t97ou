@@ -1126,6 +1126,7 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
   bool _saved = false;
   int _good = 0;
   int _bad = 0;
+  int _reposts = 0;
   bool _goodActive = false;
   bool _badActive = false;
 
@@ -1354,16 +1355,36 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                         },
                       ),
                 const SizedBox(width: 16),
-                _ScaleTap(
-                  onTap: () => setState(() => _saved = !_saved),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    child: Text(
-                      'REPOST',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: _saved ? Colors.green : meta,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.3,
+                SizedBox(
+                  width: 88,
+                  child: _ScaleTap(
+                    onTap: () => setState(() {
+                      _saved = !_saved;
+                      _reposts += _saved ? 1 : -1;
+                      if (_reposts < 0) _reposts = 0;
+                    }),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'REPOST',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: _saved ? Colors.green : meta,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '$_reposts',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: _saved ? Colors.green : meta,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -2090,8 +2111,10 @@ class _CommentTileState extends State<_CommentTile> {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Like (heart)
-                _LabelCountButton(
+                // Like (heart) — fixed-width cell to prevent shifting
+                SizedBox(
+                  width: 88,
+                  child: _LabelCountButton(
                   icon: _liked
                       ? Icons.favorite_rounded
                       : Icons.favorite_border_rounded,
@@ -2114,48 +2137,76 @@ class _CommentTileState extends State<_CommentTile> {
                       }
                     });
                   },
+                  ),
                 ),
                 const SizedBox(width: 16),
-                // Repost (text label)
-                _ScaleTap(
-                  onTap: () => setState(() => _reposted = !_reposted),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    child: Text(
-                      'REPOST',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: _reposted ? Colors.green : theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.3,
+                // Repost (bold + count) — fixed width cell
+                SizedBox(
+                  width: 88,
+                  child: _ScaleTap(
+                    onTap: () => setState(() {
+                      _reposted = !_reposted;
+                      _reposts += _reposted ? 1 : -1;
+                      if (_reposts < 0) _reposts = 0;
+                    }),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'REPOST',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: _reposted
+                                  ? Colors.green
+                                  : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '$_reposts',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: _reposted
+                                  ? Colors.green
+                                  : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 16),
-                // Heartbreak (broken heart)
-                _LabelCountButton(
-                  icon: _disliked
-                      ? Icons.heart_broken_rounded
-                      : Icons.heart_broken_outlined,
-                  iconSize: _disliked ? 18 : 16,
-                  count: _dislikes,
-                  color: _disliked ? Colors.black : null,
-                  onPressed: () {
-                    HapticFeedback.lightImpact();
-                    setState(() {
-                      if (_disliked) {
-                        _dislikes = (_dislikes - 1).clamp(0, 1 << 30);
-                        _disliked = false;
-                      } else {
-                        _dislikes += 1;
-                        _disliked = true;
-                        if (_liked) {
-                          _likes = (_likes - 1).clamp(0, 1 << 30);
-                          _liked = false;
+                // Heartbreak — fixed width, standard thickness
+                SizedBox(
+                  width: 88,
+                  child: _LabelCountButton(
+                    icon: _disliked
+                        ? Icons.heart_broken_rounded
+                        : Icons.heart_broken_outlined,
+                    iconSize: 18,
+                    count: _dislikes,
+                    color: _disliked ? Colors.black : null,
+                    onPressed: () {
+                      HapticFeedback.lightImpact();
+                      setState(() {
+                        if (_disliked) {
+                          _dislikes = (_dislikes - 1).clamp(0, 1 << 30);
+                          _disliked = false;
+                        } else {
+                          _dislikes += 1;
+                          _disliked = true;
+                          if (_liked) {
+                            _likes = (_likes - 1).clamp(0, 1 << 30);
+                            _liked = false;
+                          }
                         }
-                      }
-                    });
-                  },
+                      });
+                    },
+                  ),
                 ),
               ],
             ),
