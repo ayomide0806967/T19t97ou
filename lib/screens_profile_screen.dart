@@ -407,6 +407,9 @@ class _ProfileHeader extends StatelessWidget {
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     );
+    final Color outlineColor = theme.dividerColor.withValues(
+      alpha: theme.brightness == Brightness.dark ? 0.4 : 0.25,
+    );
     final double screenWidth = MediaQuery.of(context).size.width;
     const double coverHeight = 200;
     const double avatarSize = 96;
@@ -557,7 +560,7 @@ class _ProfileHeader extends StatelessWidget {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    side: BorderSide(color: borderColor),
+                    side: BorderSide(color: outlineColor),
                     foregroundColor: onSurface,
                   ),
                   child: const Text('Share Profile'),
@@ -650,36 +653,7 @@ class _ProfileTabs extends StatelessWidget {
   }
 }
 
-class _PillTag extends StatelessWidget {
-  const _PillTag(this.label);
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final background = isDark
-        ? Colors.white.withValues(alpha: 0.08)
-        : const Color(0xFFF1F5F9);
-    final textColor = isDark
-        ? Colors.white.withValues(alpha: 0.72)
-        : const Color(0xFF4B5563);
-
-    return Chip(
-      label: Text(label),
-      labelStyle: theme.textTheme.bodyMedium?.copyWith(
-        color: textColor,
-        fontWeight: FontWeight.w600,
-        fontSize: 11,
-      ),
-      backgroundColor: background,
-      shape: const StadiumBorder(),
-      side: BorderSide.none,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-    );
-  }
-}
+// Removed unused _PillTag (header redesign no longer uses header chips)
 
 String _initialsFrom(String value) {
   final letters = value.replaceAll(RegExp('[^A-Za-z]'), '');

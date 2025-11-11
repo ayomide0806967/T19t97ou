@@ -1481,7 +1481,7 @@ class _PostCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dataService = context.read<DataService>();
+    // Use DataService via higher-level builders where needed
 
     return TweetPostCard(
       post: post,

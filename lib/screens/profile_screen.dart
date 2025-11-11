@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -36,9 +37,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         backgroundColor: Colors.black,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         duration: const Duration(milliseconds: 1500),
       ),
     );
@@ -58,8 +57,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _showProfilePhotoViewer() async {
     final bool hasImage = _profileImage != null;
-    final String initials =
-        _initialsFrom((_authService.currentUserEmail ?? 'user@institution.edu'));
+    final String initials = _initialsFrom(
+      (_authService.currentUserEmail ?? 'user@institution.edu'),
+    );
 
     await showDialog<void>(
       context: context,
@@ -69,8 +69,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final theme = Theme.of(dialogContext);
         return Dialog(
           backgroundColor: Colors.transparent,
-          insetPadding:
-              const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 40,
+          ),
           child: Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
@@ -114,12 +116,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
                 const SizedBox(height: 28),
+                if (hasImage)
+                  TextButton(
+                    onPressed: () async {
+                      Navigator.of(dialogContext).pop();
+                      await _openFullImage(
+                        image: MemoryImage(_profileImage!),
+                        title: 'Profile photo',
+                      );
+                    },
+                    child: const Text('View full picture'),
+                  ),
                 FilledButton(
                   onPressed: () async {
                     Navigator.of(dialogContext).pop();
                     await _handlePickProfileImage();
                   },
                   style: FilledButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 28,
                       vertical: 16,
@@ -164,7 +179,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (dialogContext) {
         return Dialog(
           backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 32,
+          ),
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -192,17 +210,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             child: Icon(
                               Icons.wallpaper_outlined,
                               size: 64,
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.5,
+                              ),
                             ),
                           ),
                   ),
                 ),
                 const SizedBox(height: 20),
+                if (hasImage)
+                  TextButton(
+                    onPressed: () async {
+                      Navigator.of(dialogContext).pop();
+                      await _openFullImage(
+                        image: MemoryImage(_headerImage!),
+                        title: 'Cover photo',
+                      );
+                    },
+                    child: const Text('View full picture'),
+                  ),
                 FilledButton(
                   onPressed: () async {
                     Navigator.of(dialogContext).pop();
                     await _handleChangeHeader();
                   },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    foregroundColor: Colors.white,
+                  ),
                   child: const Text('Change cover photo'),
                 ),
                 if (hasImage) ...[
@@ -225,6 +260,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         );
       },
+    );
+  }
+
+  Future<void> _openFullImage({
+    required ImageProvider image,
+    String? title,
+  }) async {
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            title: title != null ? Text(title) : null,
+          ),
+          body: Center(
+            child: InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 5,
+              child: Image(image: image, fit: BoxFit.contain),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -253,13 +315,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ListTile(
                   leading: const Icon(Icons.photo_library_outlined),
                   title: const Text('Choose from gallery'),
-                  onTap: () => Navigator.of(context).pop(_HeaderAction.pickImage),
+                  onTap: () =>
+                      Navigator.of(context).pop(_HeaderAction.pickImage),
                 ),
                 if (_headerImage != null)
                   ListTile(
                     leading: const Icon(Icons.delete_outline),
                     title: const Text('Remove photo'),
-                    onTap: () => Navigator.of(context).pop(_HeaderAction.removeImage),
+                    onTap: () =>
+                        Navigator.of(context).pop(_HeaderAction.removeImage),
                   ),
                 const SizedBox(height: 8),
                 TextButton(
@@ -413,74 +477,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _showToast('Profile link copied to clipboard');
     }
 
-    Future<void> handleChangeHeader() async {
-      final action = await showModalBottomSheet<_HeaderAction>(
-        context: context,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        builder: (context) {
-          return SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Update cover image',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ListTile(
-                    leading: const Icon(Icons.photo_library_outlined),
-                    title: const Text('Choose from gallery'),
-                    onTap: () =>
-                        Navigator.of(context).pop(_HeaderAction.pickImage),
-                  ),
-                  if (_headerImage != null)
-                    ListTile(
-                      leading: const Icon(Icons.delete_outline),
-                      title: const Text('Remove photo'),
-                      onTap: () =>
-                          Navigator.of(context).pop(_HeaderAction.removeImage),
-                    ),
-                  const SizedBox(height: 8),
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Cancel'),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      );
-
-      switch (action) {
-        case _HeaderAction.pickImage:
-          final XFile? file = await _picker.pickImage(
-            source: ImageSource.gallery,
-            imageQuality: 85,
-            maxWidth: 1600,
-          );
-          if (file == null) return;
-          final bytes = await file.readAsBytes();
-          setState(() {
-            _headerImage = bytes;
-          });
-          _showToast('Cover photo updated');
-          break;
-        case _HeaderAction.removeImage:
-          setState(() => _headerImage = null);
-          _showToast('Cover photo removed');
-          break;
-        case null:
-          break;
-      }
-    }
+    // Removed legacy local handleChangeHeader (replaced with _handleChangeHeader)
 
     return Scaffold(
       appBar: null,
@@ -499,6 +496,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 onChangeCover: _handleChangeHeader,
                 onEditProfile: handleEditProfile,
                 onShareProfile: handleShareProfile,
+                activityLevelLabel: 'Novice',
+                activityProgress: 0.5,
               ),
             ),
             SliverPadding(
@@ -574,6 +573,8 @@ class _ProfileHeader extends StatelessWidget {
     required this.onChangeCover,
     required this.onEditProfile,
     required this.onShareProfile,
+    required this.activityLevelLabel,
+    required this.activityProgress,
   });
 
   final Uint8List? headerImage;
@@ -584,6 +585,8 @@ class _ProfileHeader extends StatelessWidget {
   final VoidCallback onChangeCover;
   final VoidCallback onEditProfile;
   final VoidCallback onShareProfile;
+  final String activityLevelLabel;
+  final double activityProgress;
 
   @override
   Widget build(BuildContext context) {
@@ -611,54 +614,51 @@ class _ProfileHeader extends StatelessWidget {
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              // Cover occupies top portion
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                height: coverHeight,
-                child: GestureDetector(
-                  onTap: onHeaderTap,
+              // Cover image layer
+              GestureDetector(
+                onTap: onHeaderTap,
+                child: SizedBox(
+                  width: double.infinity,
+                  height: coverHeight,
                   child: headerImage != null
                       ? Image.memory(headerImage!, fit: BoxFit.cover)
-                      : DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: coverPlaceholderColor,
-                          ),
-                        ),
+                      : Container(color: coverPlaceholderColor),
                 ),
               ),
-            // Back button overlay
-            Positioned(
-              top: MediaQuery.of(context).padding.top + 8,
-              left: 8,
-              child: IconButton(
-                onPressed: () => Navigator.of(context).maybePop(),
-                style: IconButton.styleFrom(
-                  backgroundColor: Colors.black.withValues(alpha: 0.28),
-                ),
-                icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-              ),
-            ),
-            // Change cover button
-            Positioned(
-              top: 12 + MediaQuery.of(context).padding.top,
-              right: 12,
-              child: IconButton(
-                onPressed: onChangeCover,
-                tooltip: 'Change cover photo',
-                icon: const Icon(Icons.wallpaper_outlined),
-                iconSize: 22,
-                style: IconButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  backgroundColor: Colors.black.withValues(alpha: 0.28),
-                  padding: const EdgeInsets.all(10),
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
+              // Back button overlay
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 8,
+                left: 8,
+                child: IconButton(
+                  onPressed: () => Navigator.of(context).maybePop(),
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.black.withValues(alpha: 0.28),
+                  ),
+                  icon: const Icon(
+                    Icons.arrow_back_rounded,
+                    color: Colors.white,
                   ),
                 ),
               ),
-            ),
+              // Change cover button
+              Positioned(
+                top: 12 + MediaQuery.of(context).padding.top,
+                right: 12,
+                child: IconButton(
+                  onPressed: onChangeCover,
+                  tooltip: 'Change cover photo',
+                  icon: const Icon(Icons.wallpaper_outlined),
+                  iconSize: 22,
+                  style: IconButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    backgroundColor: Colors.black.withValues(alpha: 0.28),
+                    padding: const EdgeInsets.all(10),
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                    ),
+                  ),
+                ),
+              ),
               // Rectangular avatar overlapping the cover by half (fully hittestable)
               Positioned(
                 left: 24,
@@ -670,36 +670,37 @@ class _ProfileHeader extends StatelessWidget {
                     child: Container(
                       width: avatarSize,
                       height: avatarSize,
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? Colors.black.withValues(alpha: 0.12)
-                          : Colors.white,
-                      border: Border.all(color: Colors.white, width: 3),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.2),
-                          blurRadius: 16,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                      image: profileImage != null
-                          ? DecorationImage(
-                              image: MemoryImage(profileImage!),
-                              fit: BoxFit.cover,
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.black.withValues(alpha: 0.12)
+                            : Colors.white,
+                        border: Border.all(color: Colors.white, width: 3),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            blurRadius: 16,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                        image: profileImage != null
+                            ? DecorationImage(
+                                image: MemoryImage(profileImage!),
+                                fit: BoxFit.cover,
+                              )
+                            : null,
+                      ),
+                      alignment: Alignment.center,
+                      child: profileImage == null
+                          ? Text(
+                              initials,
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 28,
+                                color: onSurface,
+                              ),
                             )
                           : null,
                     ),
-                    alignment: Alignment.center,
-                    child: profileImage == null
-                        ? Text(
-                            initials,
-                            style: theme.textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              fontSize: 28,
-                              color: onSurface,
-                            ),
-                          )
-                        : null,
                   ),
                 ),
               ),
@@ -730,14 +731,18 @@ class _ProfileHeader extends StatelessWidget {
               const SizedBox(height: 12),
               // Followers and counts directly under name
               Row(
-                children: const [
-                  _ProfileStat(value: '18.4K', label: 'Followers'),
-                  SizedBox(width: 24),
-                  _ProfileStat(value: '1.2K', label: 'Following'),
-                  SizedBox(width: 24),
-                  _ProfileStat(value: '342', label: 'GP'),
-                  SizedBox(width: 24),
-                  _ProfileStat(value: '5.8K', label: 'Likes'),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const _ProfileStat(value: '18.4K', label: 'Followers'),
+                  const SizedBox(width: 24),
+                  const _ProfileStat(value: '1.2K', label: 'Following'),
+                  const SizedBox(width: 24),
+                  const _ProfileStat(value: '5.8K', label: 'Likes'),
+                  const SizedBox(width: 24),
+                  _ProfileLevelStat(
+                    label: activityLevelLabel,
+                    progress: activityProgress,
+                  ),
                 ],
               ),
               const SizedBox(height: 14),
@@ -821,6 +826,327 @@ class _ProfileStat extends StatelessWidget {
   }
 }
 
+class _ProfileLevelStat extends StatelessWidget {
+  const _ProfileLevelStat({required this.label, required this.progress});
+
+  final String label;
+  final double progress; // 0..1
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final onSurface = theme.colorScheme.onSurface;
+    final barBg = onSurface.withValues(
+      alpha: theme.brightness == Brightness.dark ? 0.25 : 0.15,
+    );
+    // Cyan indicator fills the grey track as progress grows
+    final Color barFg = theme.colorScheme.primary;
+    final clamped = progress.clamp(0.0, 1.0);
+    return InkWell(
+      onTap: () => _openLevelDetails(context),
+      borderRadius: BorderRadius.circular(8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Top row matches the numeric "value" style of other stats
+          Text(
+            label,
+            style: theme.textTheme.labelLarge?.copyWith(
+              fontSize: 18,
+              color: onSurface,
+            ),
+          ),
+          const SizedBox(height: 6),
+          // Bottom row: progress bar track to align with labels row
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: SizedBox(
+              width: 88,
+              height: 8,
+              child: Stack(
+                children: [
+                  Container(color: barBg),
+                  FractionallySizedBox(
+                    widthFactor: clamped,
+                    child: Container(color: barFg),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openLevelDetails(BuildContext context) {
+    final theme = Theme.of(context);
+    final levels = <Map<String, String>>[
+      {
+        'title': 'Novice',
+        'desc': 'complete beginner; little to no experience.',
+      },
+      {
+        'title': 'Beginner',
+        'desc': 'has some exposure; starting to learn basics.',
+      },
+      {
+        'title': 'Amateur',
+        'desc':
+            'learning actively but still inconsistent; not yet professional.',
+      },
+      {
+        'title': 'Apprentice',
+        'desc': 'under training or mentorship; gaining practical skill.',
+      },
+      {
+        'title': 'Intermediate',
+        'desc': 'understands fundamentals and can perform tasks with guidance.',
+      },
+      {
+        'title': 'Competent',
+        'desc': 'able to work independently with good understanding.',
+      },
+      {
+        'title': 'Proficient',
+        'desc':
+            'skilled and efficient; sees patterns and solves problems effectively.',
+      },
+      {
+        'title': 'Advanced',
+        'desc': 'deep understanding; handles complex or unusual tasks.',
+      },
+      {
+        'title': 'Expert',
+        'desc': 'recognized authority; consistently performs at high level.',
+      },
+      {
+        'title': 'Master',
+        'desc': 'exceptional, creative, and innovative command of the field.',
+      },
+      {
+        'title': 'Professional',
+        'desc': 'performs for pay; adheres to standards and ethics.',
+      },
+    ];
+
+    // Map progress [0,1] to an index in levels
+    int currentIndex = (progress.clamp(0.0, 1.0) * (levels.length - 1)).round();
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: theme.colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        final onSurface = theme.colorScheme.onSurface;
+        final subtle = onSurface.withValues(
+          alpha: theme.brightness == Brightness.dark ? 0.6 : 0.6,
+        );
+        final highlight = onSurface;
+        // Persist scroll metrics within this bottom sheet instance
+        double listScrollOffset = 0.0;
+        double listMaxScrollExtent = 0.0;
+        return StatefulBuilder(
+          builder: (innerCtx, setModalState) {
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 20,
+                  right: 20,
+                  top: 16,
+                  bottom:
+                      MediaQuery.of(innerCtx).viewInsets.bottom + 16,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'Progress details',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const Spacer(),
+                        // Overall progress bar snapshot
+                        SizedBox(
+                          width: 120,
+                          height: 8,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(999),
+                            child: Stack(
+                              children: [
+                                Container(
+                                    color:
+                                        onSurface.withValues(alpha: 0.15)),
+                                FractionallySizedBox(
+                                  widthFactor:
+                                      progress.clamp(0.0, 1.0),
+                                  child: Container(color: highlight),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    // Limit height to show about five items; blur the rest and reveal on scroll
+                    SizedBox(
+                      height: (MediaQuery.of(innerCtx).size.height * 0.55)
+                          .clamp(
+                        280.0,
+                        420.0,
+                      ),
+                      child: Stack(
+                        children: [
+                          NotificationListener<ScrollNotification>(
+                            onNotification: (sn) {
+                              // Update cached scroll metrics to drive the blur
+                              listScrollOffset = sn.metrics.pixels;
+                              listMaxScrollExtent = sn.metrics.maxScrollExtent;
+                              setModalState(() {});
+                              return false;
+                            },
+                            child: ListView.separated(
+                              shrinkWrap: true,
+                              itemCount: levels.length,
+                              separatorBuilder: (_, __) => Divider(
+                                height: 1,
+                                color: theme.dividerColor
+                                    .withValues(alpha: 0.2),
+                              ),
+                              itemBuilder: (context, index) {
+                                final m = levels[index];
+                                final isActive = index == currentIndex;
+                                final reached = index <= currentIndex;
+                                // Use cached metrics from the NotificationListener
+                                final scrolled = listScrollOffset;
+                                final maxScroll = listMaxScrollExtent;
+                                const tileH = 68.0;
+                                double sigma = 0;
+                                double opacity = 1.0;
+                                if (index >= 5) {
+                                  final baseThreshold =
+                                      (index - 4) * tileH;
+                                  double rawSigma = 0;
+                                  final remain = baseThreshold - scrolled;
+                                  if (remain > 0) {
+                                    rawSigma =
+                                        (remain / 24).clamp(2.0, 6.0);
+                                  }
+                                  // Ensure last items fully reveal near the end of the list
+                                  if (scrolled >= (maxScroll - tileH)) {
+                                    rawSigma = 0;
+                                  }
+                                  sigma = rawSigma;
+                                  opacity = sigma > 0 ? 0.65 : 1.0;
+                                }
+                                final tile = ListTile(
+                                  contentPadding:
+                                      const EdgeInsets.symmetric(
+                                    horizontal: 0,
+                                  ),
+                                  leading: CircleAvatar(
+                                    radius: 14,
+                                    backgroundColor: reached
+                                        ? (isActive
+                                              ? highlight
+                                              : onSurface.withValues(
+                                                  alpha: 0.18))
+                                        : onSurface.withValues(
+                                            alpha: 0.08),
+                                    child: reached
+                                        ? Icon(
+                                            isActive
+                                                ? Icons.star
+                                                : Icons.check,
+                                            size: 16,
+                                            color: isActive
+                                                ? Colors.white
+                                                : highlight,
+                                          )
+                                        : Text(
+                                            '${index + 1}',
+                                            style: theme
+                                                .textTheme
+                                                .labelSmall
+                                                ?.copyWith(color: subtle),
+                                          ),
+                                  ),
+                                  title: Text(
+                                    m['title'] ?? '',
+                                    style: theme.textTheme.bodyLarge?.copyWith(
+                                      fontWeight: isActive
+                                          ? FontWeight.w700
+                                          : FontWeight.w600,
+                                      color: onSurface,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    m['desc'] ?? '',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: subtle,
+                                    ),
+                                  ),
+                                );
+                                if (sigma <= 0) return tile;
+                                return AnimatedOpacity(
+                                  duration:
+                                      const Duration(milliseconds: 200),
+                                  opacity: opacity,
+                                  child: ImageFiltered(
+                                    imageFilter: ui.ImageFilter.blur(
+                                      sigmaX: sigma,
+                                      sigmaY: sigma,
+                                    ),
+                                    child: tile,
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          // Bottom gradient hint
+                          IgnorePointer(
+                            child: Align(
+                              alignment: Alignment.bottomCenter,
+                              child: Container(
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      theme.colorScheme.surface
+                                          .withValues(
+                                        alpha: 0.0,
+                                      ),
+                                      theme.colorScheme.surface,
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
 class _ProfileTabs extends StatelessWidget {
   const _ProfileTabs({required this.selectedIndex, required this.onChanged});
 
@@ -868,36 +1194,7 @@ class _ProfileTabs extends StatelessWidget {
   }
 }
 
-class _PillTag extends StatelessWidget {
-  const _PillTag(this.label);
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final background = isDark
-        ? Colors.white.withValues(alpha: 0.08)
-        : const Color(0xFFF1F5F9);
-    final textColor = isDark
-        ? Colors.white.withValues(alpha: 0.72)
-        : const Color(0xFF4B5563);
-
-    return Chip(
-      label: Text(label),
-      labelStyle: theme.textTheme.bodyMedium?.copyWith(
-        color: textColor,
-        fontWeight: FontWeight.w600,
-        fontSize: 11,
-      ),
-      backgroundColor: background,
-      shape: const StadiumBorder(),
-      side: BorderSide.none,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-    );
-  }
-}
+// Removed unused _PillTag after header redesign
 
 String _initialsFrom(String value) {
   final letters = value.replaceAll(RegExp('[^A-Za-z]'), '');
