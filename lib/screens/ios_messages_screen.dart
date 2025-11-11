@@ -1354,12 +1354,16 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: theme.colorScheme.primary),
+                            // Use neutral grey instead of accent/primary
+                            border: Border.all(
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.35),
+                            ),
                           ),
                           child: Text(
                             'View ${message.replies} ${message.replies == 1 ? 'reply' : 'replies'}',
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface,
+                              // Keep neutral text to match grey outline
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.85),
                             ),
                           ),
                         ),

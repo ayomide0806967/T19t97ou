@@ -956,13 +956,16 @@ class _XMetricsRow extends StatelessWidget {
       letterSpacing: -0.1,
     );
     final isDark = theme.brightness == Brightness.dark;
-    final accent = AppTheme.accent;
-    final chipBackground =
-        accent.withValues(alpha: isDark ? 0.18 : 0.1);
-    final chipContent = isDark ? Colors.white : accent;
+    // Use neutral greys for the Views chip instead of accent/cyan.
+    final Color chipBackground = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : theme.colorScheme.onSurface.withValues(alpha: 0.08);
+    final Color chipContent = theme.colorScheme.onSurface.withValues(
+      alpha: isDark ? 0.85 : 0.7,
+    );
     final chipTextStyle = theme.textTheme.bodySmall?.copyWith(
       color: chipContent,
-      fontWeight: FontWeight.w700,
+      fontWeight: FontWeight.w600,
     );
 
     return Wrap(
@@ -982,11 +985,7 @@ class _XMetricsRow extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.bookmark_border_rounded,
-                size: 16,
-                color: chipContent,
-              ),
+              Icon(Icons.remove_red_eye_outlined, size: 16, color: chipContent),
               const SizedBox(width: 6),
               Text(
                 '${_formatCount(metrics.views)} views',
