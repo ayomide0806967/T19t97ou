@@ -1097,7 +1097,10 @@ class _ClassComposer extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
-    final Color border = theme.dividerColor.withValues(alpha: isDark ? 0.28 : 0.22);
+    // Use black rounded outline in light mode; softer white in dark mode
+    final Color borderColor = isDark
+        ? Colors.white.withValues(alpha: 0.55)
+        : Colors.black;
 
     // A compact, modern input with the send action built-in as a suffix icon.
     return TextField(
@@ -1132,11 +1135,11 @@ class _ClassComposer extends StatelessWidget {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide(color: border, width: 1.0),
+          borderSide: BorderSide(color: borderColor, width: 1.0),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.85), width: 1.4),
+          borderSide: BorderSide(color: borderColor, width: 1.4),
         ),
       ),
       onSubmitted: (_) => onSend(),
