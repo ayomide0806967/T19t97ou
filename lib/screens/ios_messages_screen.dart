@@ -1371,6 +1371,7 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                         icon: _badActive
                             ? Icons.heart_broken_rounded
                             : Icons.heart_broken_outlined,
+                        iconSize: _badActive ? 18 : 16,
                         count: _bad,
                         color: _badActive ? Colors.black : null,
                         onPressed: () {
@@ -1426,12 +1427,14 @@ class _LabelCountButton extends StatefulWidget {
     this.label,
     this.icon,
     this.color,
+    this.iconSize,
   });
   final String? label;
   final IconData? icon;
   final int count;
   final VoidCallback onPressed;
   final Color? color;
+  final double? iconSize;
 
   @override
   State<_LabelCountButton> createState() => _LabelCountButtonState();
@@ -1462,7 +1465,7 @@ class _LabelCountButtonState extends State<_LabelCountButton> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (widget.icon != null) ...[
-                  Icon(widget.icon, size: 18, color: meta),
+                  Icon(widget.icon, size: widget.iconSize ?? 18, color: meta),
                   const SizedBox(width: 6),
                 ] else if (widget.label != null) ...[
                   Text(
@@ -2130,6 +2133,7 @@ class _CommentTileState extends State<_CommentTile> {
                   icon: _disliked
                       ? Icons.heart_broken_rounded
                       : Icons.heart_broken_outlined,
+                  iconSize: _disliked ? 18 : 16,
                   count: _dislikes,
                   color: _disliked ? Colors.black : null,
                   onPressed: () {
