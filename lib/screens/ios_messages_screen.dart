@@ -1555,7 +1555,7 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
   final FocusNode _composerFocusNode = FocusNode();
   _ThreadNode? _replyTarget;
   late List<_ThreadNode> _threads;
-  bool _composerVisible = false;
+  bool _composerVisible = true; // Keep composer open by default on comments
   final Set<_ThreadNode> _selected = <_ThreadNode>{};
 
   @override
@@ -1805,7 +1805,8 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
                       onPressed: () {
                         setState(() {
                           _replyTarget = null;
-                          _composerVisible = false;
+                          // Keep composer visible even after clearing reply target
+                          _composerVisible = true;
                         });
                         _composer
                           ..clear()
