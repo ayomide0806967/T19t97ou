@@ -336,30 +336,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Alex Rivera',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
+      appBar: null,
       body: SafeArea(
+        top: false,
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-              sliver: SliverToBoxAdapter(
-                child: _ProfileHeader(
-                  headerImage: _headerImage,
-                  profileImage: _profileImage,
-                  initials: initials,
-                  onProfileImageTap: _showProfilePhotoViewer,
-                  onChangeCover: handleChangeHeader,
-                  onEditProfile: handleEditProfile,
-                  onShareProfile: handleShareProfile,
-                ),
+            SliverToBoxAdapter(
+              child: _ProfileHeader(
+                headerImage: _headerImage,
+                profileImage: _profileImage,
+                initials: initials,
+                onProfileImageTap: _showProfilePhotoViewer,
+                onChangeCover: handleChangeHeader,
+                onEditProfile: handleEditProfile,
+                onShareProfile: handleShareProfile,
               ),
             ),
             SliverPadding(
@@ -456,179 +447,185 @@ class _ProfileHeader extends StatelessWidget {
     final coverPlaceholderColor = theme.colorScheme.surfaceContainerHigh
         .withValues(alpha: isDark ? 0.32 : 0.6);
 
+    final double screenWidth = MediaQuery.of(context).size.width;
+    const double coverHeight = 200;
+    const double avatarSize = 96;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: Stack(
-            children: [
-              Container(
-                height: 140,
-                decoration: BoxDecoration(
-                  color: headerImage == null ? coverPlaceholderColor : null,
-                  image: headerImage != null
-                      ? DecorationImage(
-                          image: MemoryImage(headerImage!),
-                          fit: BoxFit.cover,
-                        )
-                      : null,
-                ),
-              ),
-              if (headerImage == null)
-                Positioned.fill(
-                  child: Center(
-                    child: Icon(
-                      Icons.wallpaper_outlined,
-                      size: 48,
-                      color: subtle,
-                    ),
-                  ),
-                ),
-              Positioned(
-                top: 12,
-                right: 12,
-                child: IconButton(
-                  onPressed: onChangeCover,
-                  tooltip: 'Change cover photo',
-                  icon: const Icon(Icons.wallpaper_outlined),
-                  iconSize: 22,
-                  style: IconButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    backgroundColor: Colors.black.withValues(alpha: 0.28),
-                    padding: const EdgeInsets.all(10),
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(12)),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        // Full-width cover image
+        Stack(
+          clipBehavior: Clip.none,
           children: [
-            GestureDetector(
-              onTap: onProfileImageTap,
-              child: HexagonAvatar(
-                size: 76,
-                borderWidth: 1.5,
-                borderColor: outlineColor.withValues(alpha: 0.6),
-                backgroundColor: isDark
-                    ? Colors.black.withValues(alpha: 0.12)
-                    : Colors.white,
-                image: profileImage != null
-                    ? MemoryImage(profileImage!)
-                    : null,
-                child: profileImage != null
-                    ? null
-                    : Center(
-                        child: Text(
-                          initials,
-                          style: theme.textTheme.headlineMedium?.copyWith(
-                            color: onSurface,
-                            fontSize: 36,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
+            SizedBox(
+              width: screenWidth,
+              height: coverHeight,
+              child: headerImage != null
+                  ? Image.memory(headerImage!, fit: BoxFit.cover)
+                  : DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: coverPlaceholderColor,
                       ),
+                    ),
+            ),
+            // Back button overlay
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 8,
+              left: 8,
+              child: IconButton(
+                onPressed: () => Navigator.of(context).maybePop(),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.black.withValues(alpha: 0.28),
+                ),
+                icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
               ),
             ),
-            const SizedBox(width: 18),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            // Change cover button
+            Positioned(
+              top: 12 + MediaQuery.of(context).padding.top,
+              right: 12,
+              child: IconButton(
+                onPressed: onChangeCover,
+                tooltip: 'Change cover photo',
+                icon: const Icon(Icons.wallpaper_outlined),
+                iconSize: 22,
+                style: IconButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  backgroundColor: Colors.black.withValues(alpha: 0.28),
+                  padding: const EdgeInsets.all(10),
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                  ),
+                ),
+              ),
+            ),
+            // Rectangular avatar overlapping the cover by half
+            Positioned(
+              left: 24,
+              bottom: -avatarSize / 2,
+              child: GestureDetector(
+                onTap: onProfileImageTap,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: avatarSize,
+                    height: avatarSize,
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? Colors.black.withValues(alpha: 0.12)
+                          : Colors.white,
+                      border: Border.all(color: Colors.white, width: 3),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          blurRadius: 16,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                      image: profileImage != null
+                          ? DecorationImage(
+                              image: MemoryImage(profileImage!),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                    ),
+                    alignment: Alignment.center,
+                    child: profileImage == null
+                        ? Text(
+                            initials,
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 28,
+                              color: onSurface,
+                            ),
+                          )
+                        : null,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: avatarSize / 2 + 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Alex Rivera',
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  color: onSurface,
+                  fontSize: 28,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '@productlead',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: subtle,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Followers and counts directly under name
+              Row(
+                children: const [
+                  _ProfileStat(value: '18.4K', label: 'Followers'),
+                  SizedBox(width: 24),
+                  _ProfileStat(value: '1.2K', label: 'Following'),
+                  SizedBox(width: 24),
+                  _ProfileStat(value: '342', label: 'GP'),
+                  SizedBox(width: 24),
+                  _ProfileStat(value: '5.8K', label: 'Likes'),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'Guiding nursing and midwifery teams through safe practice, exam preparation, and compassionate leadership across our teaching hospital.',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: onSurface,
+                  height: 1.45,
+                  fontSize: 13.5,
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
                 children: [
-                  Text(
-                    'Alex Rivera',
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      color: onSurface,
-                      fontSize: 28,
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: onEditProfile,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        backgroundColor: onSurface,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Edit Profile'),
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '@productlead',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: subtle,
-                      fontSize: 13,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: onShareProfile,
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        side: BorderSide(color: outlineColor),
+                        foregroundColor: onSurface,
+                      ),
+                      child: const Text('Share Profile'),
                     ),
                   ),
                 ],
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Text(
-          'Guiding nursing and midwifery teams through safe practice, exam preparation, and compassionate leadership across our teaching hospital.',
-          style: theme.textTheme.bodyLarge?.copyWith(
-            color: onSurface,
-            height: 1.45,
-            fontSize: 13.5,
-          ),
-        ),
-        const SizedBox(height: 14),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(),
-          child: Row(
-            children: const [
-              _PillTag('Clinical Education'),
-              SizedBox(width: 8),
-              _PillTag('Quality Improvement'),
-              SizedBox(width: 8),
-              _PillTag('Mentorship'),
             ],
           ),
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: const [
-            _ProfileStat(value: '18.4K', label: 'Followers'),
-            SizedBox(width: 24),
-            _ProfileStat(value: '1.2K', label: 'Following'),
-            SizedBox(width: 24),
-            _ProfileStat(value: '342', label: 'GP'),
-            SizedBox(width: 24),
-            _ProfileStat(value: '5.8K', label: 'Likes'),
-          ],
-        ),
-        const SizedBox(height: 18),
-        Row(
-          children: [
-            Expanded(
-              child: ElevatedButton(
-                onPressed: onEditProfile,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  backgroundColor: onSurface,
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Edit Profile'),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: OutlinedButton(
-                onPressed: onShareProfile,
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  side: BorderSide(color: outlineColor),
-                  foregroundColor: onSurface,
-                ),
-                child: const Text('Share Profile'),
-              ),
-            ),
-          ],
         ),
       ],
     );
