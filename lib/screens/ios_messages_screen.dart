@@ -5,6 +5,13 @@ import 'package:flutter/services.dart';
 import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
+import 'quiz_hub_screen.dart';
+import 'package:provider/provider.dart';
+import '../services/data_service.dart';
+import '../widgets/tweet_post_card.dart';
+import '../services/simple_auth_service.dart';
+import '../widgets/hexagon_avatar.dart';
+// Removed unused tweet widgets imports
 
 // Lightweight attachment model used by the class composer
 class _Attachment {
@@ -17,13 +24,6 @@ class _Attachment {
     return mt.startsWith('image/');
   }
 }
-import 'quiz_hub_screen.dart';
-import 'package:provider/provider.dart';
-import '../services/data_service.dart';
-import '../widgets/tweet_post_card.dart';
-import '../services/simple_auth_service.dart';
-import '../widgets/hexagon_avatar.dart';
-// Removed unused tweet widgets imports
 
 /// Public helper to open the "Replies" UI (classes/messages style)
 /// for a given timeline post. This keeps the private types local to this
