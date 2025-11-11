@@ -202,7 +202,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 FilledButton(
                   onPressed: () async {
                     Navigator.of(dialogContext).pop();
-                    await handleChangeHeader();
+                    await _handleChangeHeader();
                   },
                   child: const Text('Change cover photo'),
                 ),
@@ -227,6 +227,74 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       },
     );
+  }
+
+  Future<void> _handleChangeHeader() async {
+    final theme = Theme.of(context);
+    final action = await showModalBottomSheet<_HeaderAction>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Update cover image',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: const Icon(Icons.photo_library_outlined),
+                  title: const Text('Choose from gallery'),
+                  onTap: () => Navigator.of(context).pop(_HeaderAction.pickImage),
+                ),
+                if (_headerImage != null)
+                  ListTile(
+                    leading: const Icon(Icons.delete_outline),
+                    title: const Text('Remove photo'),
+                    onTap: () => Navigator.of(context).pop(_HeaderAction.removeImage),
+                  ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    switch (action) {
+      case _HeaderAction.pickImage:
+        final XFile? file = await _picker.pickImage(
+          source: ImageSource.gallery,
+          imageQuality: 85,
+          maxWidth: 1600,
+        );
+        if (file == null) return;
+        final bytes = await file.readAsBytes();
+        setState(() {
+          _headerImage = bytes;
+        });
+        _showToast('Cover photo updated');
+        break;
+      case _HeaderAction.removeImage:
+        setState(() => _headerImage = null);
+        _showToast('Cover photo removed');
+        break;
+      case null:
+        break;
+    }
   }
 
   String get _currentUserHandle {
@@ -429,7 +497,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 initials: initials,
                 onProfileImageTap: _showProfilePhotoViewer,
                 onHeaderTap: _showHeaderImageViewer,
-                onChangeCover: handleChangeHeader,
+                onChangeCover: _handleChangeHeader,
                 onEditProfile: handleEditProfile,
                 onShareProfile: handleShareProfile,
               ),
