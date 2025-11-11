@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'quiz_hub_screen.dart';
 import 'package:provider/provider.dart';
 import '../services/data_service.dart';
+import '../widgets/tweet_post_card.dart';
 import '../services/simple_auth_service.dart';
 import '../widgets/hexagon_avatar.dart';
 // Removed unused tweet widgets imports
@@ -1729,10 +1730,22 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
               children: [
-                _ClassMessageTile(
-                  message: widget.message,
-                  onShare: () async {},
-                  showReplyButton: false,
+                // Render the primary tweet using the canonical TweetPostCard
+                TweetPostCard(
+                  post: PostModel(
+                    id: widget.message.id,
+                    author: widget.message.author,
+                    handle: widget.message.handle,
+                    timeAgo: widget.message.timeAgo,
+                    body: widget.message.body,
+                    tags: const <String>[],
+                    replies: widget.message.replies,
+                    reposts: 0,
+                    likes: widget.message.likes,
+                    views: 0,
+                    bookmarks: 0,
+                  ),
+                  currentUserHandle: widget.currentUserHandle,
                 ),
                 const SizedBox(height: 12),
                 _ThreadCommentsView(
@@ -1768,7 +1781,7 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            _replyTarget!.comment.author,
+                            _replyTarget!.comment.author.replaceFirst(RegExp(r'^\s*@'), ''),
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w800,
                               color: theme.colorScheme.onSurface,
@@ -1813,7 +1826,7 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
                 focusNode: _composerFocusNode,
                 hintText: _replyTarget == null
                     ? 'Write a reply…'
-                    : 'Replying to ${_replyTarget!.comment.author}',
+                    : 'Replying to ${_replyTarget!.comment.author.replaceFirst(RegExp(r'^\s*@'), '')}',
                 onSend: _sendReply,
               ),
             ),
@@ -2040,7 +2053,7 @@ class _CommentTileState extends State<_CommentTile> {
               children: [
                 Expanded(
                   child: Text(
-                    comment.author,
+                    comment.author.replaceFirst(RegExp(r'^\s*@'), ''),
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
@@ -2071,7 +2084,8 @@ class _CommentTileState extends State<_CommentTile> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            comment.quotedFrom ?? 'Reply',
+                            (comment.quotedFrom ?? 'Reply')
+                                .replaceFirst(RegExp(r'^\s*@'), ''),
                             style: theme.textTheme.labelSmall?.copyWith(
                               fontWeight: FontWeight.w700,
                               color: meta,
@@ -2227,18 +2241,24 @@ class _CommentTileState extends State<_CommentTile> {
       ),
     );
 
-    // Prepare left-aligned avatar (fixed size), separate from content card
+    // Prepare left-aligned avatar to match TweetPostCard sizing (size 48)
+    final String _displayAuthor = comment.author.replaceFirst(RegExp(r'^\s*@'), '').trim();
+    final String _initial = _displayAuthor.isNotEmpty
+        ? _displayAuthor.substring(0, 1).toUpperCase()
+        : 'U';
     final Widget avatar = HexagonAvatar(
-      size: 40,
-      borderWidth: 1.0,
-      borderColor: theme.dividerColor,
-      backgroundColor: theme.colorScheme.surface,
-      child: Text(
-        (comment.author.isNotEmpty ? comment.author.substring(0, 1) : 'U')
-            .toUpperCase(),
-        style: theme.textTheme.labelMedium?.copyWith(
-          fontWeight: FontWeight.w700,
-          color: theme.colorScheme.onSurface,
+      size: 48,
+      borderWidth: 1.5,
+      borderColor: theme.colorScheme.primary.withValues(alpha: 0.35),
+      backgroundColor: theme.colorScheme.surfaceContainerHighest,
+      child: Center(
+        child: Text(
+          _initial,
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: theme.colorScheme.onSurface,
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ),
     );
@@ -2291,7 +2311,7 @@ class _CommentTileState extends State<_CommentTile> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             avatar,
-            const SizedBox(width: 4),
+            const SizedBox(width: 6),
             Expanded(
               child: Stack(
                 alignment: Alignment.centerLeft,
