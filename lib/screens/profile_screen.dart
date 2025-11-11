@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 
 import '../services/simple_auth_service.dart';
 import '../services/data_service.dart';
-import '../widgets/hexagon_avatar.dart';
 import '../widgets/tweet_post_card.dart';
 import 'thread_screen.dart';
 
@@ -605,24 +604,30 @@ class _ProfileHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Full-width cover image
-        Stack(
-          clipBehavior: Clip.none,
-          children: [
-            GestureDetector(
-              onTap: onHeaderTap,
-              child: SizedBox(
-                width: screenWidth,
+        // Full-width cover image with extended hit area for overlapping avatar
+        SizedBox(
+          width: screenWidth,
+          height: coverHeight + avatarSize / 2,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              // Cover occupies top portion
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
                 height: coverHeight,
-                child: headerImage != null
-                    ? Image.memory(headerImage!, fit: BoxFit.cover)
-                    : DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: coverPlaceholderColor,
+                child: GestureDetector(
+                  onTap: onHeaderTap,
+                  child: headerImage != null
+                      ? Image.memory(headerImage!, fit: BoxFit.cover)
+                      : DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: coverPlaceholderColor,
+                          ),
                         ),
-                      ),
+                ),
               ),
-            ),
             // Back button overlay
             Positioned(
               top: MediaQuery.of(context).padding.top + 8,
@@ -654,17 +659,17 @@ class _ProfileHeader extends StatelessWidget {
                 ),
               ),
             ),
-            // Rectangular avatar overlapping the cover by half
-            Positioned(
-              left: 24,
-              bottom: -avatarSize / 2,
-              child: GestureDetector(
-                onTap: onProfileImageTap,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    width: avatarSize,
-                    height: avatarSize,
+              // Rectangular avatar overlapping the cover by half (fully hittestable)
+              Positioned(
+                left: 24,
+                bottom: 0,
+                child: GestureDetector(
+                  onTap: onProfileImageTap,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      width: avatarSize,
+                      height: avatarSize,
                     decoration: BoxDecoration(
                       color: isDark
                           ? Colors.black.withValues(alpha: 0.12)
@@ -698,10 +703,10 @@ class _ProfileHeader extends StatelessWidget {
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-        const SizedBox(height: avatarSize / 2 + 12),
+        const SizedBox(height: 12),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
