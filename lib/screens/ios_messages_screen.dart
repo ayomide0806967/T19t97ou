@@ -1330,9 +1330,11 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                       _LabelCountButton(
-                        label: 'Good',
+                        icon: _goodActive
+                            ? Icons.favorite_rounded
+                            : Icons.favorite_border_rounded,
                         count: _good,
-                        color: _goodActive ? Colors.green : null,
+                        color: _goodActive ? Colors.red : null,
                         onPressed: () {
                           HapticFeedback.lightImpact();
                           setState(() {
@@ -1350,10 +1352,25 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                           });
                         },
                       ),
+                const SizedBox(width: 16),
+                _ScaleTap(
+                  onTap: () => setState(() => _saved = !_saved),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    child: Text(
+                      'repost',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: meta,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+                      const SizedBox(width: 16),
                       _LabelCountButton(
-                        label: 'Bad',
+                        icon: Icons.heart_broken_rounded,
                         count: _bad,
-                        color: _badActive ? Colors.red : null,
+                        color: _badActive ? Colors.blueGrey : null,
                         onPressed: () {
                           HapticFeedback.lightImpact();
                           setState(() {
@@ -1371,19 +1388,6 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                           });
                         },
                       ),
-                _ScaleTap(
-                  onTap: () => setState(() => _saved = !_saved),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    child: Text(
-                      'repost',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: meta,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ),
                       ],
                     ),
                   ),
@@ -1415,12 +1419,14 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
 
 class _LabelCountButton extends StatefulWidget {
   const _LabelCountButton({
-    required this.label,
     required this.count,
     required this.onPressed,
+    this.label,
+    this.icon,
     this.color,
   });
-  final String label;
+  final String? label;
+  final IconData? icon;
   final int count;
   final VoidCallback onPressed;
   final Color? color;
@@ -1453,14 +1459,19 @@ class _LabelCountButtonState extends State<_LabelCountButton> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  widget.label,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: meta,
-                    fontWeight: FontWeight.w600,
+                if (widget.icon != null) ...[
+                  Icon(widget.icon, size: 18, color: meta),
+                  const SizedBox(width: 6),
+                ] else if (widget.label != null) ...[
+                  Text(
+                    widget.label!,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: meta,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 4),
+                  const SizedBox(width: 4),
+                ],
                 Text(
                   '${widget.count}',
                   style: theme.textTheme.bodySmall?.copyWith(color: meta),
@@ -2072,10 +2083,13 @@ class _CommentTileState extends State<_CommentTile> {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Like (heart)
                 _LabelCountButton(
-                  label: 'Good',
+                  icon: _liked
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded,
                   count: _likes,
-                  color: _liked ? Colors.green : null,
+                  color: _liked ? Colors.red : null,
                   onPressed: () {
                     HapticFeedback.lightImpact();
                     setState(() {
@@ -2094,10 +2108,26 @@ class _CommentTileState extends State<_CommentTile> {
                   },
                 ),
                 const SizedBox(width: 16),
+                // Repost (text label)
+                _ScaleTap(
+                  onTap: () => setState(() => _reposted = !_reposted),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    child: Text(
+                      'repost',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                        fontWeight: _reposted ? FontWeight.w700 : FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Heartbreak (broken heart)
                 _LabelCountButton(
-                  label: 'Bad',
+                  icon: Icons.heart_broken_rounded,
                   count: _dislikes,
-                  color: _disliked ? Colors.red : null,
+                  color: _disliked ? Colors.blueGrey : null,
                   onPressed: () {
                     HapticFeedback.lightImpact();
                     setState(() {
@@ -2114,21 +2144,6 @@ class _CommentTileState extends State<_CommentTile> {
                       }
                     });
                   },
-                ),
-                const SizedBox(width: 16),
-                _ScaleTap(
-                  onTap: () => setState(() => _reposted = !_reposted),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                    child: SizedBox(
-                      height: 20,
-                      width: 28,
-                      child: Image.asset(
-                        'assets/images/1762677878887.Screenshot_20251109-094424-removebg-preview.png',
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                  ),
                 ),
               ],
             ),
