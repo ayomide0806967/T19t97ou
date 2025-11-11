@@ -1564,32 +1564,31 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
     _threads = <_ThreadNode>[
       _ThreadNode(
         comment: const _ThreadComment(
-          author: '@Amina Bello',
-          timeAgo: '3h',
-          body: 'Thanks for sharing this. Super helpful.',
-          likes: 2,
-        ),
-      ),
-      _ThreadNode(
-        comment: const _ThreadComment(
-          author: 'You',
-          timeAgo: '2h',
-          body: 'Agreed — the summary clarified a lot.',
+          author: '@Naureen Ali',
+          timeAgo: '14h',
+          body: "Use Google authenticator instead of recovery Gmail and no what's ths??",
           likes: 1,
         ),
       ),
       _ThreadNode(
         comment: const _ThreadComment(
-          author: '@Yusuf Danjuma',
-          timeAgo: '1h',
-          body: 'Where can I find the source link?',
+          author: '@Athisham Nawaz',
+          timeAgo: '14h',
+          body: 'Google authenticator app ha',
         ),
       ),
       _ThreadNode(
         comment: const _ThreadComment(
-          author: '@Mary Okon',
-          timeAgo: '45m',
-          body: 'Pinned the PDF in files for quick access.',
+          author: '@Jan Mi',
+          timeAgo: '2h',
+          body: 'Naureen Ali Google auth app is more reliable.',
+        ),
+      ),
+      _ThreadNode(
+        comment: const _ThreadComment(
+          author: '@Mahan Rehman',
+          timeAgo: '13h',
+          body: 'Channel suspended. Got a notification — what should I do?',
         ),
       ),
     ];
