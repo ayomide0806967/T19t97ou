@@ -1066,7 +1066,7 @@ class _ClassFeedTab extends StatelessWidget {
           minimum: const EdgeInsets.fromLTRB(16, 8, 16, 8),
           child: _ClassComposer(
             controller: textController,
-            hintText: 'Write a note to ${college.code}…',
+            hintText: 'Message',
             onSend: () {
               final text = textController.text.trim();
               if (text.isEmpty) return;
@@ -1097,16 +1097,14 @@ class _ClassComposer extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
-    // Use black rounded outline in light mode; softer white in dark mode
-    final Color borderColor = isDark
-        ? Colors.white.withValues(alpha: 0.55)
-        : Colors.black;
+    final Color onSurface = theme.colorScheme.onSurface;
+    final Color subtle = onSurface.withValues(alpha: isDark ? 0.7 : 0.55);
 
-    // A compact, modern input with the send action built-in as a suffix icon.
+    // Messaging-style input: left emoji, right attach + send. Soft container, no heavy border.
     return TextField(
       controller: controller,
       focusNode: focusNode,
-      maxLines: null,
+      maxLines: 4,
       minLines: 1,
       textCapitalization: TextCapitalization.sentences,
       textInputAction: TextInputAction.newline,
@@ -1119,27 +1117,55 @@ class _ClassComposer extends StatelessWidget {
       decoration: InputDecoration(
         hintText: hintText,
         isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
         filled: true,
         fillColor: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white,
         hintStyle: theme.textTheme.bodyLarge?.copyWith(
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+          color: subtle,
           fontSize: 18,
           height: 1.45,
           letterSpacing: 0.1,
         ),
-        suffixIcon: IconButton(
-          tooltip: 'Send',
-          onPressed: onSend,
-          icon: Icon(Icons.send_rounded, color: theme.colorScheme.primary),
+        prefixIcon: IconButton(
+          tooltip: 'Emoji',
+          onPressed: () {
+            // Placeholder for emoji picker
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Emoji picker coming soon')),
+            );
+          },
+          icon: Icon(Icons.emoji_emotions_outlined, color: subtle),
+        ),
+        suffixIcon: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              tooltip: 'Attach',
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Attach coming soon')),
+                );
+              },
+              icon: Icon(Icons.attach_file_rounded, color: subtle),
+            ),
+            IconButton(
+              tooltip: 'Send',
+              onPressed: onSend,
+              icon: Icon(Icons.send_rounded, color: theme.colorScheme.primary),
+            ),
+          ],
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(24),
+          borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide(color: borderColor, width: 1.0),
+          borderRadius: BorderRadius.circular(24),
+          borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide(color: borderColor, width: 1.4),
+          borderRadius: BorderRadius.circular(24),
+          borderSide: BorderSide.none,
         ),
       ),
       onSubmitted: (_) => onSend(),
