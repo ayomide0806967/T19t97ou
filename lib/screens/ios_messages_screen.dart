@@ -4,7 +4,10 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
-import 'package:file_picker/file_picker.dart';
+// Note: file_picker is optional. We avoid importing it so the app builds even
+// when the dependency hasn't been fetched. If you add file_picker to
+// pubspec and run `flutter pub get`, you can re-enable file attachments by
+// switching _handleAttachFile() to use FilePicker.
 import 'quiz_hub_screen.dart';
 import 'package:provider/provider.dart';
 import '../services/data_service.dart';
@@ -1212,25 +1215,17 @@ class _ClassComposerState extends State<_ClassComposer> {
   }
 
   Future<void> _handleAttachFile() async {
-    try {
-      final res = await FilePicker.platform.pickFiles(
-        allowMultiple: true,
-        withData: true,
-      );
-      if (res == null) return;
-      final List<_Attachment> items = [];
-      for (final f in res.files) {
-        if (f.bytes == null) continue;
-        items.add(
-          _Attachment(bytes: f.bytes!, name: f.name, mimeType: f.mimeType),
-        );
-      }
-      if (items.isNotEmpty) setState(() => _attachments.addAll(items));
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('File pick failed: $e')),
-      );
-    }
+    // Fallback path that doesn't require `file_picker` package.
+    // Inform the user how to enable real file picking.
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'File attach requires the file_picker package. Run "flutter pub add file_picker" and restart.',
+        ),
+        duration: Duration(seconds: 3),
+      ),
+    );
   }
 
   Future<void> _openAttachMenu() async {
