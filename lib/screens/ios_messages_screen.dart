@@ -1072,7 +1072,6 @@ class _ClassComposer extends StatelessWidget {
       style: theme.textTheme.bodyLarge?.copyWith(
         color: theme.colorScheme.onSurface,
         fontSize: 18,
-        fontWeight: FontWeight.w600,
         height: 1.45,
         letterSpacing: 0.1,
       ),
@@ -1085,7 +1084,6 @@ class _ClassComposer extends StatelessWidget {
         hintStyle: theme.textTheme.bodyLarge?.copyWith(
           color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
           fontSize: 18,
-          fontWeight: FontWeight.w600,
           height: 1.45,
           letterSpacing: 0.1,
         ),
