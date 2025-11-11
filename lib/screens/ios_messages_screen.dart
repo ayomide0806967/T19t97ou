@@ -1232,14 +1232,16 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: Container(
-                  width: 32,
-                  height: 32,
+                  // Match main tweet avatar size (48x48)
+                  width: 48,
+                  height: 48,
                   decoration: BoxDecoration(
                     color: isDark
                         ? theme.colorScheme.surfaceContainerHighest
                         : Colors.white,
                     border: Border.all(
                       color: theme.dividerColor.withValues(alpha: isDark ? 0.35 : 0.25),
+                      width: 1.5,
                     ),
                   ),
                   alignment: Alignment.center,
@@ -1247,6 +1249,7 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                     avatarText(),
                     style: theme.textTheme.labelMedium?.copyWith(
                       fontWeight: FontWeight.w800,
+                      fontSize: 15,
                       color: theme.colorScheme.onSurface,
                     ),
                   ),
