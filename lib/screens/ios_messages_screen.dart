@@ -637,43 +637,43 @@ class LectureNote {
 
 const List<_Conversation> _demoConversations = <_Conversation>[
   _Conversation(
-    name: 'Hannah Nguyen',
-    initials: 'HN',
-    lastMessage: 'Sending now. Also, meeting moved to 10:30.',
-    timeLabel: '09:22',
+    name: 'Project Group A',
+    initials: 'PG',
+    lastMessage: 'Draft submitted. Review due Friday.',
+    timeLabel: '09:40',
+    unreadCount: 3,
   ),
   _Conversation(
-    name: 'Nursing Study Group',
-    initials: 'NS',
-    lastMessage: 'Practice test starts at 4pm today.',
-    timeLabel: 'Sun',
-    unreadCount: 5,
-  ),
-  _Conversation(
-    name: 'Wale Adebayo',
-    initials: 'WA',
-    lastMessage: 'On my way 🚍',
-    timeLabel: '08:55',
-    unreadCount: 2,
-  ),
-  _Conversation(
-    name: 'Hadiza Umar',
-    initials: 'HU',
-    lastMessage: 'I shared the doc.',
+    name: 'Tutor Anika',
+    initials: 'TA',
+    lastMessage: 'Slides for cardio uploaded.',
     timeLabel: 'Yesterday',
   ),
   _Conversation(
-    name: 'Sam Obi',
-    initials: 'SO',
-    lastMessage: 'Lol true 😂',
-    timeLabel: 'Sat',
+    name: 'Admissions Office',
+    initials: 'AO',
+    lastMessage: 'Reminder: fee payment closes Fri.',
+    timeLabel: 'Mon',
+    unreadCount: 1,
   ),
   _Conversation(
-    name: 'Maria Idowu',
-    initials: 'MI',
-    lastMessage: 'Voice note (0:23)',
-    timeLabel: 'Fri',
-    unreadCount: 1,
+    name: 'Lab Team',
+    initials: 'LT',
+    lastMessage: 'Bring lab coats tomorrow.',
+    timeLabel: '08:12',
+  ),
+  _Conversation(
+    name: 'Study Hub',
+    initials: 'SH',
+    lastMessage: 'OSCE checklist updated.',
+    timeLabel: 'Sun',
+  ),
+  _Conversation(
+    name: 'Class Rep',
+    initials: 'CR',
+    lastMessage: 'Venue changed to Hall B.',
+    timeLabel: 'Sat',
+    unreadCount: 2,
   ),
 ];
 
@@ -841,6 +841,43 @@ Mock exam briefing extended update: please review chapters one through five, pra
           heartbreaks: 0,
         ),
       ]);
+    }
+    // Replace demo notes with new aligned data
+    if (widget.college.code == 'CVE220') {
+      _notes
+        ..clear()
+        ..addAll(<_ClassMessage>[
+          _ClassMessage(
+            id: 'n1',
+            author: '@StudyCouncil',
+            handle: '@study_council',
+            timeAgo: '3d ago',
+            body: 'Mid‑sem schedule posted on the portal. Lab sessions moved to Week 6.',
+            likes: 12,
+            replies: 4,
+            heartbreaks: 0,
+          ),
+          _ClassMessage(
+            id: 'n2',
+            author: '@TutorAnika',
+            handle: '@tutor_anika',
+            timeAgo: '2d ago',
+            body: 'Cardio physiology slides added in Resources → Week 2. Read before lab.',
+            likes: 7,
+            replies: 3,
+            heartbreaks: 0,
+          ),
+          _ClassMessage(
+            id: 'n3',
+            author: 'System',
+            handle: '@exam_board',
+            timeAgo: 'Yesterday',
+            body: 'Mock exam on 18 Oct at 09:00. Bring ID and a calculator.',
+            likes: 3,
+            replies: 1,
+            heartbreaks: 0,
+          ),
+        ]);
     }
   }
 
