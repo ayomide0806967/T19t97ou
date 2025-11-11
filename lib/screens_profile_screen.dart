@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 
 import '../services/simple_auth_service.dart';
 import '../services/data_service.dart';
-import '../widgets/hexagon_avatar.dart';
 import '../widgets/tweet_post_card.dart';
 import 'screens/thread_screen.dart';
 
@@ -304,16 +303,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Alex Rivera',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
-        ),
+        title: const SizedBox.shrink(), // remove name in the app bar (hero)
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          padding: const EdgeInsets.only(bottom: 24), // allow header to reach edges/top
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 720),
@@ -400,138 +394,114 @@ class _ProfileHeader extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final onSurface = theme.colorScheme.onSurface;
     final subtle = onSurface.withValues(alpha: isDark ? 0.7 : 0.58);
-    final containerColor = theme.colorScheme.surfaceContainerHighest
-        .withValues(alpha: isDark ? 0.18 : 0.16);
-    final borderColor = theme.dividerColor.withValues(alpha: isDark ? 0.4 : 0.28);
     final gradient = LinearGradient(
       colors: headerColors,
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     );
+    final double screenWidth = MediaQuery.of(context).size.width;
+    const double coverHeight = 200;
+    const double avatarSize = 96;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: containerColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor, width: 1),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Stack(
-              children: [
-                Container(
-                  height: 120,
-                  decoration: headerImage != null
-                      ? BoxDecoration(
-                          image: DecorationImage(
-                            image: MemoryImage(headerImage!),
-                            fit: BoxFit.cover,
-                          ),
-                        )
-                      : BoxDecoration(gradient: gradient),
-                ),
-                Positioned(
-                  top: 10,
-                  right: 10,
-                  child: TextButton.icon(
-                    onPressed: onChangeCover,
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      backgroundColor: Colors.black.withValues(alpha: 0.28),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Full-width cover image (no container frame)
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            SizedBox(
+              width: screenWidth,
+              height: coverHeight,
+              child: headerImage != null
+                  ? Image.memory(headerImage!, fit: BoxFit.cover)
+                  : DecoratedBox(
+                      decoration: BoxDecoration(gradient: gradient),
                     ),
-                    icon: const Icon(Icons.wallpaper_outlined, size: 18),
-                    label: const Text('Change cover'),
-                  ),
-                ),
-              ],
             ),
-          ),
-          const SizedBox(height: 18),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              HexagonAvatar(
-                size: 72,
-                child: Center(
+            Positioned(
+              top: 10,
+              right: 10,
+              child: TextButton.icon(
+                onPressed: onChangeCover,
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  backgroundColor: Colors.black.withValues(alpha: 0.28),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                icon: const Icon(Icons.wallpaper_outlined, size: 18),
+                label: const Text('Change cover'),
+              ),
+            ),
+            // Rectangular profile avatar overlapping the cover by half
+            Positioned(
+              left: 24,
+              bottom: -avatarSize / 2,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  width: avatarSize,
+                  height: avatarSize,
+                  color: theme.colorScheme.surface,
+                  alignment: Alignment.center,
                   child: Text(
                     _initialsFrom(email),
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      fontSize: 36,
-                      fontWeight: FontWeight.w700,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 28,
+                      color: onSurface,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Alex Rivera',
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        color: onSurface,
-                        fontSize: 26,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      '@productlead',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: subtle,
-                        fontSize: 12.5,
-                      ),
-                    ),
-                  ],
+            ),
+          ],
+        ),
+        const SizedBox(height: avatarSize / 2 + 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Name and handle; followers block sits below
+              Text(
+                'Alex Rivera',
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  color: onSurface,
+                  fontSize: 26,
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Guiding nursing and midwifery teams through safe practice, exam preparation, and compassionate leadership across our teaching hospital.',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: onSurface,
-              height: 1.45,
-              fontSize: 13.5,
-            ),
-          ),
-          const SizedBox(height: 14),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            child: Row(
-              children: const [
-                _PillTag('Clinical Education'),
-                SizedBox(width: 8),
-                _PillTag('Quality Improvement'),
-                SizedBox(width: 8),
-                _PillTag('Mentorship'),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: const [
-              _ProfileStat(value: '18.4K', label: 'Followers'),
-              SizedBox(width: 24),
-              _ProfileStat(value: '1.2K', label: 'Following'),
-              SizedBox(width: 24),
-              _ProfileStat(value: '342', label: 'Clinical Moments'),
-            ],
-          ),
-          const SizedBox(height: 18),
+              const SizedBox(height: 6),
+              Text(
+                '@productlead',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: subtle,
+                  fontSize: 12.5,
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Followers and other stats directly under the name
+              Row(
+                children: const [
+                  _ProfileStat(value: '18.4K', label: 'Followers'),
+                  SizedBox(width: 24),
+                  _ProfileStat(value: '1.2K', label: 'Following'),
+                  SizedBox(width: 24),
+                  _ProfileStat(value: '342', label: 'Clinical Moments'),
+                ],
+              ),
+              const SizedBox(height: 14),
+              // Bio
+              Text(
+                'Guiding nursing and midwifery teams through safe practice, exam preparation, and compassionate leadership across our teaching hospital.',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: onSurface,
+                  height: 1.45,
+                  fontSize: 13.5,
+                ),
+              ),
+              const SizedBox(height: 18),
           Row(
             children: [
               Expanded(
@@ -565,8 +535,10 @@ class _ProfileHeader extends StatelessWidget {
               ),
             ],
           ),
-        ],
-      ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
