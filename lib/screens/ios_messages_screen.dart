@@ -1078,7 +1078,7 @@ class _ClassComposer extends StatelessWidget {
       decoration: InputDecoration(
         hintText: hintText,
         isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         filled: true,
         fillColor: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white,
         hintStyle: theme.textTheme.bodyLarge?.copyWith(
@@ -1094,11 +1094,11 @@ class _ClassComposer extends StatelessWidget {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide(color: border, width: 1.2),
+          borderSide: BorderSide(color: border, width: 1.0),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.9), width: 2.0),
+          borderSide: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.85), width: 1.4),
         ),
       ),
       onSubmitted: (_) => onSend(),
