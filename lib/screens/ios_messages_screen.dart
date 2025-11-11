@@ -2119,12 +2119,13 @@ class _CommentTileState extends State<_CommentTile> {
                 _ScaleTap(
                   onTap: () => setState(() => _reposted = !_reposted),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    child: Text(
-                      'repost',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                        fontWeight: _reposted ? FontWeight.w700 : FontWeight.w500,
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    child: SizedBox(
+                      height: 20,
+                      width: 28,
+                      child: Image.asset(
+                        'assets/images/1762677878887.Screenshot_20251109-094424-removebg-preview.png',
+                        fit: BoxFit.contain,
                       ),
                     ),
                   ),
