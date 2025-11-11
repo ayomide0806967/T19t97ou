@@ -1335,31 +1335,41 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               if (widget.showReplyButton && message.replies > 0)
-                TextButton(
-                  onPressed: () => _openComments(context, message),
-                  style: TextButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: const Size(0, 0),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                Flexible(
+                  fit: FlexFit.loose,
+                  child: Align(
                     alignment: Alignment.centerLeft,
-                  ),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: theme.colorScheme.primary),
-                    ),
-                    child: Text(
-                      'View ${message.replies} ${message.replies == 1 ? 'reply' : 'replies'}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface,
+                    child: TextButton(
+                      onPressed: () => _openComments(context, message),
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: const Size(0, 0),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        alignment: Alignment.centerLeft,
+                      ),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: theme.colorScheme.primary),
+                          ),
+                          child: Text(
+                            'View ${message.replies} ${message.replies == 1 ? 'reply' : 'replies'}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurface,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 )
               else
                 const SizedBox.shrink(),
-              const Spacer(),
+              const SizedBox(width: 8),
               // Three equal columns: Like, Repost, Heartbreak
               Expanded(
                 child: Row(
