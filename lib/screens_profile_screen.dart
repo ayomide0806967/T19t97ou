@@ -302,67 +302,75 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const SizedBox.shrink(), // remove name in the app bar (hero)
-      ),
+      appBar: null,
       body: SafeArea(
+        top: false, // let cover extend under status bar edge-to-edge
         child: SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: 24), // allow header to reach edges/top
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 720),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _ProfileHeader(
-                    headerColors: _headerThemes[_headerThemeIndex],
-                    headerImage: _headerImage,
-                    onChangeCover: handleChangeHeader,
-                    onEditProfile: handleEditProfile,
-                    onShareProfile: handleShareProfile,
-                  ),
-                  const SizedBox(height: 28),
-                  _ProfileTabs(
-                    selectedIndex: _selectedTab,
-                    onChanged: (index) {
-                      setState(() => _selectedTab = index);
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                  if (visiblePosts.isEmpty) ...[
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 48),
-                        child: Text(
-                          emptyMessage,
-                          style: theme.textTheme.bodyMedium,
-                        ),
-                      ),
-                    ),
-                  ] else ...[
-                    ...visiblePosts.map(
-                      (post) => Padding(
-                        padding: const EdgeInsets.only(bottom: 24),
-                        child: TweetPostCard(
-                          post: post,
-                          currentUserHandle: currentUserHandle,
-                          onTap: () {
-                            final thread =
-                                dataService.buildThreadForPost(post.id);
-                            Navigator.of(context).push(
-                              ThreadScreen.route(
-                                entry: thread,
-                                currentUserHandle: currentUserHandle,
-                              ),
-                            );
+          padding: const EdgeInsets.only(bottom: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Full-width header first
+              _ProfileHeader(
+                headerColors: _headerThemes[_headerThemeIndex],
+                headerImage: _headerImage,
+                onChangeCover: handleChangeHeader,
+                onEditProfile: handleEditProfile,
+                onShareProfile: handleShareProfile,
+              ),
+              const SizedBox(height: 28),
+              // Constrained content
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 720),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _ProfileTabs(
+                          selectedIndex: _selectedTab,
+                          onChanged: (index) {
+                            setState(() => _selectedTab = index);
                           },
                         ),
-                      ),
+                        const SizedBox(height: 24),
+                        if (visiblePosts.isEmpty) ...[
+                          Center(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 48),
+                              child: Text(
+                                emptyMessage,
+                                style: theme.textTheme.bodyMedium,
+                              ),
+                            ),
+                          ),
+                        ] else ...[
+                          ...visiblePosts.map(
+                            (post) => Padding(
+                              padding: const EdgeInsets.only(bottom: 24),
+                              child: TweetPostCard(
+                                post: post,
+                                currentUserHandle: currentUserHandle,
+                                onTap: () {
+                                  final thread = dataService.buildThreadForPost(post.id);
+                                  Navigator.of(context).push(
+                                    ThreadScreen.route(
+                                      entry: thread,
+                                      currentUserHandle: currentUserHandle,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                  ],
-                ],
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),
@@ -410,6 +418,18 @@ class _ProfileHeader extends StatelessWidget {
         Stack(
           clipBehavior: Clip.none,
           children: [
+            // Back button overlay
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 8,
+              left: 8,
+              child: IconButton(
+                onPressed: () => Navigator.of(context).maybePop(),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.black.withValues(alpha: 0.28),
+                ),
+                icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+              ),
+            ),
             SizedBox(
               width: screenWidth,
               height: coverHeight,
@@ -443,7 +463,17 @@ class _ProfileHeader extends StatelessWidget {
                 child: Container(
                   width: avatarSize,
                   height: avatarSize,
-                  color: theme.colorScheme.surface,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surface,
+                    border: Border.all(color: Colors.white, width: 3),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.2),
+                        blurRadius: 16,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
                   alignment: Alignment.center,
                   child: Text(
                     _initialsFrom(email),
