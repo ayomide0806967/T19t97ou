@@ -1412,11 +1412,10 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                'REPOST',
+                                'Repost',
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: _saved ? Colors.green : meta,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.3,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                               const SizedBox(width: 6),
