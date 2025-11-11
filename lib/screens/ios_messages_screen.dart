@@ -1333,6 +1333,7 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                         icon: _goodActive
                             ? Icons.favorite_rounded
                             : Icons.favorite_border_rounded,
+                        iconSize: 20,
                         count: _good,
                         color: _goodActive ? Colors.red : null,
                         onPressed: () {
@@ -2093,6 +2094,7 @@ class _CommentTileState extends State<_CommentTile> {
                   icon: _liked
                       ? Icons.favorite_rounded
                       : Icons.favorite_border_rounded,
+                  iconSize: 20,
                   count: _likes,
                   color: _liked ? Colors.red : null,
                   onPressed: () {
