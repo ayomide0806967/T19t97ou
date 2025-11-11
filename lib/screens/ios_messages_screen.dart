@@ -2,6 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
+import 'dart:typed_data';
+import 'package:image_picker/image_picker.dart';
 import 'quiz_hub_screen.dart';
 import 'package:provider/provider.dart';
 import '../services/data_service.dart';
@@ -1080,7 +1082,7 @@ class _ClassFeedTab extends StatelessWidget {
   }
 }
 
-class _ClassComposer extends StatelessWidget {
+class _ClassComposer extends StatefulWidget {
   const _ClassComposer({
     required this.controller,
     required this.onSend,
@@ -1094,16 +1096,119 @@ class _ClassComposer extends StatelessWidget {
   final FocusNode? focusNode;
 
   @override
+  State<_ClassComposer> createState() => _ClassComposerState();
+}
+
+class _ClassComposerState extends State<_ClassComposer> {
+  final ImagePicker _picker = ImagePicker();
+  final List<Uint8List> _attachments = <Uint8List>[];
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant _ClassComposer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_onChanged);
+      widget.controller.addListener(_onChanged);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onChanged);
+    super.dispose();
+  }
+
+  void _onChanged() => setState(() {});
+
+  Future<void> _openEmojiPicker() async {
+    final theme = Theme.of(context);
+    final emojis = [
+      '😀','😂','😍','😊','😉','😎','😭','😅','🤔','🙌','👍','👏','🔥','💯','🎉','🙏','🤝','🫶','📚','📝','🧪','🩺','💊','⏰','📅','📎','📌','✅','❌','⚠️',
+    ];
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: theme.colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
+            child: GridView.builder(
+              shrinkWrap: true,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 8,
+                mainAxisSpacing: 8,
+                crossAxisSpacing: 8,
+              ),
+              itemCount: emojis.length,
+              itemBuilder: (_, i) => InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: () {
+                  _insertEmoji(emojis[i]);
+                  Navigator.of(ctx).pop();
+                },
+                child: Center(
+                  child: Text(
+                    emojis[i],
+                    style: const TextStyle(fontSize: 22),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _insertEmoji(String emoji) {
+    final text = widget.controller.text;
+    final sel = widget.controller.selection;
+    final start = sel.isValid ? sel.start : text.length;
+    final end = sel.isValid ? sel.end : text.length;
+    final newText = text.replaceRange(start, end, emoji);
+    widget.controller.value = widget.controller.value.copyWith(
+      text: newText,
+      selection: TextSelection.collapsed(offset: start + emoji.length),
+      composing: TextRange.empty,
+    );
+  }
+
+  Future<void> _handleAttach() async {
+    final XFile? file = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+      maxWidth: 1600,
+    );
+    if (file == null) return;
+    final bytes = await file.readAsBytes();
+    setState(() => _attachments.add(bytes));
+  }
+
+  void _removeAttachmentAt(int index) {
+    setState(() => _attachments.removeAt(index));
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
     final Color onSurface = theme.colorScheme.onSurface;
     final Color subtle = onSurface.withValues(alpha: isDark ? 0.7 : 0.55);
+    final bool showAttach = widget.controller.text.trim().isEmpty;
 
-    // Messaging-style input: left emoji, right attach + send. Soft container, no heavy border.
-    return TextField(
-      controller: controller,
-      focusNode: focusNode,
+    final input = TextField(
+      controller: widget.controller,
+      focusNode: widget.focusNode,
       maxLines: 4,
       minLines: 1,
       textCapitalization: TextCapitalization.sentences,
@@ -1115,7 +1220,7 @@ class _ClassComposer extends StatelessWidget {
         letterSpacing: 0.1,
       ),
       decoration: InputDecoration(
-        hintText: hintText,
+        hintText: widget.hintText,
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
         filled: true,
@@ -1128,47 +1233,100 @@ class _ClassComposer extends StatelessWidget {
         ),
         prefixIcon: IconButton(
           tooltip: 'Emoji',
-          onPressed: () {
-            // Placeholder for emoji picker
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Emoji picker coming soon')),
-            );
-          },
+          onPressed: _openEmojiPicker,
           icon: Icon(Icons.emoji_emotions_outlined, color: subtle),
         ),
         suffixIcon: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            IconButton(
-              tooltip: 'Attach',
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Attach coming soon')),
-                );
-              },
-              icon: Icon(Icons.attach_file_rounded, color: subtle),
-            ),
+            if (showAttach)
+              IconButton(
+                tooltip: 'Attach',
+                onPressed: _handleAttach,
+                icon: Icon(Icons.attach_file_rounded, color: subtle),
+              ),
             IconButton(
               tooltip: 'Send',
-              onPressed: onSend,
+              onPressed: () {
+                widget.onSend();
+                if (_attachments.isNotEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Sent with ${_attachments.length} attachment${_attachments.length == 1 ? '' : 's'}')),
+                  );
+                  setState(() => _attachments.clear());
+                }
+              },
               icon: Icon(Icons.send_rounded, color: theme.colorScheme.primary),
             ),
           ],
         ),
+        // Grey rounded corners
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(24),
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(
+            color: theme.colorScheme.onSurface.withValues(alpha: isDark ? 0.25 : 0.18),
+            width: 1.0,
+          ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(24),
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(
+            color: theme.colorScheme.onSurface.withValues(alpha: isDark ? 0.25 : 0.18),
+            width: 1.0,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(24),
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(
+            color: theme.colorScheme.onSurface.withValues(alpha: isDark ? 0.35 : 0.28),
+            width: 1.3,
+          ),
         ),
       ),
-      onSubmitted: (_) => onSend(),
+      onSubmitted: (_) => widget.onSend(),
+    );
+
+    if (_attachments.isEmpty) return input;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 76,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemBuilder: (_, i) => Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.memory(_attachments[i], width: 76, height: 76, fit: BoxFit.cover),
+                ),
+                Positioned(
+                  right: 4,
+                  top: 4,
+                  child: InkWell(
+                    onTap: () => _removeAttachmentAt(i),
+                    child: Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.55),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.close, size: 16, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemCount: _attachments.length,
+          ),
+        ),
+        const SizedBox(height: 8),
+        input,
+      ],
     );
   }
 }
