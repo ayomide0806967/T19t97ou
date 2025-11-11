@@ -1069,17 +1069,26 @@ class _ClassComposer extends StatelessWidget {
       minLines: 1,
       textCapitalization: TextCapitalization.sentences,
       textInputAction: TextInputAction.newline,
-      style: theme.textTheme.bodyMedium?.copyWith(
+      style: theme.textTheme.bodyLarge?.copyWith(
         color: theme.colorScheme.onSurface,
-        fontSize: 16,
-        height: 1.4,
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
+        height: 1.45,
+        letterSpacing: 0.1,
       ),
       decoration: InputDecoration(
         hintText: hintText,
         isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
         filled: true,
         fillColor: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white,
+        hintStyle: theme.textTheme.bodyLarge?.copyWith(
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          height: 1.45,
+          letterSpacing: 0.1,
+        ),
         suffixIcon: IconButton(
           tooltip: 'Send',
           onPressed: onSend,
@@ -1087,11 +1096,11 @@ class _ClassComposer extends StatelessWidget {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide(color: border, width: 1),
+          borderSide: BorderSide(color: border, width: 1.2),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.75), width: 1.6),
+          borderSide: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.9), width: 2.0),
         ),
       ),
       onSubmitted: (_) => onSend(),
@@ -1710,25 +1719,38 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
               child: Container(
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: theme.dividerColor.withValues(alpha: 0.2)),
+                  color: theme.brightness == Brightness.dark
+                      ? Colors.white.withValues(alpha: 0.06)
+                      : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: theme.dividerColor.withValues(alpha: 0.22)),
                 ),
-                padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+                padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(width: 3, height: 36, color: theme.colorScheme.primary),
-                    const SizedBox(width: 8),
+                    Container(width: 3, height: 40, color: theme.colorScheme.primary),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(_replyTarget!.comment.author, style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700)),
+                          Text(
+                            _replyTarget!.comment.author,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: theme.colorScheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
                           Text(
                             _replyTarget!.comment.body,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodySmall,
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
+                              height: 1.4,
+                            ),
                           ),
                         ],
                       ),
