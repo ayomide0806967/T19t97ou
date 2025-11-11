@@ -1408,25 +1408,34 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                             _reposts += _saved ? 1 : -1;
                             if (_reposts < 0) _reposts = 0;
                           }),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'Repost',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: _saved ? Colors.green : meta,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                '$_reposts',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: _saved ? Colors.green : meta,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
+                          child: LayoutBuilder(
+                            builder: (context, c) {
+                              final maxW = c.maxWidth;
+                              final bool tight = maxW.isFinite && maxW < 60;
+                              final bool ultra = maxW.isFinite && maxW < 38;
+                              final String label = ultra ? 'R' : (tight ? 'Rep' : 'Repost');
+                              final double gap = ultra ? 2 : (tight ? 4 : 6);
+                              return Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    label,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: _saved ? Colors.green : meta,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  SizedBox(width: gap),
+                                  Text(
+                                    '$_reposts',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: _saved ? Colors.green : meta,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
                           ),
                         ),
                       ),
