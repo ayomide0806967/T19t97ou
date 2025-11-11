@@ -5,6 +5,18 @@ import 'package:flutter/services.dart';
 import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
+
+// Lightweight attachment model used by the class composer
+class _Attachment {
+  _Attachment({required this.bytes, this.name, this.mimeType});
+  final Uint8List bytes;
+  final String? name;
+  final String? mimeType;
+  bool get isImage {
+    final mt = (mimeType ?? '').toLowerCase();
+    return mt.startsWith('image/');
+  }
+}
 import 'quiz_hub_screen.dart';
 import 'package:provider/provider.dart';
 import '../services/data_service.dart';
@@ -1102,18 +1114,6 @@ class _ClassComposer extends StatefulWidget {
 
 class _ClassComposerState extends State<_ClassComposer> {
   final ImagePicker _picker = ImagePicker();
-
-  class _Attachment {
-    _Attachment({required this.bytes, this.name, this.mimeType});
-    final Uint8List bytes;
-    final String? name;
-    final String? mimeType;
-    bool get isImage {
-      final mt = (mimeType ?? '').toLowerCase();
-      return mt.startsWith('image/');
-    }
-  }
-
   final List<_Attachment> _attachments = <_Attachment>[];
 
   @override
