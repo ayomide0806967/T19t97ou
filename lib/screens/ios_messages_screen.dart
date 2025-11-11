@@ -4,6 +4,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import 'quiz_hub_screen.dart';
 import 'package:provider/provider.dart';
 import '../services/data_service.dart';
@@ -1101,7 +1102,19 @@ class _ClassComposer extends StatefulWidget {
 
 class _ClassComposerState extends State<_ClassComposer> {
   final ImagePicker _picker = ImagePicker();
-  final List<Uint8List> _attachments = <Uint8List>[];
+
+  class _Attachment {
+    _Attachment({required this.bytes, this.name, this.mimeType});
+    final Uint8List bytes;
+    final String? name;
+    final String? mimeType;
+    bool get isImage {
+      final mt = (mimeType ?? '').toLowerCase();
+      return mt.startsWith('image/');
+    }
+  }
+
+  final List<_Attachment> _attachments = <_Attachment>[];
 
   @override
   void initState() {
@@ -1183,15 +1196,80 @@ class _ClassComposerState extends State<_ClassComposer> {
     );
   }
 
-  Future<void> _handleAttach() async {
-    final XFile? file = await _picker.pickImage(
-      source: ImageSource.gallery,
+  Future<void> _handleAttachImage() async {
+    // Prefer multi-image selection if available
+    final List<XFile> files = await _picker.pickMultiImage(
       imageQuality: 85,
       maxWidth: 1600,
     );
-    if (file == null) return;
-    final bytes = await file.readAsBytes();
-    setState(() => _attachments.add(bytes));
+    if (files.isEmpty) return;
+    final List<_Attachment> items = [];
+    for (final f in files) {
+      final bytes = await f.readAsBytes();
+      items.add(_Attachment(bytes: bytes, name: f.name, mimeType: 'image/*'));
+    }
+    setState(() => _attachments.addAll(items));
+  }
+
+  Future<void> _handleAttachFile() async {
+    try {
+      final res = await FilePicker.platform.pickFiles(
+        allowMultiple: true,
+        withData: true,
+      );
+      if (res == null) return;
+      final List<_Attachment> items = [];
+      for (final f in res.files) {
+        if (f.bytes == null) continue;
+        items.add(
+          _Attachment(bytes: f.bytes!, name: f.name, mimeType: f.mimeType),
+        );
+      }
+      if (items.isNotEmpty) setState(() => _attachments.addAll(items));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('File pick failed: $e')),
+      );
+    }
+  }
+
+  Future<void> _openAttachMenu() async {
+    final theme = Theme.of(context);
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: theme.colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Photo or video'),
+              onTap: () => Navigator.of(ctx).pop('gallery'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.attach_file_rounded),
+              title: const Text('File'),
+              onTap: () => Navigator.of(ctx).pop('file'),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (choice == 'gallery') {
+      await _handleAttachImage();
+    } else if (choice == 'file') {
+      await _handleAttachFile();
+    }
   }
 
   void _removeAttachmentAt(int index) {
@@ -1242,7 +1320,7 @@ class _ClassComposerState extends State<_ClassComposer> {
             if (showAttach)
               IconButton(
                 tooltip: 'Attach',
-                onPressed: _handleAttach,
+                onPressed: _openAttachMenu,
                 icon: Icon(Icons.attach_file_rounded, color: subtle),
               ),
             IconButton(
@@ -1296,30 +1374,67 @@ class _ClassComposerState extends State<_ClassComposer> {
           height: 76,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            itemBuilder: (_, i) => Stack(
-              children: [
-                ClipRRect(
+            itemBuilder: (_, i) {
+              final a = _attachments[i];
+              Widget preview;
+              if (a.isImage) {
+                preview = ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: Image.memory(_attachments[i], width: 76, height: 76, fit: BoxFit.cover),
-                ),
-                Positioned(
-                  right: 4,
-                  top: 4,
-                  child: InkWell(
-                    onTap: () => _removeAttachmentAt(i),
-                    child: Container(
-                      width: 22,
-                      height: 22,
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.55),
-                        shape: BoxShape.circle,
+                  child: Image.memory(a.bytes, width: 76, height: 76, fit: BoxFit.cover),
+                );
+              } else {
+                final ext = (a.name ?? '').split('.').last.toUpperCase();
+                preview = Container(
+                  width: 120,
+                  height: 76,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.25)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.insert_drive_file_rounded),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          a.name ?? 'File',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      child: const Icon(Icons.close, size: 16, color: Colors.white),
+                      if (ext.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 6),
+                          child: Text(ext, style: const TextStyle(fontWeight: FontWeight.w700)),
+                        ),
+                    ],
+                  ),
+                );
+              }
+              return Stack(
+                children: [
+                  preview,
+                  Positioned(
+                    right: 4,
+                    top: 4,
+                    child: InkWell(
+                      onTap: () => _removeAttachmentAt(i),
+                      child: Container(
+                        width: 22,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.55),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.close, size: 16, color: Colors.white),
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              );
+            },
             separatorBuilder: (_, __) => const SizedBox(width: 8),
             itemCount: _attachments.length,
           ),
