@@ -1370,9 +1370,7 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                       _LabelCountButton(
                         icon: Icons.heart_broken_rounded,
                         count: _bad,
-                        color: _badActive
-                            ? Colors.black
-                            : Colors.black54,
+                        color: _badActive ? Colors.black : null,
                         onPressed: () {
                           HapticFeedback.lightImpact();
                           setState(() {
@@ -2129,9 +2127,7 @@ class _CommentTileState extends State<_CommentTile> {
                 _LabelCountButton(
                   icon: Icons.heart_broken_rounded,
                   count: _dislikes,
-                  color: _disliked
-                      ? Colors.black
-                      : Colors.black54,
+                  color: _disliked ? Colors.black : null,
                   onPressed: () {
                     HapticFeedback.lightImpact();
                     setState(() {
