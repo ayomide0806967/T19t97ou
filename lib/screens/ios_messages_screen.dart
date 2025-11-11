@@ -1991,6 +1991,7 @@ class _CommentTileState extends State<_CommentTile> {
   bool _liked = false;
   bool _disliked = false;
   bool _reposted = false;
+  int _reposts = 0;
   bool _swipeHapticFired = false;
 
   @override
