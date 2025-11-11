@@ -88,25 +88,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                HexagonAvatar(
-                  size: 180,
-                  backgroundColor:
-                      theme.colorScheme.surfaceContainerHighest,
-                  borderColor:
-                      theme.colorScheme.primary.withValues(alpha: 0.32),
-                  borderWidth: 3,
-                  image: hasImage ? MemoryImage(_profileImage!) : null,
-                  child: hasImage
-                      ? null
-                      : Center(
-                          child: Text(
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    width: 220,
+                    height: 220,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest,
+                      image: hasImage
+                          ? DecorationImage(
+                              image: MemoryImage(_profileImage!),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                    ),
+                    alignment: Alignment.center,
+                    child: hasImage
+                        ? null
+                        : Text(
                             initials,
                             style: theme.textTheme.headlineLarge?.copyWith(
                               fontWeight: FontWeight.w700,
                               letterSpacing: -1.2,
                             ),
                           ),
-                        ),
+                  ),
                 ),
                 const SizedBox(height: 28),
                 FilledButton(
@@ -137,6 +143,80 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ],
                 const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Close'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _showHeaderImageViewer() async {
+    final theme = Theme.of(context);
+    final hasImage = _headerImage != null;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black.withValues(alpha: 0.65),
+      builder: (dialogContext) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.18),
+                  blurRadius: 30,
+                  offset: const Offset(0, 16),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: AspectRatio(
+                    aspectRatio: 16 / 9,
+                    child: hasImage
+                        ? Image.memory(_headerImage!, fit: BoxFit.cover)
+                        : Container(
+                            color: theme.colorScheme.surfaceContainerHigh,
+                            child: Icon(
+                              Icons.wallpaper_outlined,
+                              size: 64,
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                            ),
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                FilledButton(
+                  onPressed: () async {
+                    Navigator.of(dialogContext).pop();
+                    await handleChangeHeader();
+                  },
+                  child: const Text('Change cover photo'),
+                ),
+                if (hasImage) ...[
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(dialogContext).pop();
+                      setState(() => _headerImage = null);
+                      _showToast('Cover photo removed');
+                    },
+                    child: const Text('Remove current photo'),
+                  ),
+                ],
                 TextButton(
                   onPressed: () => Navigator.of(dialogContext).pop(),
                   child: const Text('Close'),
@@ -348,6 +428,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 profileImage: _profileImage,
                 initials: initials,
                 onProfileImageTap: _showProfilePhotoViewer,
+                onHeaderTap: _showHeaderImageViewer,
                 onChangeCover: handleChangeHeader,
                 onEditProfile: handleEditProfile,
                 onShareProfile: handleShareProfile,
@@ -422,6 +503,7 @@ class _ProfileHeader extends StatelessWidget {
     required this.profileImage,
     required this.initials,
     required this.onProfileImageTap,
+    required this.onHeaderTap,
     required this.onChangeCover,
     required this.onEditProfile,
     required this.onShareProfile,
@@ -431,6 +513,7 @@ class _ProfileHeader extends StatelessWidget {
   final Uint8List? profileImage;
   final String initials;
   final VoidCallback onProfileImageTap;
+  final VoidCallback onHeaderTap;
   final VoidCallback onChangeCover;
   final VoidCallback onEditProfile;
   final VoidCallback onShareProfile;
@@ -458,16 +541,19 @@ class _ProfileHeader extends StatelessWidget {
         Stack(
           clipBehavior: Clip.none,
           children: [
-            SizedBox(
-              width: screenWidth,
-              height: coverHeight,
-              child: headerImage != null
-                  ? Image.memory(headerImage!, fit: BoxFit.cover)
-                  : DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: coverPlaceholderColor,
+            GestureDetector(
+              onTap: onHeaderTap,
+              child: SizedBox(
+                width: screenWidth,
+                height: coverHeight,
+                child: headerImage != null
+                    ? Image.memory(headerImage!, fit: BoxFit.cover)
+                    : DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: coverPlaceholderColor,
+                        ),
                       ),
-                    ),
+              ),
             ),
             // Back button overlay
             Positioned(
