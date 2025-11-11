@@ -1524,6 +1524,7 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
   final FocusNode _composerFocusNode = FocusNode();
   _ThreadNode? _replyTarget;
   late List<_ThreadNode> _threads;
+  bool _composerVisible = false;
   final Set<_ThreadNode> _selected = <_ThreadNode>{};
 
   @override
@@ -1591,7 +1592,10 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
   }
 
   void _setReplyTarget(_ThreadNode node) {
-    setState(() => _replyTarget = node);
+    setState(() {
+      _replyTarget = node;
+      _composerVisible = true;
+    });
     // Bring up keyboard for quick reply
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -1755,22 +1759,34 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
                     ),
                     IconButton(
                       icon: const Icon(Icons.close),
-                      onPressed: () => setState(() => _replyTarget = null),
+                      onPressed: () {
+                        setState(() {
+                          _replyTarget = null;
+                          _composerVisible = false;
+                        });
+                        _composer
+                          ..clear()
+                          ..clearComposing();
+                        _composerFocusNode.unfocus();
+                      },
                     ),
                   ],
                 ),
               ),
             ),
-          SafeArea(
-            top: false,
-            minimum: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-            child: _ClassComposer(
-              controller: _composer,
-              focusNode: _composerFocusNode,
-              hintText: _replyTarget == null ? 'Write a reply…' : 'Replying to ${_replyTarget!.comment.author}',
-              onSend: _sendReply,
+          if (_replyTarget != null || _composerVisible)
+            SafeArea(
+              top: false,
+              minimum: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+              child: _ClassComposer(
+                controller: _composer,
+                focusNode: _composerFocusNode,
+                hintText: _replyTarget == null
+                    ? 'Write a reply…'
+                    : 'Replying to ${_replyTarget!.comment.author}',
+                onSend: _sendReply,
+              ),
             ),
-          ),
         ],
       ),
     );
