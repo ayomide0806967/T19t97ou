@@ -1368,7 +1368,9 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                 ),
                       const SizedBox(width: 16),
                       _LabelCountButton(
-                        icon: Icons.heart_broken_rounded,
+                        icon: _badActive
+                            ? Icons.heart_broken_rounded
+                            : Icons.heart_broken_outlined,
                         count: _bad,
                         color: _badActive ? Colors.black : null,
                         onPressed: () {
@@ -2125,7 +2127,9 @@ class _CommentTileState extends State<_CommentTile> {
                 const SizedBox(width: 16),
                 // Heartbreak (broken heart)
                 _LabelCountButton(
-                  icon: Icons.heart_broken_rounded,
+                  icon: _disliked
+                      ? Icons.heart_broken_rounded
+                      : Icons.heart_broken_outlined,
                   count: _dislikes,
                   color: _disliked ? Colors.black : null,
                   onPressed: () {
