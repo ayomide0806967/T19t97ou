@@ -1171,6 +1171,25 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
   bool _goodActive = false;
   bool _badActive = false;
 
+  String _formatDisplayName(String author, String handle) {
+    String base = (author.trim().isNotEmpty ? author : handle).trim();
+    // Strip leading @ if present
+    base = base.replaceFirst(RegExp(r'^\s*@'), '');
+    // Replace underscores/hyphens with spaces
+    base = base.replaceAll(RegExp(r'[_-]+'), ' ');
+    // Insert spaces in camelCase or PascalCase (e.g., StudyCouncil -> Study Council)
+    base = base.replaceAllMapped(
+      RegExp(r'(?<=[a-z])([A-Z])'),
+      (m) => ' ${m.group(1)}',
+    );
+    // Title-case words
+    final parts = base.split(RegExp(r'\s+')).where((w) => w.isNotEmpty);
+    final titled = parts
+        .map((w) => w.substring(0, 1).toUpperCase() + w.substring(1).toLowerCase())
+        .join(' ');
+    return titled.isEmpty ? base : titled;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -1210,16 +1229,26 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              CircleAvatar(
-                radius: 16,
-                backgroundColor: isDark
-                    ? theme.colorScheme.primary.withValues(alpha: 0.25)
-                    : theme.colorScheme.primary.withValues(alpha: 0.15),
-                child: Text(
-                  avatarText(),
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: theme.colorScheme.primary,
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? theme.colorScheme.surfaceContainerHighest
+                        : Colors.white,
+                    border: Border.all(
+                      color: theme.dividerColor.withValues(alpha: isDark ? 0.35 : 0.25),
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    avatarText(),
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: theme.colorScheme.onSurface,
+                    ),
                   ),
                 ),
               ),
@@ -1230,7 +1259,7 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                     Expanded(
                       child: Text.rich(
                         TextSpan(
-                          text: message.handle,
+                          text: _formatDisplayName(message.author, message.handle),
                           style: theme.textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w700,
                             color: nameColor,
