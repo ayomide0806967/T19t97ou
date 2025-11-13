@@ -1738,7 +1738,7 @@ Mock exam briefing extended update: please review chapters one through five, pra
   }
 }
 
-class _ClassFeedTab extends StatelessWidget {
+class _ClassFeedTab extends StatefulWidget {
   const _ClassFeedTab({
     required this.college,
     required this.notes,
@@ -1754,7 +1754,6 @@ class _ClassFeedTab extends StatelessWidget {
     this.unlocked = true,
     this.onUnlock,
   });
-
   final College college;
   final List<_ClassMessage> notes;
   final ClassTopic? activeTopic;
@@ -1770,6 +1769,46 @@ class _ClassFeedTab extends StatelessWidget {
   final bool Function(String attempt)? onUnlock;
 
   @override
+  State<_ClassFeedTab> createState() => _ClassFeedTabState();
+}
+
+class _ClassFeedTabState extends State<_ClassFeedTab> {
+  static const int _pageSize = 10;
+  int _visibleNotes = 0;
+  bool _loadingMoreNotes = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _visibleNotes = widget.notes.isEmpty
+        ? 0
+        : (widget.notes.length < _pageSize ? widget.notes.length : _pageSize);
+  }
+
+  @override
+  void didUpdateWidget(covariant _ClassFeedTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.notes.length != widget.notes.length) {
+      final int minNeeded = widget.notes.isEmpty ? 0 : _pageSize;
+      _visibleNotes = _visibleNotes.clamp(minNeeded, widget.notes.length);
+      if (_visibleNotes == 0 && widget.notes.isNotEmpty) {
+        _visibleNotes = widget.notes.length < _pageSize ? widget.notes.length : _pageSize;
+      }
+    }
+  }
+
+  Future<void> _loadMoreNotes() async {
+    if (_loadingMoreNotes) return;
+    setState(() => _loadingMoreNotes = true);
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+    final next = _visibleNotes + _pageSize;
+    setState(() {
+      _visibleNotes = next > widget.notes.length ? widget.notes.length : next;
+      _loadingMoreNotes = false;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final TextEditingController textController = TextEditingController();
@@ -1779,29 +1818,29 @@ class _ClassFeedTab extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
             children: [
-              _ClassTopInfo(college: college, memberCount: _members.length),
+              _ClassTopInfo(college: widget.college, memberCount: _members.length),
               const SizedBox(height: 16),
-              if (activeTopic != null)
-                _ActiveTopicCard(topic: activeTopic!, onArchive: onArchiveTopic)
-              else if (isAdmin)
-                _StartLectureCard(onStart: (c, t, k, s) => onStartLecture(c, t, k, s))
+              if (widget.activeTopic != null)
+                _ActiveTopicCard(topic: widget.activeTopic!, onArchive: widget.onArchiveTopic)
+              else if (widget.isAdmin)
+                _StartLectureCard(onStart: (c, t, k, s) => widget.onStartLecture(c, t, k, s))
               else
                 const SizedBox.shrink(),
               const SizedBox(height: 12),
-              if (activeTopic != null) ...[
-                if (requiresPin && !unlocked)
+              if (widget.activeTopic != null) ...[
+                if (widget.requiresPin && !widget.unlocked)
                   _PinGateCard(
                     onUnlock: (code) {
-                      if (onUnlock != null) onUnlock!(code);
+                      if (widget.onUnlock != null) widget.onUnlock!(code);
                     },
                   )
                 else
-                  _TopicFeedList(topic: activeTopic!),
+                  _TopicFeedList(topic: widget.activeTopic!),
                 const SizedBox(height: 16),
               ],
               Text('Class discussion', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
               const SizedBox(height: 12),
-              if (notes.isEmpty)
+              if (widget.notes.isEmpty)
                 Center(
                   child: Text(
                     'No messages yet. Be the first to post!',
@@ -1809,17 +1848,29 @@ class _ClassFeedTab extends StatelessWidget {
                   ),
                 )
               else ...[
-                for (final msg in notes)
-                  _ClassMessageTile(
-                    message: msg,
-                    onShare: () => onShare(msg),
+                for (final msg in widget.notes.take(_visibleNotes))
+                  _ClassMessageTile(message: msg, onShare: () => widget.onShare(msg)),
+                if (_visibleNotes < widget.notes.length) ...[
+                  const SizedBox(height: 8),
+                  Center(
+                    child: SizedBox(
+                      width: 160,
+                      height: 36,
+                      child: OutlinedButton(
+                        onPressed: _loadingMoreNotes ? null : _loadMoreNotes,
+                        child: _loadingMoreNotes
+                            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                            : const Text('Load more'),
+                      ),
+                    ),
                   ),
+                ],
               ],
               const SizedBox(height: 4),
             ],
           ),
         ),
-        if (isAdmin && activeTopic != null) ...[
+        if (widget.isAdmin && widget.activeTopic != null) ...[
           SafeArea(
             top: false,
             minimum: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -1829,7 +1880,7 @@ class _ClassFeedTab extends StatelessWidget {
               onSend: () {
                 final text = textController.text.trim();
                 if (text.isEmpty) return;
-                onSend(text);
+                widget.onSend(text);
                 textController.clear();
               },
             ),
@@ -2125,22 +2176,58 @@ class _StartLectureCardState extends State<_StartLectureCard> {
   }
 }
 
-class _TopicFeedList extends StatelessWidget {
+class _TopicFeedList extends StatefulWidget {
   const _TopicFeedList({required this.topic});
   final ClassTopic topic;
   @override
+  State<_TopicFeedList> createState() => _TopicFeedListState();
+}
+
+class _TopicFeedListState extends State<_TopicFeedList> {
+  static const int _pageSize = 10;
+  int _visible = 0;
+  bool _loading = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final data = context.watch<DataService>();
+    final posts = data.posts.where((p) => p.tags.contains(widget.topic.topicTag)).toList();
+    final initial = posts.isEmpty ? 0 : (posts.length < _pageSize ? posts.length : _pageSize);
+    if (_visible == 0 && initial != 0) {
+      _visible = initial;
+    } else if (_visible > posts.length) {
+      _visible = posts.length;
+    }
+  }
+
+  Future<void> _loadMore() async {
+    if (_loading) return;
+    setState(() => _loading = true);
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+    final data = context.read<DataService>();
+    final posts = data.posts.where((p) => p.tags.contains(widget.topic.topicTag)).toList();
+    final next = _visible + _pageSize;
+    setState(() {
+      _visible = next > posts.length ? posts.length : next;
+      _loading = false;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final data = context.watch<DataService>();
-    final posts = data.posts.where((p) => p.tags.contains(topic.topicTag)).toList();
+    final posts = data.posts.where((p) => p.tags.contains(widget.topic.topicTag)).toList();
     if (posts.isEmpty) {
       return Text('No notes yet — your first note will appear here.');
     }
+    final slice = posts.take(_visible == 0 ? posts.length : _visible).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Topic notes', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
         const SizedBox(height: 12),
-        for (final p in posts) ...[
+        for (final p in slice) ...[
           // Reuse the class message-style tile so the replies pill remains
           _ClassMessageTile(
             message: _ClassMessage(
@@ -2154,8 +2241,8 @@ class _TopicFeedList extends StatelessWidget {
               heartbreaks: 0,
             ),
             onShare: () async {},
-            repostEnabled: !topic.privateLecture,
-            onRepost: topic.privateLecture
+            repostEnabled: !widget.topic.privateLecture,
+            onRepost: widget.topic.privateLecture
                 ? null
                 : () async {
                     // Derive current user handle (same as used elsewhere)
@@ -2181,6 +2268,20 @@ class _TopicFeedList extends StatelessWidget {
                   },
           ),
           const SizedBox(height: 8),
+        ],
+        if ((_visible == 0 && posts.length > _pageSize) || (_visible > 0 && _visible < posts.length)) ...[
+          Center(
+            child: SizedBox(
+              width: 200,
+              height: 36,
+              child: OutlinedButton(
+                onPressed: _loading ? null : _loadMore,
+                child: _loading
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Text('Load more notes'),
+              ),
+            ),
+          ),
         ],
       ],
     );
