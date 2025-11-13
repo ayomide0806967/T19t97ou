@@ -13,7 +13,7 @@ class AppTheme {
   static const Color textTertiary = Color(0xFF9CA3AF);
   static const Color buttonPrimary = Color(0xFF000000);
   static const Color buttonSecondary = Color(0xFFF3F4F6);
-  static const Color accent = Color(0xFF06B6D4);
+  static const Color accent = Color(0xFF000000); // use black as primary accent
 
   // Dark palette
   static const Color darkBackground = Color(0xFF0B0F14);
@@ -32,20 +32,22 @@ class AppTheme {
 
   static ThemeData _buildLightTheme() {
     final baseColorScheme = ColorScheme.fromSeed(
-      seedColor: accent,
+      seedColor: Colors.black,
       brightness: Brightness.light,
     );
 
     final base = ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      scaffoldBackgroundColor: background,
+      // Offwhite app background
+      scaffoldBackgroundColor: surface,
+      // Pure white containers/cards via surface
       colorScheme: baseColorScheme.copyWith(
-        surface: surface,
+        surface: Colors.white,
         onSurface: textPrimary,
-        primary: accent,
-        secondary: accent,
-        tertiary: accent,
+        primary: Colors.black,
+        secondary: Colors.black,
+        tertiary: Colors.black,
         onPrimary: Colors.white,
       ),
       textTheme: GoogleFonts.interTextTheme(),
@@ -63,7 +65,7 @@ class AppTheme {
 
     return base.copyWith(
       appBarTheme: AppBarTheme(
-        backgroundColor: background,
+        backgroundColor: surface,
         elevation: 0,
         titleTextStyle: headline.copyWith(fontSize: 24),
         surfaceTintColor: Colors.transparent,
@@ -85,19 +87,32 @@ class AppTheme {
         filled: true,
         fillColor: background,
         hintStyle: GoogleFonts.inter(color: textTertiary),
-        labelStyle: GoogleFonts.inter(color: textSecondary),
+        labelStyle: GoogleFonts.inter(
+          color: textPrimary,
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+        ),
+        floatingLabelStyle: GoogleFonts.inter(
+          color: textPrimary,
+          fontSize: 15,
+          fontWeight: FontWeight.w700,
+        ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(999),
-          borderSide: const BorderSide(color: divider),
+          borderSide: const BorderSide(color: Colors.black),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(999),
-          borderSide: const BorderSide(color: divider),
+          borderSide: const BorderSide(color: Colors.black),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(999),
-          borderSide: const BorderSide(color: accent, width: 1.5),
+          borderSide: const BorderSide(color: Colors.black, width: 1.8),
+        ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(999),
+          borderSide: const BorderSide(color: Colors.black54),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -138,18 +153,18 @@ class AppTheme {
         ),
       ),
       chipTheme: base.chipTheme.copyWith(
-        backgroundColor: accent.withValues(alpha: 0.12),
+        backgroundColor: Colors.black12,
         labelStyle: GoogleFonts.inter(
           fontWeight: FontWeight.w500,
           fontSize: 13,
-          color: accent,
+          color: Colors.black,
         ),
         shape: const StadiumBorder(),
         side: BorderSide.none,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       ),
       cardTheme: CardThemeData(
-        color: surface,
+        color: Colors.white,
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(28),
@@ -163,7 +178,7 @@ class AppTheme {
 
   static ThemeData _buildDarkTheme() {
     final baseColorScheme = ColorScheme.fromSeed(
-      seedColor: accent,
+      seedColor: Colors.black,
       brightness: Brightness.dark,
     );
 
@@ -174,9 +189,9 @@ class AppTheme {
       colorScheme: baseColorScheme.copyWith(
         surface: darkSurface,
         onSurface: darkTextPrimary,
-        primary: accent,
-        secondary: accent,
-        tertiary: accent,
+        primary: Colors.black,
+        secondary: Colors.black,
+        tertiary: Colors.black,
         onPrimary: Colors.white,
       ),
       textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
@@ -216,19 +231,32 @@ class AppTheme {
         filled: true,
         fillColor: darkBackground,
         hintStyle: GoogleFonts.inter(color: darkTextTertiary),
-        labelStyle: GoogleFonts.inter(color: darkTextSecondary),
+        labelStyle: GoogleFonts.inter(
+          color: darkTextPrimary,
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+        ),
+        floatingLabelStyle: GoogleFonts.inter(
+          color: darkTextPrimary,
+          fontSize: 15,
+          fontWeight: FontWeight.w700,
+        ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(999),
-          borderSide: const BorderSide(color: darkDivider),
+          borderSide: const BorderSide(color: Colors.white),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(999),
-          borderSide: const BorderSide(color: darkDivider),
+          borderSide: const BorderSide(color: Colors.white),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(999),
-          borderSide: const BorderSide(color: accent, width: 1.5),
+          borderSide: const BorderSide(color: Colors.white, width: 1.8),
+        ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(999),
+          borderSide: const BorderSide(color: Colors.white70),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(

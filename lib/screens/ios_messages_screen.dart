@@ -14,6 +14,7 @@ import '../services/data_service.dart';
 import '../widgets/tweet_post_card.dart';
 import '../services/simple_auth_service.dart';
 import '../widgets/hexagon_avatar.dart';
+import 'student_profile_screen.dart';
 // Removed unused tweet widgets imports
 
 // Lightweight attachment model used by the class composer
@@ -393,7 +394,23 @@ class _ClassesExperience extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       physics: const BouncingScrollPhysics(),
       children: [
-        _CreateClassTile(onCreate: () {}),
+        _CreateClassTile(onCreate: () async {
+          final result = await Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const _CreateClassPage()),
+          );
+          if (result is College) {
+            // Open the newly created class immediately
+            // Ignore persistence for now; this is a demo flow
+            // and mirrors the seeded college behavior.
+            // Members/admin role will be derived in the class screen.
+            // Navigate to the class detail screen.
+            if (context.mounted) {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => _CollegeScreen(college: result)),
+              );
+            }
+          }
+        }),
         const SizedBox(height: 12),
         Text(
           'Your classes',
@@ -550,6 +567,129 @@ child: Row(
     const Icon(Icons.chevron_right, size: 28),
   ],
 ),
+      ),
+    );
+  }
+}
+
+class _CreateClassPage extends StatefulWidget {
+  const _CreateClassPage();
+
+  @override
+  State<_CreateClassPage> createState() => _CreateClassPageState();
+}
+
+class _CreateClassPageState extends State<_CreateClassPage> {
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _name = TextEditingController();
+  final TextEditingController _code = TextEditingController();
+  final TextEditingController _facilitator = TextEditingController();
+  bool _isPrivate = true;
+  bool _adminOnlyPosting = true;
+  bool _approvalRequired = false;
+  bool _allowMedia = false;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _code.dispose();
+    _facilitator.dispose();
+    super.dispose();
+  }
+
+  void _create() {
+    if (!_formKey.currentState!.validate()) return;
+    final String name = _name.text.trim();
+    final String codeRaw = _code.text.trim();
+    final String code = codeRaw.isEmpty
+        ? name.replaceAll(RegExp(r'\s+'), '').toUpperCase()
+        : codeRaw.toUpperCase();
+    final String facilitator =
+        _facilitator.text.trim().isEmpty ? 'Admin' : _facilitator.text.trim();
+
+    final College result = College(
+      name: name,
+      code: code,
+      facilitator: facilitator,
+      members: 1,
+      deliveryMode: _isPrivate ? 'Private' : 'Open',
+      upcomingExam: '',
+      resources: const <CollegeResource>[],
+      memberHandles: <String>{'@yourprofile'},
+      lectureNotes: const <LectureNote>[],
+    );
+
+    Navigator.of(context).pop(result);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final Color surface = isDark ? const Color(0xFF0F1114) : Colors.white;
+    final Color border = theme.dividerColor.withValues(alpha: isDark ? 0.28 : 0.18);
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Create a class')),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: surface,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: border),
+            ),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Class info', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _name,
+                    decoration: const InputDecoration(labelText: 'Class name'),
+                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter a class name' : null,
+                  ),
+                  const SizedBox(height: 10),
+                  TextFormField(
+                    controller: _code,
+                    decoration: const InputDecoration(labelText: 'Class code (optional)'),
+                  ),
+                  const SizedBox(height: 10),
+                  TextFormField(
+                    controller: _facilitator,
+                    decoration: const InputDecoration(labelText: 'Facilitator (optional)'),
+                  ),
+                  const SizedBox(height: 18),
+                  Text('Settings', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 8),
+                  _SwitchRow(label: 'Private class', value: _isPrivate, onChanged: (v) => setState(() => _isPrivate = v)),
+                  _SwitchRow(label: 'Admin-only posting', value: _adminOnlyPosting, onChanged: (v) => setState(() => _adminOnlyPosting = v)),
+                  _SwitchRow(label: 'Require approval for notes', value: _approvalRequired, onChanged: (v) => setState(() => _approvalRequired = v)),
+                  _SwitchRow(label: 'Allow media attachments', value: _allowMedia, onChanged: (v) => setState(() => _allowMedia = v)),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      OutlinedButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('Cancel'),
+                      ),
+                      const SizedBox(width: 12),
+                      FilledButton(
+                        style: FilledButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white),
+                        onPressed: _create,
+                        child: const Text('Create'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -753,11 +893,24 @@ class _CollegeScreenState extends State<_CollegeScreen> {
   final TextEditingController _composer = TextEditingController();
   late Set<String> _members;
   final List<_ClassMessage> _notes = <_ClassMessage>[];
+  // New UI state
+  ClassTopic? _activeTopic;
+  final List<ClassTopic> _archivedTopics = <ClassTopic>[];
+  // Role + settings
+  late final Set<String> _admins;
+  bool _adminOnlyPosting = true;
+  bool _allowReplies = true;
+  bool _allowMedia = false;
+  bool _approvalRequired = false;
+  bool _isPrivate = true;
+  bool _autoArchiveOnEnd = true;
+  final Set<String> _unlockedTopicTags = <String>{};
 
   @override
   void initState() {
     super.initState();
     _members = Set<String>.from(widget.college.memberHandles);
+    _admins = <String>{_currentUserHandle};
     // Seed demo comments to match the provided reference image.
     if (_notes.isEmpty && widget.college.code == 'CVE220') {
       _notes.addAll(<_ClassMessage>[
@@ -917,16 +1070,46 @@ Mock exam briefing extended update: please review chapters one through five, pra
     return '@$normalized';
   }
 
+  bool get _isCurrentUserAdmin => _admins.contains(_currentUserHandle);
+
   @override
   Widget build(BuildContext context) {
     final college = widget.college;
+    // Auto-archive if schedule passed
+    if (_activeTopic != null && _activeTopic!.autoArchiveAt != null) {
+      final at = _activeTopic!.autoArchiveAt!;
+      if (DateTime.now().isAfter(at)) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          setState(() {
+            _archivedTopics.add(_activeTopic!);
+            _activeTopic = null;
+          });
+        });
+      }
+    }
+    final theme = Theme.of(context);
     return DefaultTabController(
       length: 3,
       child: Scaffold(
         appBar: AppBar(
           title: Text(college.name),
-          bottom: const TabBar(
-            tabs: [
+          actions: [
+            IconButton(
+              tooltip: 'Class settings',
+              icon: const Icon(Icons.settings_outlined),
+              onPressed: () {
+                _openSettingsSheet(context);
+              },
+            ),
+          ],
+          bottom: TabBar(
+            labelStyle: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+            labelColor: Colors.black,
+            unselectedLabelColor: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            indicatorColor: Colors.black,
+            indicatorWeight: 3,
+            tabs: const [
               Tab(text: 'Class'),
               Tab(text: 'Library'),
               Tab(text: 'Students'),
@@ -939,25 +1122,49 @@ Mock exam briefing extended update: please review chapters one through five, pra
             _ClassFeedTab(
               college: college,
               notes: _notes,
-              onSend: (text) {
-                final id = 'note_${DateTime.now().microsecondsSinceEpoch}';
+              activeTopic: _activeTopic,
+              onSend: (text) => _handleSubmitLectureNote(context, text),
+              isAdmin: _isCurrentUserAdmin,
+              settings: _ClassSettings(
+                adminOnlyPosting: _adminOnlyPosting,
+                allowReplies: _allowReplies,
+                allowMedia: _allowMedia,
+                approvalRequired: _approvalRequired,
+                isPrivate: _isPrivate,
+                autoArchiveOnEnd: _autoArchiveOnEnd,
+              ),
+              onStartLecture: (course, tutor, topic, s) {
                 setState(() {
-                  _notes.insert(
-                    0,
-                  _ClassMessage(
-                    id: id,
-                    author: 'You',
-                    handle: _currentUserHandle,
-                    timeAgo: 'just now',
-                    body: text,
-                    likes: 0,
-                    replies: 0,
-                    heartbreaks: 0,
-                  ),
+                  _activeTopic = ClassTopic(
+                    courseName: course,
+                    tutorName: tutor.isEmpty ? 'Admin' : tutor,
+                    topicTitle: topic,
+                    createdAt: DateTime.now(),
+                    privateLecture: s.privateLecture,
+                    requirePin: s.requirePin,
+                    pinCode: s.pinCode,
+                    autoArchiveAt: s.autoArchiveAt,
+                  );
+                });
+              },
+              onArchiveTopic: () {
+                if (_activeTopic == null) return;
+                setState(() {
+                  _archivedTopics.add(_activeTopic!);
+                  _activeTopic = null;
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Moved to Library')),
                 );
-              });
-            },
+              },
               onShare: (msg) async {
+                if (_activeTopic?.privateLecture == true) {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Reposts disabled for this lecture')),
+                  );
+                  return;
+                }
                 final truncated = msg.body.length > 280
                     ? msg.body.substring(0, 280)
                     : msg.body;
@@ -972,12 +1179,159 @@ Mock exam briefing extended update: please review chapters one through five, pra
                   const SnackBar(content: Text('Shared to your page')),
                 );
               },
+              requiresPin: _activeTopic?.requirePin ?? false,
+              pinCode: _activeTopic?.pinCode,
+              unlocked: _activeTopic == null
+                  ? true
+                  : _unlockedTopicTags.contains(_activeTopic!.topicTag),
+              onUnlock: (attempt) {
+                if (_activeTopic?.pinCode != null &&
+                    attempt.trim() == _activeTopic!.pinCode) {
+                  setState(() {
+                    _unlockedTopicTags.add(_activeTopic!.topicTag);
+                  });
+                  return true;
+                }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Incorrect PIN')),
+                );
+                return false;
+              },
             ),
-            _ClassLibraryTab(college: college),
-            _ClassStudentsTab(members: _members, onAdd: _addMember, onExit: _exitClass),
+            _ClassLibraryTab(college: college, topics: _archivedTopics),
+            _ClassStudentsTab(
+              members: _members,
+              onAdd: _addMember,
+              onExit: _exitClass,
+              onSuspend: (h) {
+                setState(() => _members.remove(h));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Suspended $h')),
+                );
+              },
+            ),
           ],
         ),
       ),
+    );
+  }
+
+  void _openSettingsSheet(BuildContext context) {
+    final theme = Theme.of(context);
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text('Class settings', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => Navigator.of(ctx).pop(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                _SwitchRow(
+                  label: 'Admin-only posting',
+                  value: _adminOnlyPosting,
+                  onChanged: (v) => setState(() => _adminOnlyPosting = v),
+                ),
+                _SwitchRow(
+                  label: 'Allow replies',
+                  value: _allowReplies,
+                  onChanged: (v) => setState(() => _allowReplies = v),
+                ),
+                _SwitchRow(
+                  label: 'Allow media attachments',
+                  value: _allowMedia,
+                  onChanged: (v) => setState(() => _allowMedia = v),
+                ),
+                _SwitchRow(
+                  label: 'Require approval for notes',
+                  value: _approvalRequired,
+                  onChanged: (v) => setState(() => _approvalRequired = v),
+                ),
+                _SwitchRow(
+                  label: 'Private class',
+                  value: _isPrivate,
+                  onChanged: (v) => setState(() => _isPrivate = v),
+                ),
+                _SwitchRow(
+                  label: 'Auto-archive when ending topic',
+                  value: _autoArchiveOnEnd,
+                  onChanged: (v) => setState(() => _autoArchiveOnEnd = v),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.group_outlined),
+                      label: const Text('Manage admins'),
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Manage admins coming soon')),
+                        );
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.person_remove_alt_1_outlined),
+                      label: const Text('Suspend members'),
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Suspend members from Students tab')),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _handleSubmitLectureNote(BuildContext context, String body) async {
+    final text = body.trim();
+    if (text.isEmpty) return;
+    if (!_isCurrentUserAdmin) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Only admins can publish lecture notes')),
+      );
+      return;
+    }
+    if (_activeTopic == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Start a lecture above before adding notes')),
+      );
+      return;
+    }
+    final data = context.read<DataService>();
+    final String topicTag = _activeTopic!.topicTag;
+    await data.addPost(
+      author: _activeTopic!.tutorName,
+      handle: _currentUserHandle,
+      body: text,
+      tags: <String>[topicTag, widget.college.code],
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Added note to "${_activeTopic!.topicTitle}"')),
     );
   }
 
@@ -1041,12 +1395,30 @@ class _ClassFeedTab extends StatelessWidget {
     required this.notes,
     required this.onSend,
     required this.onShare,
+    required this.onStartLecture,
+    required this.onArchiveTopic,
+    required this.isAdmin,
+    required this.settings,
+    this.activeTopic,
+    this.requiresPin = false,
+    this.pinCode,
+    this.unlocked = true,
+    this.onUnlock,
   });
 
   final College college;
   final List<_ClassMessage> notes;
+  final ClassTopic? activeTopic;
   final ValueChanged<String> onSend;
   final Future<void> Function(_ClassMessage message) onShare;
+  final void Function(String course, String tutor, String topic, _TopicSettings settings) onStartLecture;
+  final VoidCallback onArchiveTopic;
+  final bool isAdmin;
+  final _ClassSettings settings;
+  final bool requiresPin;
+  final String? pinCode;
+  final bool unlocked;
+  final bool Function(String attempt)? onUnlock;
 
   @override
   Widget build(BuildContext context) {
@@ -1060,6 +1432,24 @@ class _ClassFeedTab extends StatelessWidget {
             children: [
               _ClassTopInfo(college: college),
               const SizedBox(height: 16),
+              if (activeTopic != null)
+                _ActiveTopicCard(topic: activeTopic!, onArchive: onArchiveTopic)
+              else
+                _StartLectureCard(onStart: (c, t, k, s) => onStartLecture(c, t, k, s)),
+              const SizedBox(height: 12),
+              if (activeTopic != null) ...[
+                if (requiresPin && !unlocked)
+                  _PinGateCard(
+                    onUnlock: (code) {
+                      if (onUnlock != null) onUnlock!(code);
+                    },
+                  )
+                else
+                  _TopicFeedList(topic: activeTopic!),
+                const SizedBox(height: 16),
+              ],
+              Text('Class discussion', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 12),
               if (notes.isEmpty)
                 Center(
                   child: Text(
@@ -1067,33 +1457,499 @@ class _ClassFeedTab extends StatelessWidget {
                     style: theme.textTheme.bodyMedium,
                   ),
                 )
-              else
-                ...[
-                  for (final msg in notes)
-                    _ClassMessageTile(
-                      message: msg,
-                      onShare: () => onShare(msg),
-                    ),
-                ],
+              else ...[
+                for (final msg in notes)
+                  _ClassMessageTile(
+                    message: msg,
+                    onShare: () => onShare(msg),
+                  ),
+              ],
               const SizedBox(height: 4),
             ],
           ),
         ),
-        SafeArea(
-          top: false,
-          minimum: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-          child: _ClassComposer(
-            controller: textController,
-            hintText: 'Message',
-            onSend: () {
-              final text = textController.text.trim();
-              if (text.isEmpty) return;
-              onSend(text);
-              textController.clear();
-            },
+        if (isAdmin && activeTopic != null) ...[
+          SafeArea(
+            top: false,
+            minimum: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            child: _ClassComposer(
+              controller: textController,
+              hintText: 'Message',
+              onSend: () {
+                final text = textController.text.trim();
+                if (text.isEmpty) return;
+                onSend(text);
+                textController.clear();
+              },
+            ),
           ),
-        ),
+        ]
+        else ...[
+          SafeArea(
+            top: false,
+            minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            child: Text(
+              'Lecture notes are shared by admins in real time.',
+              style: theme.textTheme.bodySmall,
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
       ],
+    );
+  }
+}
+
+class _ActiveTopicCard extends StatelessWidget {
+  const _ActiveTopicCard({required this.topic, required this.onArchive});
+  final ClassTopic topic;
+  final VoidCallback onArchive;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final Color border = theme.dividerColor.withValues(alpha: isDark ? 0.35 : 0.2);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(topic.courseName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12)),
+                ),
+                const SizedBox(height: 10),
+                Text(topic.topicTitle, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                Text('Tutor ${topic.tutorName}', style: theme.textTheme.bodyMedium),
+                const SizedBox(height: 2),
+                Text('Started ${_formatRelative(topic.createdAt)}', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
+              ],
+            ),
+          ),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white),
+            onPressed: onArchive,
+            icon: const Icon(Icons.archive_outlined),
+            label: const Text('Move to Library'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StartLectureCard extends StatefulWidget {
+  const _StartLectureCard({required this.onStart});
+  final void Function(String course, String tutor, String topic, _TopicSettings settings) onStart;
+  @override
+  State<_StartLectureCard> createState() => _StartLectureCardState();
+}
+
+class _StartLectureCardState extends State<_StartLectureCard> {
+  final _course = TextEditingController();
+  final _tutor = TextEditingController();
+  final _topic = TextEditingController();
+  bool _expanded = true;
+  int _step = 0;
+  bool _privateLecture = false;
+  bool _requirePin = false;
+  final TextEditingController _pin = TextEditingController();
+  DateTime? _autoArchiveAt;
+
+  bool get _canStart =>
+      _course.text.trim().isNotEmpty && _topic.text.trim().isNotEmpty;
+
+  @override
+  void dispose() {
+    _course.dispose();
+    _tutor.dispose();
+    _topic.dispose();
+    _pin.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final Color surface = isDark ? const Color(0xFF0F1114) : Colors.white;
+    final Color border = theme.dividerColor.withValues(alpha: isDark ? 0.28 : 0.18);
+    final Color meta = theme.colorScheme.onSurface.withValues(alpha: 0.65);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text('Start a lecture', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+              const Spacer(),
+              IconButton(
+                tooltip: _expanded ? 'Collapse' : 'Expand',
+                icon: Icon(_expanded ? Icons.expand_less : Icons.expand_more),
+                onPressed: () => setState(() => _expanded = !_expanded),
+              ),
+            ],
+          ),
+          if (_expanded) ...[
+            const SizedBox(height: 8),
+            if (_step == 0) ...[
+              TextField(
+                controller: _course,
+                decoration: const InputDecoration(labelText: 'Course name'),
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _tutor,
+                decoration: const InputDecoration(labelText: 'Tutor name (optional)'),
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _topic,
+                decoration: const InputDecoration(labelText: 'Topic'),
+                onChanged: (_) => setState(() {}),
+                onSubmitted: (_) { if (_canStart) setState(() => _step = 1); },
+              ),
+              const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Create a lecture topic and start posting notes.',
+                      style: theme.textTheme.bodySmall?.copyWith(color: meta),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  FilledButton(
+                    style: FilledButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white),
+                    onPressed: _canStart ? () => setState(() => _step = 1) : null,
+                    child: const Text('Next'),
+                  ),
+                ],
+              ),
+            ] else ...[
+              const SizedBox(height: 6),
+              _SwitchRow(label: 'Private lecture (disable repost)', value: _privateLecture, onChanged: (v) => setState(() => _privateLecture = v)),
+              _SwitchRow(label: 'Require PIN to access', value: _requirePin, onChanged: (v) => setState(() => _requirePin = v)),
+              if (_requirePin)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: TextField(controller: _pin, decoration: const InputDecoration(labelText: 'PIN code')),
+                ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Auto-move to Library on', style: theme.textTheme.bodyMedium),
+                        const SizedBox(height: 6),
+                        if (_autoArchiveAt != null) Text(_autoArchiveAt!.toString(), style: theme.textTheme.bodySmall),
+                      ],
+                    ),
+                  ),
+                  OutlinedButton(
+                    onPressed: () async {
+                      final now = DateTime.now();
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: now,
+                        firstDate: now,
+                        lastDate: DateTime(now.year + 2),
+                      );
+                      if (date == null) return;
+                      final time = await showTimePicker(
+                        context: context,
+                        initialTime: TimeOfDay.fromDateTime(now.add(const Duration(hours: 1))),
+                      );
+                      if (time == null) return;
+                      final dt = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+                      setState(() => _autoArchiveAt = dt);
+                    },
+                    child: const Text('Pick date/time'),
+                  ),
+                  const SizedBox(width: 8),
+                  OutlinedButton(onPressed: () => setState(() => _autoArchiveAt = null), child: const Text('Clear')),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  OutlinedButton(onPressed: () => setState(() => _step = 0), child: const Text('Back')),
+                  const SizedBox(width: 12),
+                  FilledButton(
+                    style: FilledButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white),
+                    onPressed: _canStart
+                        ? () => widget.onStart(
+                              _course.text.trim(),
+                              _tutor.text.trim(),
+                              _topic.text.trim(),
+                              _TopicSettings(
+                                privateLecture: _privateLecture,
+                                requirePin: _requirePin,
+                                pinCode: _requirePin ? _pin.text.trim() : null,
+                                autoArchiveAt: _autoArchiveAt,
+                              ),
+                            )
+                        : null,
+                    child: const Text('Start'),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _TopicFeedList extends StatelessWidget {
+  const _TopicFeedList({required this.topic});
+  final ClassTopic topic;
+  @override
+  Widget build(BuildContext context) {
+    final data = context.watch<DataService>();
+    final posts = data.posts.where((p) => p.tags.contains(topic.topicTag)).toList();
+    if (posts.isEmpty) {
+      return Text('No notes yet — your first note will appear here.');
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Topic notes', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+        const SizedBox(height: 12),
+        for (final p in posts) ...[
+          // Reuse the class message-style tile so the replies pill remains
+          _ClassMessageTile(
+            message: _ClassMessage(
+              id: p.id,
+              author: p.author,
+              handle: p.handle,
+              timeAgo: p.timeAgo,
+              body: p.body,
+              likes: p.likes,
+              replies: p.replies,
+              heartbreaks: 0,
+            ),
+            onShare: () async {},
+          ),
+          const SizedBox(height: 8),
+        ],
+      ],
+    );
+  }
+}
+
+class ClassTopic {
+  const ClassTopic({
+    required this.courseName,
+    required this.tutorName,
+    required this.topicTitle,
+    required this.createdAt,
+    this.privateLecture = false,
+    this.requirePin = false,
+    this.pinCode,
+    this.autoArchiveAt,
+  });
+  final String courseName;
+  final String tutorName;
+  final String topicTitle;
+  final DateTime createdAt;
+  final bool privateLecture;
+  final bool requirePin;
+  final String? pinCode;
+  final DateTime? autoArchiveAt;
+  String get topicTag {
+    final t = topicTitle.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '_');
+    return 'topic_$t';
+  }
+}
+
+// Lightweight relative time formatter used by ActiveTopicCard
+String _formatRelative(DateTime time) {
+  final Duration diff = DateTime.now().difference(time);
+  if (diff.inDays >= 1) {
+    final d = diff.inDays;
+    return d == 1 ? '1 day ago' : '$d days ago';
+  }
+  if (diff.inHours >= 1) {
+    final h = diff.inHours;
+    return h == 1 ? '1 hour ago' : '$h hours ago';
+  }
+  if (diff.inMinutes >= 1) {
+    final m = diff.inMinutes;
+    return m == 1 ? '1 min ago' : '$m mins ago';
+  }
+  return 'just now';
+}
+
+class _ClassSettings {
+  const _ClassSettings({
+    required this.adminOnlyPosting,
+    required this.allowReplies,
+    required this.allowMedia,
+    required this.approvalRequired,
+    required this.isPrivate,
+    required this.autoArchiveOnEnd,
+  });
+  final bool adminOnlyPosting;
+  final bool allowReplies;
+  final bool allowMedia;
+  final bool approvalRequired;
+  final bool isPrivate;
+  final bool autoArchiveOnEnd;
+}
+
+class _TopicSettings {
+  const _TopicSettings({
+    this.privateLecture = false,
+    this.requirePin = false,
+    this.pinCode,
+    this.autoArchiveAt,
+  });
+  final bool privateLecture;
+  final bool requirePin;
+  final String? pinCode;
+  final DateTime? autoArchiveAt;
+}
+
+class _SwitchRow extends StatelessWidget {
+  const _SwitchRow({required this.label, required this.value, required this.onChanged});
+  final String label;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(label, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+          ),
+          Switch(value: value, onChanged: onChanged),
+        ],
+      ),
+    );
+  }
+}
+
+class _PinGateCard extends StatefulWidget {
+  const _PinGateCard({required this.onUnlock});
+  final void Function(String code) onUnlock;
+  @override
+  State<_PinGateCard> createState() => _PinGateCardState();
+}
+
+class _PinGateCardState extends State<_PinGateCard> {
+  final TextEditingController _code = TextEditingController();
+  @override
+  void dispose() {
+    _code.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Enter PIN to view notes', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          TextField(controller: _code, decoration: const InputDecoration(labelText: 'PIN')),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white),
+              onPressed: () => widget.onUnlock(_code.text.trim()),
+              child: const Text('Unlock'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TopicDetailPage extends StatelessWidget {
+  const _TopicDetailPage({required this.topic, required this.classCode});
+  final ClassTopic topic;
+  final String classCode;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final data = context.watch<DataService>();
+    final posts = data.posts.where((p) => p.tags.contains(topic.topicTag)).toList();
+    return Scaffold(
+      appBar: AppBar(title: Text(topic.topicTitle)),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        children: [
+          Text('${topic.courseName} • Tutor ${topic.tutorName}', style: theme.textTheme.bodyMedium),
+          const SizedBox(height: 8),
+          for (final p in posts) ...[
+            _ClassMessageTile(
+              message: _ClassMessage(
+                id: p.id,
+                author: p.author,
+                handle: p.handle,
+                timeAgo: p.timeAgo,
+                body: p.body,
+                likes: p.likes,
+                replies: p.replies,
+                heartbreaks: 0,
+              ),
+              onShare: () async {},
+            ),
+            const SizedBox(height: 8),
+          ],
+          if (posts.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 40),
+              child: Center(
+                child: Text('No notes found for this topic', style: theme.textTheme.bodyMedium),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -1604,7 +2460,9 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
             final bool longLines = totalLines > 22; // Collapse if more than 22 lines
 
             if (!_expanded && longLines) {
-              final linkStyle = theme.textTheme.bodyMedium?.copyWith(color: Colors.cyan);
+              final linkStyle = theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface,
+              );
               int low = 0, high = message.body.length, best = 0;
               while (low <= high) {
                 final mid = (low + high) >> 1;
@@ -1660,7 +2518,8 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              if (widget.showReplyButton && message.replies > 0)
+              // Always show the View replies pill when enabled, even at 0
+              if (widget.showReplyButton)
                 Flexible(
                   fit: FlexFit.loose,
                   child: Align(
@@ -2400,15 +3259,14 @@ class _CommentTileState extends State<_CommentTile> {
     final _ThreadComment comment = widget.comment;
     final bool isMine =
         comment.author == widget.currentUserHandle || comment.author == 'You';
-    // Light theme: mine = offwhite, others = very light cyan.
-    // Dark theme: mine = subtle cyan tint, others = dark surface.
-    final Color lightMineOffwhite = const Color(0xFFF8FAFC);
-    final Color lightOtherVeryLightCyan = const Color(0xFFE0F7FA); // cyan 50
-    final Color darkMine = theme.colorScheme.primary.withValues(alpha: 0.22);
-    final Color darkOther = const Color(0xFF1F2226);
+    // Strict black/white palette
+    final Color lightMine = const Color(0xFFF8FAFC);
+    final Color lightOther = Colors.white;
+    final Color darkMine = const Color(0xFF131517);
+    final Color darkOther = const Color(0xFF101214);
     final Color bubble = widget.isDark
         ? (isMine ? darkMine : darkOther)
-        : (isMine ? lightMineOffwhite : lightOtherVeryLightCyan);
+        : (isMine ? lightMine : lightOther);
 
     // Meta text color uses default onSurface alpha in light theme
     final Color meta = theme.colorScheme.onSurface.withValues(alpha: 0.6);
@@ -2466,7 +3324,7 @@ class _CommentTileState extends State<_CommentTile> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(width: 3, height: 36, color: theme.colorScheme.primary),
+                    Container(width: 3, height: 36, color: theme.colorScheme.onSurface),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Column(
@@ -2749,8 +3607,9 @@ class _ClassMessage {
 }
 
 class _ClassLibraryTab extends StatelessWidget {
-  const _ClassLibraryTab({required this.college});
+  const _ClassLibraryTab({required this.college, required this.topics});
   final College college;
+  final List<ClassTopic> topics;
 
   @override
   Widget build(BuildContext context) {
@@ -2760,6 +3619,32 @@ class _ClassLibraryTab extends StatelessWidget {
       children: [
         Text('Library', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
         const SizedBox(height: 12),
+        if (topics.isEmpty)
+          Text('No archived topics yet', style: theme.textTheme.bodyMedium)
+        else ...[
+          for (final t in topics)
+            Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: theme.dividerColor.withValues(alpha: 0.2)),
+              ),
+              child: ListTile(
+                title: Text(t.topicTitle, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                subtitle: Text('${t.courseName} • Tutor ${t.tutorName}'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => _TopicDetailPage(topic: t, classCode: college.code)),
+                  );
+                },
+              ),
+            ),
+        ],
+        const SizedBox(height: 16),
+        Text('Resources', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+        const SizedBox(height: 8),
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -2768,16 +3653,6 @@ class _ClassLibraryTab extends StatelessWidget {
               _LibraryChip(resource: r),
           ],
         ),
-        const SizedBox(height: 20),
-        Text('Lecture notes', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-        const SizedBox(height: 12),
-        if (college.lectureNotes.isEmpty)
-          Text('No lecture notes yet', style: theme.textTheme.bodyMedium)
-        else
-          ...[
-            for (final n in college.lectureNotes)
-              _LectureNoteTile(note: n),
-          ],
       ],
     );
   }
@@ -2864,11 +3739,13 @@ class _ClassStudentsTab extends StatelessWidget {
     required this.members,
     required this.onAdd,
     required this.onExit,
+    required this.onSuspend,
   });
 
   final Set<String> members;
   final Future<void> Function(BuildContext context) onAdd;
   final void Function(BuildContext context) onExit;
+  final void Function(String handle) onSuspend;
 
   @override
   Widget build(BuildContext context) {
@@ -2880,12 +3757,18 @@ class _ClassStudentsTab extends StatelessWidget {
         Row(
           children: [
             FilledButton.icon(
+              style: FilledButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white),
               onPressed: () => onAdd(context),
               icon: const Icon(Icons.person_add_alt_1),
               label: const Text('Add student'),
             ),
             const SizedBox(width: 12),
             OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.black,
+                side: const BorderSide(color: Colors.black),
+                backgroundColor: Colors.white,
+              ),
               onPressed: () => onExit(context),
               icon: const Icon(Icons.logout),
               label: const Text('Exit class'),
@@ -2900,19 +3783,74 @@ class _ClassStudentsTab extends StatelessWidget {
         else
           ...[
             for (final h in list)
-              Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                decoration: BoxDecoration(
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: theme.dividerColor.withValues(alpha: 0.2)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.person_outline),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(h, style: theme.textTheme.bodyMedium)),
-                  ],
+                  onTap: () {
+                    showModalBottomSheet<void>(
+                      context: context,
+                      backgroundColor: Colors.white,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                      ),
+                      builder: (ctx) => SafeArea(
+                        top: false,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ListTile(
+                                leading: const Icon(Icons.person_search_outlined),
+                                title: const Text('View full profile'),
+                                onTap: () {
+                                  Navigator.of(ctx).pop();
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(builder: (_) => StudentProfileScreen(handle: h)),
+                                  );
+                                },
+                              ),
+                              ListTile(
+                                leading: const Icon(Icons.message_outlined),
+                                title: const Text('Message'),
+                                onTap: () {
+                                  Navigator.of(ctx).pop();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Messaging $h…')),
+                                  );
+                                },
+                              ),
+                              ListTile(
+                                leading: const Icon(Icons.block_outlined),
+                                title: const Text('Suspend student'),
+                                onTap: () {
+                                  Navigator.of(ctx).pop();
+                                  onSuspend(h);
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: theme.dividerColor.withValues(alpha: 0.2)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.person_outline),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text(h, style: theme.textTheme.bodyMedium)),
+                        const Icon(Icons.more_horiz),
+                      ],
+                    ),
+                  ),
                 ),
               ),
           ],

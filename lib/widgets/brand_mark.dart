@@ -14,7 +14,7 @@ class BrandMark extends StatelessWidget {
       height: size,
       width: size,
       fit: BoxFit.contain,
-      filterQuality: FilterQuality.high,
+      semanticLabel: 'App logo',
     );
   }
 }
