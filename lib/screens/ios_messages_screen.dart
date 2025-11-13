@@ -670,24 +670,52 @@ class _CreateClassPageState extends State<_CreateClassPage> {
                         if (_step == 0) ...[
                           TextFormField(
                             controller: _name,
-                            decoration: const InputDecoration(labelText: 'Class name'),
+                            decoration: InputDecoration(
+                              labelText: 'Class name',
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: const BorderSide(color: Colors.black)),
+                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: const BorderSide(color: Colors.black)),
+                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: const BorderSide(color: Colors.black, width: 1.6)),
+                            ),
                             validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter a class name' : null,
                           ),
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 12),
                           TextFormField(
                             controller: _code,
-                            decoration: const InputDecoration(labelText: 'Code (optional)'),
+                            decoration: const InputDecoration(
+                              labelText: 'Code (optional)',
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: BorderSide(color: Colors.black)),
+                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: BorderSide(color: Colors.black)),
+                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: BorderSide(color: Colors.black, width: 1.6)),
+                            ),
                           ),
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 12),
                           TextFormField(
                             controller: _facilitator,
-                            decoration: const InputDecoration(labelText: 'Facilitator / Admin (optional)'),
+                            decoration: const InputDecoration(
+                              labelText: 'Facilitator / Admin (optional)',
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: BorderSide(color: Colors.black)),
+                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: BorderSide(color: Colors.black)),
+                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: BorderSide(color: Colors.black, width: 1.6)),
+                            ),
                           ),
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 12),
                           TextFormField(
                             controller: _description,
-                            decoration: const InputDecoration(labelText: 'Description (optional)'),
-                            maxLines: 3,
+                            maxLines: 2,
+                            decoration: const InputDecoration(
+                              labelText: 'Description (optional)',
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: BorderSide(color: Colors.black)),
+                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: BorderSide(color: Colors.black)),
+                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.zero, borderSide: BorderSide(color: Colors.black, width: 1.6)),
+                            ),
                           ),
                         ] else ...[
                           _SwitchRow(label: 'Private class', value: _isPrivate, onChanged: (v) => setState(() => _isPrivate = v)),
@@ -699,12 +727,24 @@ class _CreateClassPageState extends State<_CreateClassPage> {
                         Row(
                           children: [
                             OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: const Size(120, 44),
+                                side: const BorderSide(color: Colors.black),
+                                foregroundColor: Colors.black,
+                                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                              ),
                               onPressed: () => Navigator.of(context).pop(),
                               child: const Text('Cancel'),
                             ),
                             const SizedBox(width: 12),
                             if (_step == 1)
                               OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  minimumSize: const Size(120, 44),
+                                  side: const BorderSide(color: Colors.black),
+                                  foregroundColor: Colors.black,
+                                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                                ),
                                 onPressed: () => setState(() => _step = 0),
                                 child: const Text('Back'),
                               )
@@ -712,7 +752,12 @@ class _CreateClassPageState extends State<_CreateClassPage> {
                               const SizedBox.shrink(),
                             const Spacer(),
                             FilledButton(
-                              style: FilledButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: Colors.black,
+                                foregroundColor: Colors.white,
+                                minimumSize: const Size(120, 44),
+                                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                              ),
                               onPressed: () {
                                 if (_step == 0) {
                                   if (_formKey.currentState!.validate()) setState(() => _step = 1);
