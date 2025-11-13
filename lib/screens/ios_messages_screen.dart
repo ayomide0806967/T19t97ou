@@ -14,6 +14,7 @@ import '../services/data_service.dart';
 import '../widgets/tweet_post_card.dart';
 import '../services/simple_auth_service.dart';
 import '../widgets/hexagon_avatar.dart';
+import '../services/roles_service.dart';
 import 'student_profile_screen.dart';
 // Removed unused tweet widgets imports
 
@@ -573,7 +574,9 @@ child: Row(
 }
 
 class _CreateClassPage extends StatefulWidget {
-  const _CreateClassPage();
+  const _CreateClassPage({this.initialStep = 0});
+
+  final int initialStep;
 
   @override
   State<_CreateClassPage> createState() => _CreateClassPageState();
@@ -585,11 +588,17 @@ class _CreateClassPageState extends State<_CreateClassPage> {
   final TextEditingController _code = TextEditingController();
   final TextEditingController _facilitator = TextEditingController();
   final TextEditingController _description = TextEditingController();
-  int _step = 0; // 0 = basics, 1 = settings
+  late int _step; // 0 = basics, 1 = settings
   bool _isPrivate = true;
   bool _adminOnlyPosting = true;
   bool _approvalRequired = false;
   bool _allowMedia = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _step = widget.initialStep;
+  }
 
   @override
   void dispose() {
@@ -670,6 +679,8 @@ class _CreateClassPageState extends State<_CreateClassPage> {
                         if (_step == 0) ...[
                           TextFormField(
                             controller: _name,
+                            style: const TextStyle(fontSize: 16, color: Colors.black),
+                            cursorColor: Colors.black,
                             decoration: InputDecoration(
                               labelText: 'Class name',
                               isDense: true,
@@ -683,6 +694,8 @@ class _CreateClassPageState extends State<_CreateClassPage> {
                           const SizedBox(height: 12),
                           TextFormField(
                             controller: _code,
+                            style: const TextStyle(fontSize: 16, color: Colors.black),
+                            cursorColor: Colors.black,
                             decoration: InputDecoration(
                               labelText: 'Code (optional)',
                               isDense: true,
@@ -695,6 +708,8 @@ class _CreateClassPageState extends State<_CreateClassPage> {
                           const SizedBox(height: 12),
                           TextFormField(
                             controller: _facilitator,
+                            style: const TextStyle(fontSize: 16, color: Colors.black),
+                            cursorColor: Colors.black,
                             decoration: InputDecoration(
                               labelText: 'Facilitator / Admin (optional)',
                               isDense: true,
@@ -708,6 +723,8 @@ class _CreateClassPageState extends State<_CreateClassPage> {
                           TextFormField(
                             controller: _description,
                             maxLines: 2,
+                            style: const TextStyle(fontSize: 16, color: Colors.black),
+                            cursorColor: Colors.black,
                             decoration: InputDecoration(
                               labelText: 'Description (optional)',
                               isDense: true,
@@ -728,38 +745,42 @@ class _CreateClassPageState extends State<_CreateClassPage> {
                           builder: (context, constraints) {
                             // Wrap buttons on small widths to avoid overflow, while
                             // keeping a consistent button height/width where space allows.
+                            final BorderRadiusGeometry radius = BorderRadius.circular(12);
                             final ButtonStyle outlineStyle = OutlinedButton.styleFrom(
-                              minimumSize: const Size(120, 44),
+                              minimumSize: const Size(0, 44),
                               side: const BorderSide(color: Colors.black),
                               foregroundColor: Colors.black,
-                              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                              shape: RoundedRectangleBorder(borderRadius: radius),
                             );
                             final ButtonStyle filledStyle = FilledButton.styleFrom(
                               backgroundColor: Colors.black,
                               foregroundColor: Colors.white,
-                              minimumSize: const Size(120, 44),
-                              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                              minimumSize: const Size(0, 44),
+                              shape: RoundedRectangleBorder(borderRadius: radius),
                             );
 
-                            return Align(
-                              alignment: Alignment.centerLeft,
-                              child: Wrap(
-                                spacing: 12,
-                                runSpacing: 8,
-                                alignment: WrapAlignment.spaceBetween,
-                                children: [
-                                  OutlinedButton(
+                            return Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton(
                                     style: outlineStyle,
                                     onPressed: () => Navigator.of(context).pop(),
                                     child: const Text('Cancel'),
                                   ),
-                                  if (_step == 1)
-                                    OutlinedButton(
+                                ),
+                                const SizedBox(width: 12),
+                                if (_step == 1) ...[
+                                  Expanded(
+                                    child: OutlinedButton(
                                       style: outlineStyle,
                                       onPressed: () => setState(() => _step = 0),
                                       child: const Text('Back'),
                                     ),
-                                  FilledButton(
+                                  ),
+                                  const SizedBox(width: 12),
+                                ],
+                                Expanded(
+                                  child: FilledButton(
                                     style: filledStyle,
                                     onPressed: () {
                                       if (_step == 0) {
@@ -770,8 +791,8 @@ class _CreateClassPageState extends State<_CreateClassPage> {
                                     },
                                     child: Text(_step == 0 ? 'Next' : 'Create'),
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             );
                           },
                         ),
@@ -1004,6 +1025,7 @@ class _CollegeScreenState extends State<_CollegeScreen> {
     super.initState();
     _members = Set<String>.from(widget.college.memberHandles);
     _admins = <String>{_currentUserHandle};
+    _bootstrapAdmins();
     // Seed demo comments to match the provided reference image.
     if (_notes.isEmpty && widget.college.code == 'CVE220') {
       _notes.addAll(<_ClassMessage>[
@@ -1145,6 +1167,20 @@ Mock exam briefing extended update: please review chapters one through five, pra
     }
   }
 
+  Future<void> _bootstrapAdmins() async {
+    final code = widget.college.code;
+    final saved = await RolesService.getAdminsFor(code);
+    if (saved.isEmpty) {
+      // Initialize with current user as admin and persist
+      _admins = <String>{_currentUserHandle};
+      await RolesService.saveAdminsFor(code, _admins);
+    } else {
+      setState(() {
+        _admins = saved;
+      });
+    }
+  }
+
   @override
   void dispose() {
     _composer.dispose();
@@ -1188,13 +1224,14 @@ Mock exam briefing extended update: please review chapters one through five, pra
         appBar: AppBar(
           title: Text(college.name),
           actions: [
-            IconButton(
-              tooltip: 'Class settings',
-              icon: const Icon(Icons.settings_outlined),
-              onPressed: () {
-                _openSettingsSheet(context);
-              },
-            ),
+            if (_isCurrentUserAdmin)
+              IconButton(
+                tooltip: 'Class settings',
+                icon: const Icon(Icons.settings_outlined),
+                onPressed: () {
+                  _openSettingsSheet(context);
+                },
+              ),
           ],
           bottom: TabBar(
             labelStyle: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
@@ -1251,25 +1288,11 @@ Mock exam briefing extended update: please review chapters one through five, pra
                 );
               },
               onShare: (msg) async {
-                if (_activeTopic?.privateLecture == true) {
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Reposts disabled for this lecture')),
-                  );
-                  return;
-                }
-                final truncated = msg.body.length > 280
-                    ? msg.body.substring(0, 280)
-                    : msg.body;
-                await context.read<DataService>().addPost(
-                      author: msg.author,
-                      handle: _currentUserHandle,
-                      body: '$truncated  #${college.code}',
-                      tags: <String>[college.code],
-                    );
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Shared to your page')),
+                  const SnackBar(
+                    content: Text('Use Repost to share this note to the global timeline'),
+                  ),
                 );
               },
               requiresPin: _activeTopic?.requirePin ?? false,
@@ -1318,80 +1341,92 @@ Mock exam briefing extended update: please review chapters one through five, pra
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
+        final maxHeight = MediaQuery.of(ctx).size.height * 0.8;
         return SafeArea(
           top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text('Class settings', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-                    const Spacer(),
-                    IconButton(
-                      icon: const Icon(Icons.close_rounded),
-                      onPressed: () => Navigator.of(ctx).pop(),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                _SwitchRow(
-                  label: 'Admin-only posting',
-                  value: _adminOnlyPosting,
-                  onChanged: (v) => setState(() => _adminOnlyPosting = v),
-                ),
-                _SwitchRow(
-                  label: 'Allow replies',
-                  value: _allowReplies,
-                  onChanged: (v) => setState(() => _allowReplies = v),
-                ),
-                _SwitchRow(
-                  label: 'Allow media attachments',
-                  value: _allowMedia,
-                  onChanged: (v) => setState(() => _allowMedia = v),
-                ),
-                _SwitchRow(
-                  label: 'Require approval for notes',
-                  value: _approvalRequired,
-                  onChanged: (v) => setState(() => _approvalRequired = v),
-                ),
-                _SwitchRow(
-                  label: 'Private class',
-                  value: _isPrivate,
-                  onChanged: (v) => setState(() => _isPrivate = v),
-                ),
-                _SwitchRow(
-                  label: 'Auto-archive when ending topic',
-                  value: _autoArchiveOnEnd,
-                  onChanged: (v) => setState(() => _autoArchiveOnEnd = v),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    OutlinedButton.icon(
-                      icon: const Icon(Icons.group_outlined),
-                      label: const Text('Manage admins'),
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Manage admins coming soon')),
-                        );
-                      },
-                    ),
-                    const SizedBox(width: 8),
-                    OutlinedButton.icon(
-                      icon: const Icon(Icons.person_remove_alt_1_outlined),
-                      label: const Text('Suspend members'),
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Suspend members from Students tab')),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ],
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxHeight),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text('Class settings', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () => Navigator.of(ctx).pop(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  _SwitchRow(
+                    label: 'Admin-only posting',
+                    value: _adminOnlyPosting,
+                    onChanged: (v) => setState(() => _adminOnlyPosting = v),
+                  ),
+                  _SwitchRow(
+                    label: 'Allow replies',
+                    value: _allowReplies,
+                    onChanged: (v) => setState(() => _allowReplies = v),
+                  ),
+                  _SwitchRow(
+                    label: 'Allow media attachments',
+                    value: _allowMedia,
+                    onChanged: (v) => setState(() => _allowMedia = v),
+                  ),
+                  _SwitchRow(
+                    label: 'Private class',
+                    value: _isPrivate,
+                    onChanged: (v) => setState(() => _isPrivate = v),
+                  ),
+                  _SwitchRow(
+                    label: 'Auto-archive when ending topic',
+                    value: _autoArchiveOnEnd,
+                    onChanged: (v) => setState(() => _autoArchiveOnEnd = v),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.tune),
+                        label: const Text('Setting detail'),
+                        onPressed: () async {
+                          Navigator.of(ctx).pop();
+                          await Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const _CreateClassPage(initialStep: 1),
+                            ),
+                          );
+                        },
+                      ),
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.group_outlined),
+                        label: const Text('Manage admins'),
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Manage admins coming soon')),
+                          );
+                        },
+                      ),
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.person_remove_alt_1_outlined),
+                        label: const Text('Suspend members'),
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Suspend members from Students tab')),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -1436,6 +1471,8 @@ Mock exam briefing extended update: please review chapters one through five, pra
         title: const Text('Add student'),
         content: TextField(
           controller: controller,
+          style: const TextStyle(fontSize: 16, color: Colors.black),
+          cursorColor: Colors.black,
           decoration: const InputDecoration(hintText: '@handle'),
         ),
         actions: [
@@ -1527,8 +1564,10 @@ class _ClassFeedTab extends StatelessWidget {
               const SizedBox(height: 16),
               if (activeTopic != null)
                 _ActiveTopicCard(topic: activeTopic!, onArchive: onArchiveTopic)
+              else if (isAdmin)
+                _StartLectureCard(onStart: (c, t, k, s) => onStartLecture(c, t, k, s))
               else
-                _StartLectureCard(onStart: (c, t, k, s) => onStartLecture(c, t, k, s)),
+                const SizedBox.shrink(),
               const SizedBox(height: 12),
               if (activeTopic != null) ...[
                 if (requiresPin && !unlocked)
@@ -1711,18 +1750,24 @@ class _StartLectureCardState extends State<_StartLectureCard> {
             if (_step == 0) ...[
               TextField(
                 controller: _course,
+                style: const TextStyle(fontSize: 16, color: Colors.black),
+                cursorColor: Colors.black,
                 decoration: const InputDecoration(labelText: 'Course name'),
                 onChanged: (_) => setState(() {}),
               ),
               const SizedBox(height: 8),
               TextField(
                 controller: _tutor,
+                style: const TextStyle(fontSize: 16, color: Colors.black),
+                cursorColor: Colors.black,
                 decoration: const InputDecoration(labelText: 'Tutor name (optional)'),
                 onChanged: (_) => setState(() {}),
               ),
               const SizedBox(height: 8),
               TextField(
                 controller: _topic,
+                style: const TextStyle(fontSize: 16, color: Colors.black),
+                cursorColor: Colors.black,
                 decoration: const InputDecoration(labelText: 'Topic'),
                 onChanged: (_) => setState(() {}),
                 onSubmitted: (_) { if (_canStart) setState(() => _step = 1); },
@@ -1749,71 +1794,110 @@ class _StartLectureCardState extends State<_StartLectureCard> {
               ),
             ] else ...[
               const SizedBox(height: 6),
-              _SwitchRow(label: 'Private lecture (disable repost)', value: _privateLecture, onChanged: (v) => setState(() => _privateLecture = v)),
-              _SwitchRow(label: 'Require PIN to access', value: _requirePin, onChanged: (v) => setState(() => _requirePin = v)),
+              _SwitchRow(
+                label: 'Private lecture (disable repost)',
+                value: _privateLecture,
+                onChanged: (v) => setState(() => _privateLecture = v),
+                monochrome: true,
+              ),
+              _SwitchRow(
+                label: 'Require PIN to access',
+                value: _requirePin,
+                onChanged: (v) => setState(() => _requirePin = v),
+                monochrome: true,
+              ),
               if (_requirePin)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 6),
-                  child: TextField(controller: _pin, decoration: const InputDecoration(labelText: 'PIN code')),
+                  child: TextField(
+                    controller: _pin,
+                    style: const TextStyle(fontSize: 16, color: Colors.black),
+                    cursorColor: Colors.black,
+                    decoration: const InputDecoration(labelText: 'PIN code'),
+                  ),
                 ),
               const SizedBox(height: 6),
-              Row(
+              // Auto-archive controls: label above, buttons below in one row
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Auto-move to Library on', style: theme.textTheme.bodyMedium),
-                        const SizedBox(height: 6),
-                        if (_autoArchiveAt != null) Text(_autoArchiveAt!.toString(), style: theme.textTheme.bodySmall),
-                      ],
-                    ),
+                  Text('Date/time', style: theme.textTheme.bodyMedium),
+                  if (_autoArchiveAt != null) ...[
+                    const SizedBox(height: 6),
+                    Text(_autoArchiveAt!.toString(), style: theme.textTheme.bodySmall),
+                  ],
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
+                          onPressed: () async {
+                            final now = DateTime.now();
+                            final date = await showDatePicker(
+                              context: context,
+                              initialDate: now,
+                              firstDate: now,
+                              lastDate: DateTime(now.year + 2),
+                            );
+                            if (date == null) return;
+                            final time = await showTimePicker(
+                              context: context,
+                              initialTime: TimeOfDay.fromDateTime(now.add(const Duration(hours: 1))),
+                            );
+                            if (time == null) return;
+                            final dt = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+                            setState(() => _autoArchiveAt = dt);
+                          },
+                          child: const Text('Date/time'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
+                          onPressed: () => setState(() => _autoArchiveAt = null),
+                          child: const Text('Clear'),
+                        ),
+                      ),
+                    ],
                   ),
-                  OutlinedButton(
-                    onPressed: () async {
-                      final now = DateTime.now();
-                      final date = await showDatePicker(
-                        context: context,
-                        initialDate: now,
-                        firstDate: now,
-                        lastDate: DateTime(now.year + 2),
-                      );
-                      if (date == null) return;
-                      final time = await showTimePicker(
-                        context: context,
-                        initialTime: TimeOfDay.fromDateTime(now.add(const Duration(hours: 1))),
-                      );
-                      if (time == null) return;
-                      final dt = DateTime(date.year, date.month, date.day, time.hour, time.minute);
-                      setState(() => _autoArchiveAt = dt);
-                    },
-                    child: const Text('Pick date/time'),
-                  ),
-                  const SizedBox(width: 8),
-                  OutlinedButton(onPressed: () => setState(() => _autoArchiveAt = null), child: const Text('Clear')),
                 ],
               ),
               const SizedBox(height: 12),
+              // Bottom action buttons aligned on one horizontal line
               Row(
                 children: [
-                  OutlinedButton(onPressed: () => setState(() => _step = 0), child: const Text('Back')),
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
+                      onPressed: () => setState(() => _step = 0),
+                      child: const Text('Back'),
+                    ),
+                  ),
                   const SizedBox(width: 12),
-                  FilledButton(
-                    style: FilledButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white),
-                    onPressed: _canStart
-                        ? () => widget.onStart(
-                              _course.text.trim(),
-                              _tutor.text.trim(),
-                              _topic.text.trim(),
-                              _TopicSettings(
-                                privateLecture: _privateLecture,
-                                requirePin: _requirePin,
-                                pinCode: _requirePin ? _pin.text.trim() : null,
-                                autoArchiveAt: _autoArchiveAt,
-                              ),
-                            )
-                        : null,
-                    child: const Text('Start'),
+                  Expanded(
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(0, 44),
+                      ),
+                      onPressed: _canStart
+                          ? () => widget.onStart(
+                                _course.text.trim(),
+                                _tutor.text.trim(),
+                                _topic.text.trim(),
+                                _TopicSettings(
+                                  privateLecture: _privateLecture,
+                                  requirePin: _requirePin,
+                                  pinCode: _requirePin ? _pin.text.trim() : null,
+                                  autoArchiveAt: _autoArchiveAt,
+                                ),
+                              )
+                          : null,
+                      child: const Text('Start'),
+                    ),
                   ),
                 ],
               ),
@@ -1854,6 +1938,35 @@ class _TopicFeedList extends StatelessWidget {
               heartbreaks: 0,
             ),
             onShare: () async {},
+            onRepost: () async {
+              // Respect topic privacy: disable repost if lecture is private
+              if (topic.privateLecture) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Reposts disabled for this lecture')),
+                );
+                return false;
+              }
+              // Derive current user handle (same as used elsewhere)
+              String me = '@yourprofile';
+              final email = SimpleAuthService().currentUserEmail;
+              if (email != null && email.isNotEmpty) {
+                final normalized = email
+                    .split('@')
+                    .first
+                    .replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '')
+                    .toLowerCase();
+                if (normalized.isNotEmpty) me = '@$normalized';
+              }
+              final toggled = await context.read<DataService>().toggleRepost(
+                    postId: p.id,
+                    userHandle: me,
+                  );
+              if (!context.mounted) return toggled;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(toggled ? 'Reposted to your timeline' : 'Repost removed')),
+              );
+              return toggled;
+            },
           ),
           const SizedBox(height: 8),
         ],
@@ -1936,10 +2049,16 @@ class _TopicSettings {
 }
 
 class _SwitchRow extends StatelessWidget {
-  const _SwitchRow({required this.label, required this.value, required this.onChanged});
+  const _SwitchRow({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+    this.monochrome = false,
+  });
   final String label;
   final bool value;
   final ValueChanged<bool> onChanged;
+  final bool monochrome;
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -1950,7 +2069,14 @@ class _SwitchRow extends StatelessWidget {
           Expanded(
             child: Text(label, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
           ),
-          Switch(value: value, onChanged: onChanged),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeColor: monochrome ? Colors.white : null,
+            activeTrackColor: monochrome ? Colors.black : null,
+            inactiveThumbColor: monochrome ? Colors.black : null,
+            inactiveTrackColor: monochrome ? Colors.white : null,
+          ),
         ],
       ),
     );
@@ -1987,7 +2113,12 @@ class _PinGateCardState extends State<_PinGateCard> {
         children: [
           Text('Enter PIN to view notes', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
-          TextField(controller: _code, decoration: const InputDecoration(labelText: 'PIN')),
+          TextField(
+            controller: _code,
+            style: const TextStyle(fontSize: 16, color: Colors.black),
+            cursorColor: Colors.black,
+            decoration: const InputDecoration(labelText: 'PIN'),
+          ),
           const SizedBox(height: 12),
           Align(
             alignment: Alignment.centerRight,
@@ -2321,9 +2452,10 @@ class _ClassComposerState extends State<_ClassComposer> {
       minLines: 1,
       textCapitalization: TextCapitalization.sentences,
       textInputAction: TextInputAction.newline,
+      cursorColor: Colors.black,
       style: theme.textTheme.bodyLarge?.copyWith(
-        color: theme.colorScheme.onSurface,
-        fontSize: 18,
+        color: Colors.black,
+        fontSize: 16,
         height: 1.45,
         letterSpacing: 0.1,
       ),
@@ -2481,10 +2613,12 @@ class _ClassMessageTile extends StatefulWidget {
     required this.message,
     required this.onShare,
     this.showReplyButton = true,
+    this.onRepost, // when provided, triggers a real repost action
   });
 
   final _ClassMessage message;
   final Future<void> Function() onShare;
+  final Future<bool> Function()? onRepost; // returns new repost state (active?)
   final bool showReplyButton;
 
   @override
@@ -2771,11 +2905,24 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                     Expanded(
                       child: Center(
                         child: _ScaleTap(
-                          onTap: () => setState(() {
-                            _saved = !_saved;
-                            _reposts += _saved ? 1 : -1;
-                            if (_reposts < 0) _reposts = 0;
-                          }),
+                          onTap: () async {
+                            if (widget.onRepost != null) {
+                              final bool next = await widget.onRepost!.call();
+                              setState(() {
+                                if (_saved != next) {
+                                  _reposts += next ? 1 : -1;
+                                  if (_reposts < 0) _reposts = 0;
+                                }
+                                _saved = next;
+                              });
+                            } else {
+                              setState(() {
+                                _saved = !_saved;
+                                _reposts += _saved ? 1 : -1;
+                                if (_reposts < 0) _reposts = 0;
+                              });
+                            }
+                          },
                           child: LayoutBuilder(
                             builder: (context, c) {
                               final maxW = c.maxWidth;
@@ -3572,11 +3719,14 @@ class _CommentTileState extends State<_CommentTile> {
                 Expanded(
                   child: Center(
                     child: _ScaleTap(
-                      onTap: () => setState(() {
-                        _reposted = !_reposted;
-                        _reposts += _reposted ? 1 : -1;
-                        if (_reposts < 0) _reposts = 0;
-                      }),
+                      onTap: () async {
+                        // Comment tile repost stays local (UI only)
+                        setState(() {
+                          _reposted = !_reposted;
+                          _reposts += _reposted ? 1 : -1;
+                          if (_reposts < 0) _reposts = 0;
+                        });
+                      },
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [

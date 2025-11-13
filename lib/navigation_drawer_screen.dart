@@ -396,6 +396,7 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
         final surface = theme.colorScheme.surface;
         final divider = theme.dividerColor;
 
+        final maxHeight = MediaQuery.of(sheetContext).size.height * 0.7;
         return Container(
           margin: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -422,15 +423,17 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    _buildDropdownItem(
-                      theme: theme,
-                      icon: appSettings.isDarkMode
-                          ? Icons.dark_mode
-                          : Icons.light_mode,
+              ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: maxHeight),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      _buildDropdownItem(
+                        theme: theme,
+                        icon: appSettings.isDarkMode
+                            ? Icons.dark_mode
+                            : Icons.light_mode,
                       title: 'Dark Mode',
                       trailing: Switch(
                         value: appSettings.isDarkMode,
@@ -464,17 +467,18 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
                       title: 'Help',
                       onTap: () => Navigator.pop(sheetContext),
                     ),
-                    const SizedBox(height: 8),
-                    Divider(color: divider),
-                    const SizedBox(height: 8),
-                    _buildDropdownItem(
-                      theme: theme,
-                      icon: Icons.logout_outlined,
-                      title: 'Log out',
-                      color: const Color(0xFFF56565),
-                      onTap: () => Navigator.pop(sheetContext),
-                    ),
-                  ],
+                      const SizedBox(height: 8),
+                      Divider(color: divider),
+                      const SizedBox(height: 8),
+                      _buildDropdownItem(
+                        theme: theme,
+                        icon: Icons.logout_outlined,
+                        title: 'Log out',
+                        color: const Color(0xFFF56565),
+                        onTap: () => Navigator.pop(sheetContext),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],

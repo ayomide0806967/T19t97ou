@@ -495,8 +495,18 @@ class DataService extends ChangeNotifier {
     await prefs.setString(_storageKey, raw);
   }
 
-  List<PostModel> get timelinePosts =>
-      _posts.where((post) => post.repostedBy == null).toList();
+  // Global timeline rules:
+  // - Exclude class/topic posts (tag starts with 'topic_') from appearing
+  //   on the global feed unless they are explicitly reposted.
+  // - Include reposts so users can intentionally push items to the timeline.
+  List<PostModel> get timelinePosts {
+    return _posts.where((post) {
+      final bool isRetweet = post.repostedBy != null;
+      final bool isClassTopic = post.tags.any((t) => t.startsWith('topic_'));
+      if (isClassTopic) return isRetweet; // show class items only when reposted
+      return true; // show all other items (originals and retweets)
+    }).toList();
+  }
 
   List<PostModel> postsForHandle(String handle) => _posts
       .where((post) => post.handle == handle || post.repostedBy == handle)

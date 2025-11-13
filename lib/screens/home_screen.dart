@@ -456,40 +456,44 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => Container(
-        margin: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.15),
-              blurRadius: 30,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(top: 12, bottom: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE2E8F0),
-                borderRadius: BorderRadius.circular(2),
+      builder: (context) {
+        final maxHeight = MediaQuery.of(context).size.height * 0.7;
+        return Container(
+          margin: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.15),
+                blurRadius: 30,
+                offset: const Offset(0, 10),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  _buildDropdownItem(
-                    icon: Theme.of(context).brightness == Brightness.dark
-                        ? Icons.dark_mode
-                        : Icons.light_mode,
-                    title: 'Dark Mode',
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE2E8F0),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: maxHeight),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      _buildDropdownItem(
+                        icon: Theme.of(context).brightness == Brightness.dark
+                            ? Icons.dark_mode
+                            : Icons.light_mode,
+                        title: 'Dark Mode',
                     trailing: Switch(
                       value: Theme.of(context).brightness == Brightness.dark,
                       onChanged: (value) {
@@ -518,29 +522,31 @@ class _HomeScreenState extends State<HomeScreen> {
                     title: 'Language',
                     onTap: () => Navigator.pop(context),
                   ),
-                  _buildDropdownItem(
-                    icon: Icons.help_outline,
-                    title: 'Help',
-                    onTap: () => Navigator.pop(context),
+                      _buildDropdownItem(
+                        icon: Icons.help_outline,
+                        title: 'Help',
+                        onTap: () => Navigator.pop(context),
+                      ),
+                      const SizedBox(height: 8),
+                      const Divider(color: Color(0xFFE2E8F0)),
+                      const SizedBox(height: 8),
+                      _buildDropdownItem(
+                        icon: Icons.logout_outlined,
+                        title: 'Log out',
+                        color: const Color(0xFFF56565),
+                        onTap: () async {
+                          Navigator.pop(context);
+                          await _authService.signOut();
+                        },
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  const Divider(color: Color(0xFFE2E8F0)),
-                  const SizedBox(height: 8),
-                  _buildDropdownItem(
-                    icon: Icons.logout_outlined,
-                    title: 'Log out',
-                    color: const Color(0xFFF56565),
-                    onTap: () async {
-                      Navigator.pop(context);
-                      await _authService.signOut();
-                    },
-                  ),
-                ],
+                ),
               ),
-            ),
-          ],
-        ),
-      ),
+            ],
+          ),
+        );
+      },
     );
   }
 
