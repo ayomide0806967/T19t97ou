@@ -15,6 +15,7 @@ import '../widgets/tweet_post_card.dart';
 import '../services/simple_auth_service.dart';
 import '../widgets/hexagon_avatar.dart';
 import '../services/roles_service.dart';
+import '../services/members_service.dart';
 import 'student_profile_screen.dart';
 import '../widgets/equal_width_buttons_row.dart';
 // Removed unused tweet widgets imports
@@ -1030,6 +1031,7 @@ class _CollegeScreenState extends State<_CollegeScreen> {
     _members = Set<String>.from(widget.college.memberHandles);
     _admins = <String>{_currentUserHandle};
     _bootstrapAdmins();
+    _bootstrapMembers();
     // Seed demo comments to match the provided reference image.
     if (_notes.isEmpty && widget.college.code == 'CVE220') {
       _notes.addAll(<_ClassMessage>[
@@ -1335,6 +1337,7 @@ Mock exam briefing extended update: please review chapters one through five, pra
                                           _members.remove(handle);
                                           _admins.remove(handle);
                                         });
+                                        await _persistMembers();
                                         await RolesService.saveAdminsFor(code, _admins);
                                         if (mounted) {
                                           ScaffoldMessenger.of(context).showSnackBar(
@@ -1369,6 +1372,24 @@ Mock exam briefing extended update: please review chapters one through five, pra
         _admins = saved;
       });
     }
+  }
+
+  Future<void> _bootstrapMembers() async {
+    final code = widget.college.code;
+    final saved = await MembersService.getMembersFor(code);
+    if (saved.isEmpty) {
+      final initial = <String>{...widget.college.memberHandles, _currentUserHandle};
+      _members = initial;
+      await MembersService.saveMembersFor(code, _members);
+    } else {
+      setState(() {
+        _members = saved;
+      });
+    }
+  }
+
+  Future<void> _persistMembers() async {
+    await MembersService.saveMembersFor(widget.college.code, _members);
   }
 
   @override
@@ -1511,6 +1532,7 @@ Mock exam briefing extended update: please review chapters one through five, pra
               onExit: _exitClass,
               onSuspend: (h) {
                 setState(() => _members.remove(h));
+                _persistMembers();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Suspended $h')),
                 );
@@ -1604,6 +1626,14 @@ Mock exam briefing extended update: please review chapters one through five, pra
                         },
                       ),
                       OutlinedButton.icon(
+                        icon: const Icon(Icons.person_add_alt_1_outlined),
+                        label: const Text('Invite member'),
+                        onPressed: () {
+                          Navigator.of(ctx).pop();
+                          _addMember(context);
+                        },
+                      ),
+                      OutlinedButton.icon(
                         icon: const Icon(Icons.person_remove_alt_1_outlined),
                         label: const Text('Suspend members'),
                         onPressed: () {
@@ -1671,6 +1701,7 @@ Mock exam briefing extended update: please review chapters one through five, pra
               if (h.isEmpty) return;
               if (!h.startsWith('@')) h = '@$h';
               setState(() => _members.add(h));
+              _persistMembers();
               Navigator.of(ctx).pop();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Added $h')),
