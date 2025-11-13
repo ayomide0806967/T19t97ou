@@ -774,14 +774,7 @@ class _CreateClassPageState extends State<_CreateClassPage> {
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: surface,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: border),
-            ),
-            child: Form(
+          child: Form(
               key: _formKey,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -789,9 +782,14 @@ class _CreateClassPageState extends State<_CreateClassPage> {
                   // Vertical step rail: 1 | 2
                   Padding(
                     padding: const EdgeInsets.only(right: 16, top: 6),
-                    child: _StepRailVertical(
-                      steps: const ['1', '2', '3', '4'],
-                      activeIndex: _step,
+                    child: SizedBox(
+                      width: 180,
+                      child: _StepRailVertical(
+                        steps: const ['1', '2', '3', '4'],
+                        titles: const ['Basics', 'Privacy & roles', 'Features', 'Review'],
+                        activeIndex: _step,
+                        onStepTap: (i) => setState(() => _step = i),
+                      ),
                     ),
                   ),
                   // Content
@@ -2691,23 +2689,64 @@ class _PinGateCardState extends State<_PinGateCard> {
 
 // --- Reusable step rails ---
 class _StepRailVertical extends StatelessWidget {
-  const _StepRailVertical({required this.steps, required this.activeIndex});
-  final List<String> steps;
+  const _StepRailVertical({
+    required this.steps,
+    required this.activeIndex,
+    this.titles,
+    this.onStepTap,
+  });
+
+  final List<String> steps; // Dot labels (e.g., 1..4)
+  final List<String>? titles; // Step titles shown to the right
   final int activeIndex;
+  final ValueChanged<int>? onStepTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final bool hasTitles = titles != null && titles!.length == steps.length;
+    final Color connectorColor = theme.colorScheme.onSurface.withValues(alpha: 0.25);
+    const double dotSize = 24;
     return Column(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         for (int i = 0; i < steps.length; i++) ...[
-          _StepDot(active: i == activeIndex, label: steps[i]),
+          InkWell(
+            onTap: onStepTap == null ? null : () => onStepTap!(i),
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  _StepDot(active: i == activeIndex, label: steps[i], size: dotSize),
+                  if (hasTitles) ...[
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        titles![i],
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: i == activeIndex ? FontWeight.w700 : FontWeight.w600,
+                          color: i == activeIndex
+                              ? theme.colorScheme.onSurface
+                              : theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
           if (i < steps.length - 1)
-            Container(
-              width: 1,
-              height: 28,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.25),
+            Row(
+              children: [
+                const SizedBox(width: dotSize / 2),
+                Container(width: 1, height: 28, color: connectorColor),
+                if (hasTitles) const SizedBox(width: 10),
+                if (hasTitles) const Expanded(child: SizedBox()),
+              ],
             ),
         ],
       ],
