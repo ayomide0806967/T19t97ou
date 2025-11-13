@@ -16,6 +16,7 @@ import '../services/simple_auth_service.dart';
 import '../widgets/hexagon_avatar.dart';
 import '../services/roles_service.dart';
 import 'student_profile_screen.dart';
+import '../widgets/equal_width_buttons_row.dart';
 // Removed unused tweet widgets imports
 
 // Lightweight attachment model used by the class composer
@@ -763,62 +764,40 @@ class _CreateClassPageState extends State<_CreateClassPage> {
                               visualDensity: VisualDensity.compact,
                             );
 
-                            return Row(
-                              children: [
-                                Expanded(
-                                  child: OutlinedButton(
-                                    style: outlineStyle,
-                                    onPressed: () => Navigator.of(context).pop(),
-                                    child: const FittedBox(
-                                      fit: BoxFit.scaleDown,
-                                      child: Text(
-                                        'Cancel',
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
+                            final List<Widget> btns = [
+                              OutlinedButton(
+                                style: outlineStyle,
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: const FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text('Cancel', maxLines: 1, overflow: TextOverflow.ellipsis),
+                                ),
+                              ),
+                              if (_step == 1)
+                                OutlinedButton(
+                                  style: outlineStyle,
+                                  onPressed: () => setState(() => _step = 0),
+                                  child: const FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text('Back', maxLines: 1, overflow: TextOverflow.ellipsis),
                                   ),
                                 ),
-                                const SizedBox(width: 8),
-                                if (_step == 1) ...[
-                                  Expanded(
-                                    child: OutlinedButton(
-                                      style: outlineStyle,
-                                      onPressed: () => setState(() => _step = 0),
-                                      child: const FittedBox(
-                                        fit: BoxFit.scaleDown,
-                                        child: Text(
-                                          'Back',
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                ],
-                                Expanded(
-                                  child: FilledButton(
-                                    style: filledStyle,
-                                    onPressed: () {
-                                      if (_step == 0) {
-                                        if (_formKey.currentState!.validate()) setState(() => _step = 1);
-                                      } else {
-                                        _create();
-                                      }
-                                    },
-                                    child: FittedBox(
-                                      fit: BoxFit.scaleDown,
-                                      child: Text(
-                                        _step == 0 ? 'Next' : 'Create',
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ),
+                              FilledButton(
+                                style: filledStyle,
+                                onPressed: () {
+                                  if (_step == 0) {
+                                    if (_formKey.currentState!.validate()) setState(() => _step = 1);
+                                  } else {
+                                    _create();
+                                  }
+                                },
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(_step == 0 ? 'Next' : 'Create', maxLines: 1, overflow: TextOverflow.ellipsis),
                                 ),
-                              ],
-                            );
+                              ),
+                            ];
+                            return EqualWidthButtonsRow(children: btns, gap: 8, height: 40);
                           },
                         ),
                       ],
@@ -2075,38 +2054,35 @@ class _StartLectureCardState extends State<_StartLectureCard> {
               ),
               const SizedBox(height: 12),
               // Bottom action buttons aligned on one horizontal line
-              Row(
+              EqualWidthButtonsRow(
+                height: 40,
+                gap: 8,
                 children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
-                      onPressed: () => setState(() => _step = 0),
-                      child: const Text('Back'),
-                    ),
+                  OutlinedButton(
+                    style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40)),
+                    onPressed: () => setState(() => _step = 0),
+                    child: const FittedBox(fit: BoxFit.scaleDown, child: Text('Back', maxLines: 1)),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Colors.black,
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size(0, 44),
-                      ),
-                      onPressed: _canStart
-                          ? () => widget.onStart(
-                                _course.text.trim(),
-                                _tutor.text.trim(),
-                                _topic.text.trim(),
-                                _TopicSettings(
-                                  privateLecture: _privateLecture,
-                                  requirePin: _requirePin,
-                                  pinCode: _requirePin ? _pin.text.trim() : null,
-                                  autoArchiveAt: _autoArchiveAt,
-                                ),
-                              )
-                          : null,
-                      child: const Text('Start'),
+                  FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(0, 40),
                     ),
+                    onPressed: _canStart
+                        ? () => widget.onStart(
+                              _course.text.trim(),
+                              _tutor.text.trim(),
+                              _topic.text.trim(),
+                              _TopicSettings(
+                                privateLecture: _privateLecture,
+                                requirePin: _requirePin,
+                                pinCode: _requirePin ? _pin.text.trim() : null,
+                                autoArchiveAt: _autoArchiveAt,
+                              ),
+                            )
+                        : null,
+                    child: const FittedBox(fit: BoxFit.scaleDown, child: Text('Start', maxLines: 1)),
                   ),
                 ],
               ),
@@ -2147,35 +2123,31 @@ class _TopicFeedList extends StatelessWidget {
               heartbreaks: 0,
             ),
             onShare: () async {},
-            onRepost: () async {
-              // Respect topic privacy: disable repost if lecture is private
-              if (topic.privateLecture) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Reposts disabled for this lecture')),
-                );
-                return false;
-              }
-              // Derive current user handle (same as used elsewhere)
-              String me = '@yourprofile';
-              final email = SimpleAuthService().currentUserEmail;
-              if (email != null && email.isNotEmpty) {
-                final normalized = email
-                    .split('@')
-                    .first
-                    .replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '')
-                    .toLowerCase();
-                if (normalized.isNotEmpty) me = '@$normalized';
-              }
-              final toggled = await context.read<DataService>().toggleRepost(
-                    postId: p.id,
-                    userHandle: me,
-                  );
-              if (!context.mounted) return toggled;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(toggled ? 'Reposted to your timeline' : 'Repost removed')),
-              );
-              return toggled;
-            },
+            repostEnabled: !topic.privateLecture,
+            onRepost: topic.privateLecture
+                ? null
+                : () async {
+                    // Derive current user handle (same as used elsewhere)
+                    String me = '@yourprofile';
+                    final email = SimpleAuthService().currentUserEmail;
+                    if (email != null && email.isNotEmpty) {
+                      final normalized = email
+                          .split('@')
+                          .first
+                          .replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '')
+                          .toLowerCase();
+                      if (normalized.isNotEmpty) me = '@$normalized';
+                    }
+                    final toggled = await context.read<DataService>().toggleRepost(
+                          postId: p.id,
+                          userHandle: me,
+                        );
+                    if (!context.mounted) return toggled;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(toggled ? 'Reposted to your timeline' : 'Repost removed')),
+                    );
+                    return toggled;
+                  },
           ),
           const SizedBox(height: 8),
         ],
@@ -2823,11 +2795,13 @@ class _ClassMessageTile extends StatefulWidget {
     required this.onShare,
     this.showReplyButton = true,
     this.onRepost, // when provided, triggers a real repost action
+    this.repostEnabled = true,
   });
 
   final _ClassMessage message;
   final Future<void> Function() onShare;
   final Future<bool> Function()? onRepost; // returns new repost state (active?)
+  final bool repostEnabled;
   final bool showReplyButton;
 
   @override
@@ -3113,26 +3087,57 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                     ),
                     Expanded(
                       child: Center(
-                        child: _ScaleTap(
-                          onTap: () async {
-                            if (widget.onRepost != null) {
-                              final bool next = await widget.onRepost!.call();
-                              setState(() {
-                                if (_saved != next) {
-                                  _reposts += next ? 1 : -1;
-                                  if (_reposts < 0) _reposts = 0;
-                                }
-                                _saved = next;
-                              });
-                            } else {
-                              setState(() {
-                                _saved = !_saved;
-                                _reposts += _saved ? 1 : -1;
-                                if (_reposts < 0) _reposts = 0;
-                              });
-                            }
-                          },
-                          child: LayoutBuilder(
+                        child: widget.repostEnabled
+                            ? _ScaleTap(
+                                onTap: () async {
+                                  if (widget.onRepost != null) {
+                                    final bool next = await widget.onRepost!.call();
+                                    setState(() {
+                                      if (_saved != next) {
+                                        _reposts += next ? 1 : -1;
+                                        if (_reposts < 0) _reposts = 0;
+                                      }
+                                      _saved = next;
+                                    });
+                                  } else {
+                                    setState(() {
+                                      _saved = !_saved;
+                                      _reposts += _saved ? 1 : -1;
+                                      if (_reposts < 0) _reposts = 0;
+                                    });
+                                  }
+                                },
+                                child: LayoutBuilder(
+                                  builder: (context, c) {
+                                    final maxW = c.maxWidth;
+                                    final bool tight = maxW.isFinite && maxW < 60;
+                                    final bool ultra = maxW.isFinite && maxW < 38;
+                                    final String label = ultra ? 'R' : (tight ? 'Rep' : 'Repost');
+                                    final double gap = ultra ? 2 : (tight ? 4 : 6);
+                                    return Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          label,
+                                          style: theme.textTheme.bodySmall?.copyWith(
+                                            color: _saved ? Colors.green : meta,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                        SizedBox(width: gap),
+                                        Text(
+                                          '$_reposts',
+                                          style: theme.textTheme.bodySmall?.copyWith(
+                                            color: _saved ? Colors.green : meta,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                ),
+                              )
+                            : LayoutBuilder(
                             builder: (context, c) {
                               final maxW = c.maxWidth;
                               final bool tight = maxW.isFinite && maxW < 60;
@@ -3145,7 +3150,7 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                                   Text(
                                     label,
                                     style: theme.textTheme.bodySmall?.copyWith(
-                                      color: _saved ? Colors.green : meta,
+                                      color: meta,
                                       fontWeight: FontWeight.w700,
                                     ),
                                   ),
@@ -3153,7 +3158,7 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                                   Text(
                                     '$_reposts',
                                     style: theme.textTheme.bodySmall?.copyWith(
-                                      color: _saved ? Colors.green : meta,
+                                      color: meta,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -3161,7 +3166,6 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                               );
                             },
                           ),
-                        ),
                       ),
                     ),
                     Expanded(
