@@ -747,16 +747,20 @@ class _CreateClassPageState extends State<_CreateClassPage> {
                             // keeping a consistent button height/width where space allows.
                             final BorderRadiusGeometry radius = BorderRadius.circular(12);
                             final ButtonStyle outlineStyle = OutlinedButton.styleFrom(
-                              minimumSize: const Size(0, 44),
+                              minimumSize: const Size(0, 40),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
                               side: const BorderSide(color: Colors.black),
                               foregroundColor: Colors.black,
                               shape: RoundedRectangleBorder(borderRadius: radius),
+                              visualDensity: VisualDensity.compact,
                             );
                             final ButtonStyle filledStyle = FilledButton.styleFrom(
                               backgroundColor: Colors.black,
                               foregroundColor: Colors.white,
-                              minimumSize: const Size(0, 44),
+                              minimumSize: const Size(0, 40),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
                               shape: RoundedRectangleBorder(borderRadius: radius),
+                              visualDensity: VisualDensity.compact,
                             );
 
                             return Row(
@@ -765,19 +769,33 @@ class _CreateClassPageState extends State<_CreateClassPage> {
                                   child: OutlinedButton(
                                     style: outlineStyle,
                                     onPressed: () => Navigator.of(context).pop(),
-                                    child: const Text('Cancel'),
+                                    child: const FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: Text(
+                                        'Cancel',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
                                   ),
                                 ),
-                                const SizedBox(width: 12),
+                                const SizedBox(width: 8),
                                 if (_step == 1) ...[
                                   Expanded(
                                     child: OutlinedButton(
                                       style: outlineStyle,
                                       onPressed: () => setState(() => _step = 0),
-                                      child: const Text('Back'),
+                                      child: const FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(
+                                          'Back',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                  const SizedBox(width: 12),
+                                  const SizedBox(width: 8),
                                 ],
                                 Expanded(
                                   child: FilledButton(
@@ -789,7 +807,14 @@ class _CreateClassPageState extends State<_CreateClassPage> {
                                         _create();
                                       }
                                     },
-                                    child: Text(_step == 0 ? 'Next' : 'Create'),
+                                    child: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: Text(
+                                        _step == 0 ? 'Next' : 'Create',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ],
