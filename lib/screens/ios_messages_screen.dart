@@ -110,6 +110,7 @@ class _IosMinimalistMessagePageState extends State<IosMinimalistMessagePage> {
             ],
           ),
         ),
+        ),
     );
   }
 
@@ -313,7 +314,7 @@ class _ConversationTile extends StatelessWidget {
             ],
           ),
         ),
-      ),
+        ),
     );
   }
 }
