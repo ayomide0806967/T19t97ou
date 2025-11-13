@@ -584,6 +584,8 @@ class _CreateClassPageState extends State<_CreateClassPage> {
   final TextEditingController _name = TextEditingController();
   final TextEditingController _code = TextEditingController();
   final TextEditingController _facilitator = TextEditingController();
+  final TextEditingController _description = TextEditingController();
+  int _step = 0; // 0 = basics, 1 = settings
   bool _isPrivate = true;
   bool _adminOnlyPosting = true;
   bool _approvalRequired = false;
@@ -594,6 +596,7 @@ class _CreateClassPageState extends State<_CreateClassPage> {
     _name.dispose();
     _code.dispose();
     _facilitator.dispose();
+    _description.dispose();
     super.dispose();
   }
 
@@ -643,47 +646,86 @@ class _CreateClassPageState extends State<_CreateClassPage> {
             ),
             child: Form(
               key: _formKey,
-              child: Column(
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Class info', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _name,
-                    decoration: const InputDecoration(labelText: 'Class name'),
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter a class name' : null,
+                  // Vertical step rail: 1 | 2
+                  Padding(
+                    padding: const EdgeInsets.only(right: 16, top: 6),
+                    child: _StepRailVertical(
+                      steps: const ['1', '2'],
+                      activeIndex: _step,
+                    ),
                   ),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    controller: _code,
-                    decoration: const InputDecoration(labelText: 'Class code (optional)'),
-                  ),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    controller: _facilitator,
-                    decoration: const InputDecoration(labelText: 'Facilitator (optional)'),
-                  ),
-                  const SizedBox(height: 18),
-                  Text('Settings', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 8),
-                  _SwitchRow(label: 'Private class', value: _isPrivate, onChanged: (v) => setState(() => _isPrivate = v)),
-                  _SwitchRow(label: 'Admin-only posting', value: _adminOnlyPosting, onChanged: (v) => setState(() => _adminOnlyPosting = v)),
-                  _SwitchRow(label: 'Require approval for notes', value: _approvalRequired, onChanged: (v) => setState(() => _approvalRequired = v)),
-                  _SwitchRow(label: 'Allow media attachments', value: _allowMedia, onChanged: (v) => setState(() => _allowMedia = v)),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      OutlinedButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('Cancel'),
-                      ),
-                      const SizedBox(width: 12),
-                      FilledButton(
-                        style: FilledButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white),
-                        onPressed: _create,
-                        child: const Text('Create'),
-                      ),
-                    ],
+                  // Content
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _step == 0 ? 'Basics' : 'Settings',
+                          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 12),
+                        if (_step == 0) ...[
+                          TextFormField(
+                            controller: _name,
+                            decoration: const InputDecoration(labelText: 'Class name'),
+                            validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter a class name' : null,
+                          ),
+                          const SizedBox(height: 10),
+                          TextFormField(
+                            controller: _code,
+                            decoration: const InputDecoration(labelText: 'Code (optional)'),
+                          ),
+                          const SizedBox(height: 10),
+                          TextFormField(
+                            controller: _facilitator,
+                            decoration: const InputDecoration(labelText: 'Facilitator / Admin (optional)'),
+                          ),
+                          const SizedBox(height: 10),
+                          TextFormField(
+                            controller: _description,
+                            decoration: const InputDecoration(labelText: 'Description (optional)'),
+                            maxLines: 3,
+                          ),
+                        ] else ...[
+                          _SwitchRow(label: 'Private class', value: _isPrivate, onChanged: (v) => setState(() => _isPrivate = v)),
+                          _SwitchRow(label: 'Admin-only posting', value: _adminOnlyPosting, onChanged: (v) => setState(() => _adminOnlyPosting = v)),
+                          _SwitchRow(label: 'Require approval for notes', value: _approvalRequired, onChanged: (v) => setState(() => _approvalRequired = v)),
+                          _SwitchRow(label: 'Allow media attachments', value: _allowMedia, onChanged: (v) => setState(() => _allowMedia = v)),
+                        ],
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            OutlinedButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              child: const Text('Cancel'),
+                            ),
+                            const SizedBox(width: 12),
+                            if (_step == 1)
+                              OutlinedButton(
+                                onPressed: () => setState(() => _step = 0),
+                                child: const Text('Back'),
+                              )
+                            else
+                              const SizedBox.shrink(),
+                            const Spacer(),
+                            FilledButton(
+                              style: FilledButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white),
+                              onPressed: () {
+                                if (_step == 0) {
+                                  if (_formKey.currentState!.validate()) setState(() => _step = 1);
+                                } else {
+                                  _create();
+                                }
+                              },
+                              child: Text(_step == 0 ? 'Next' : 'Create'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -1603,6 +1645,8 @@ class _StartLectureCardState extends State<_StartLectureCard> {
           Row(
             children: [
               Text('Start a lecture', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+              const SizedBox(width: 12),
+              _StepRailMini(activeIndex: _step, steps: const ['1', '2']),
               const Spacer(),
               IconButton(
                 tooltip: _expanded ? 'Collapse' : 'Expand',
@@ -1903,6 +1947,90 @@ class _PinGateCardState extends State<_PinGateCard> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// --- Reusable step rails ---
+class _StepRailVertical extends StatelessWidget {
+  const _StepRailVertical({required this.steps, required this.activeIndex});
+  final List<String> steps;
+  final int activeIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (int i = 0; i < steps.length; i++) ...[
+          _StepDot(active: i == activeIndex, label: steps[i]),
+          if (i < steps.length - 1)
+            Container(
+              width: 1,
+              height: 28,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.25),
+            ),
+        ],
+      ],
+    );
+  }
+}
+
+class _StepRailMini extends StatelessWidget {
+  const _StepRailMini({required this.activeIndex, required this.steps});
+  final int activeIndex;
+  final List<String> steps;
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (int i = 0; i < steps.length; i++) ...[
+          _StepDot(active: i == activeIndex, label: steps[i], size: 18),
+          if (i < steps.length - 1)
+            Container(
+              width: 24,
+              height: 1,
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.25),
+            ),
+        ],
+      ],
+    );
+  }
+}
+
+class _StepDot extends StatelessWidget {
+  const _StepDot({required this.active, required this.label, this.size = 24});
+  final bool active;
+  final String label;
+  final double size;
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final Color border = theme.colorScheme.onSurface;
+    final Color fill = active ? Colors.black : Colors.white;
+    final Color text = active ? Colors.white : Colors.black;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: fill,
+        shape: BoxShape.circle,
+        border: Border.all(color: border, width: 1),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        label,
+        style: TextStyle(
+          color: text,
+          fontSize: size == 24 ? 12 : 10,
+          fontWeight: FontWeight.w700,
+          height: 1,
+        ),
       ),
     );
   }
