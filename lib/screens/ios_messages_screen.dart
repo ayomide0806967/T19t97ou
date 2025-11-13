@@ -768,6 +768,7 @@ class _CreateClassPageState extends State<_CreateClassPage> {
     final bool isDark = theme.brightness == Brightness.dark;
     final Color surface = isDark ? const Color(0xFF0F1114) : Colors.white;
     final Color border = theme.dividerColor.withValues(alpha: isDark ? 0.28 : 0.18);
+    const List<String> stepTitles = ['Basics', 'Privacy & roles', 'Features', 'Review'];
 
     return Scaffold(
       appBar: AppBar(title: const Text('Create a class')),
@@ -786,7 +787,7 @@ class _CreateClassPageState extends State<_CreateClassPage> {
                       width: 180,
                       child: _StepRailVertical(
                         steps: const ['1', '2', '3', '4'],
-                        titles: const ['Basics', 'Privacy & roles', 'Features', 'Review'],
+                        titles: stepTitles,
                         activeIndex: _step,
                         onStepTap: (i) => setState(() => _step = i),
                       ),
@@ -797,10 +798,7 @@ class _CreateClassPageState extends State<_CreateClassPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          const ['Basics', 'Privacy & roles', 'Features', 'Review'][_step],
-                          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-                        ),
+                        Text(stepTitles[_step], style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                         const SizedBox(height: 12),
                         if (_step == 0) ...[
                           TextFormField(
