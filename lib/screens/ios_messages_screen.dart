@@ -463,6 +463,18 @@ class _ClassesExperience extends StatelessWidget {
   }
 }
 
+// Derive a normalized @handle from current user email
+String _deriveHandle(SimpleAuthService auth) {
+  final email = auth.currentUserEmail;
+  if (email == null || email.isEmpty) return '@yourprofile';
+  final normalized = email
+      .split('@')
+      .first
+      .replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '')
+      .toLowerCase();
+  return normalized.isEmpty ? '@yourprofile' : '@$normalized';
+}
+
 class _CreateClassTile extends StatelessWidget {
   const _CreateClassTile({required this.onCreate});
 
@@ -1588,6 +1600,7 @@ Mock exam briefing extended update: please review chapters one through five, pra
                 isPrivate: _isPrivate,
                 autoArchiveOnEnd: _autoArchiveOnEnd,
               ),
+              memberCount: _members.length,
               onStartLecture: (course, tutor, topic, s) {
                 setState(() {
                   _activeTopic = ClassTopic(
@@ -1919,6 +1932,7 @@ class _ClassFeedTab extends StatefulWidget {
     required this.onArchiveTopic,
     required this.isAdmin,
     required this.settings,
+    required this.memberCount,
     this.activeTopic,
     this.requiresPin = false,
     this.pinCode,
@@ -1934,6 +1948,7 @@ class _ClassFeedTab extends StatefulWidget {
   final VoidCallback onArchiveTopic;
   final bool isAdmin;
   final _ClassSettings settings;
+  final int memberCount;
   final bool requiresPin;
   final String? pinCode;
   final bool unlocked;
@@ -1989,7 +2004,7 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
             children: [
-              _ClassTopInfo(college: widget.college, memberCount: _members.length),
+              _ClassTopInfo(college: widget.college, memberCount: widget.memberCount),
               const SizedBox(height: 16),
               if (widget.activeTopic != null)
                 _ActiveTopicCard(topic: widget.activeTopic!, onArchive: widget.onArchiveTopic)
