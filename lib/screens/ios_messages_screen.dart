@@ -724,50 +724,56 @@ class _CreateClassPageState extends State<_CreateClassPage> {
                           _SwitchRow(label: 'Allow media attachments', value: _allowMedia, onChanged: (v) => setState(() => _allowMedia = v)),
                         ],
                         const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            OutlinedButton(
-                              style: OutlinedButton.styleFrom(
-                                minimumSize: const Size(120, 44),
-                                side: const BorderSide(color: Colors.black),
-                                foregroundColor: Colors.black,
-                                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            // Wrap buttons on small widths to avoid overflow, while
+                            // keeping a consistent button height/width where space allows.
+                            final ButtonStyle outlineStyle = OutlinedButton.styleFrom(
+                              minimumSize: const Size(120, 44),
+                              side: const BorderSide(color: Colors.black),
+                              foregroundColor: Colors.black,
+                              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                            );
+                            final ButtonStyle filledStyle = FilledButton.styleFrom(
+                              backgroundColor: Colors.black,
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size(120, 44),
+                              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                            );
+
+                            return Align(
+                              alignment: Alignment.centerLeft,
+                              child: Wrap(
+                                spacing: 12,
+                                runSpacing: 8,
+                                alignment: WrapAlignment.spaceBetween,
+                                children: [
+                                  OutlinedButton(
+                                    style: outlineStyle,
+                                    onPressed: () => Navigator.of(context).pop(),
+                                    child: const Text('Cancel'),
+                                  ),
+                                  if (_step == 1)
+                                    OutlinedButton(
+                                      style: outlineStyle,
+                                      onPressed: () => setState(() => _step = 0),
+                                      child: const Text('Back'),
+                                    ),
+                                  FilledButton(
+                                    style: filledStyle,
+                                    onPressed: () {
+                                      if (_step == 0) {
+                                        if (_formKey.currentState!.validate()) setState(() => _step = 1);
+                                      } else {
+                                        _create();
+                                      }
+                                    },
+                                    child: Text(_step == 0 ? 'Next' : 'Create'),
+                                  ),
+                                ],
                               ),
-                              onPressed: () => Navigator.of(context).pop(),
-                              child: const Text('Cancel'),
-                            ),
-                            const SizedBox(width: 12),
-                            if (_step == 1)
-                              OutlinedButton(
-                                style: OutlinedButton.styleFrom(
-                                  minimumSize: const Size(120, 44),
-                                  side: const BorderSide(color: Colors.black),
-                                  foregroundColor: Colors.black,
-                                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                                ),
-                                onPressed: () => setState(() => _step = 0),
-                                child: const Text('Back'),
-                              )
-                            else
-                              const SizedBox.shrink(),
-                            const Spacer(),
-                            FilledButton(
-                              style: FilledButton.styleFrom(
-                                backgroundColor: Colors.black,
-                                foregroundColor: Colors.white,
-                                minimumSize: const Size(120, 44),
-                                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                              ),
-                              onPressed: () {
-                                if (_step == 0) {
-                                  if (_formKey.currentState!.validate()) setState(() => _step = 1);
-                                } else {
-                                  _create();
-                                }
-                              },
-                              child: Text(_step == 0 ? 'Next' : 'Create'),
-                            ),
-                          ],
+                            );
+                          },
                         ),
                       ],
                     ),
