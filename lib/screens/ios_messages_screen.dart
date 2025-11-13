@@ -10,6 +10,8 @@ import 'package:image_picker/image_picker.dart';
 // switching _handleAttachFile() to use FilePicker.
 import 'quiz_hub_screen.dart';
 import 'package:provider/provider.dart';
+import '../l10n/strings.dart';
+import '../widgets/skeleton.dart';
 import '../services/data_service.dart';
 import '../widgets/tweet_post_card.dart';
 import '../services/simple_auth_service.dart';
@@ -425,7 +427,7 @@ class _ClassesExperience extends StatelessWidget {
           if (resolved == null) {
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Invalid invite code')),
+                SnackBar(content: Text(S.invalidInviteCode)),
               );
             }
             return;
@@ -580,9 +582,9 @@ class _JoinClassTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Join a class by code', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+                    Text(S.joinByCodeTitle, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
                     const SizedBox(height: 6),
-                    Text('Enter an invite code to join a class.', style: theme.textTheme.bodyMedium?.copyWith(color: subtitle)),
+                    Text(S.joinByCodeSubtitle, style: theme.textTheme.bodyMedium?.copyWith(color: subtitle)),
                   ],
                 ),
               ),
@@ -600,14 +602,14 @@ Future<String?> _promptForInviteCode(BuildContext context) async {
   final result = await showDialog<String>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Enter invite code'),
+      title: Text(S.enterInviteCode),
       content: TextField(
         controller: controller,
         decoration: const InputDecoration(hintText: 'e.g. AB23YZ'),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
-        FilledButton(onPressed: () => Navigator.of(ctx).pop(controller.text.trim()), child: const Text('Join')),
+        TextButton(onPressed: () => Navigator.of(ctx).pop(), child: Text(S.cancel)),
+        FilledButton(onPressed: () => Navigator.of(ctx).pop(controller.text.trim()), child: Text(S.join)),
       ],
     ),
   );
@@ -1311,7 +1313,7 @@ Mock exam briefing extended update: please review chapters one through five, pra
               children: [
                 Row(
                   children: [
-                    Text('Manage admins', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                    Text(S.manageAdmins, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                     const Spacer(),
                     IconButton(
                       icon: const Icon(Icons.close),
@@ -1400,7 +1402,7 @@ Mock exam briefing extended update: please review chapters one through five, pra
               children: [
                 Row(
                   children: [
-                    Text('Suspend members', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                    Text(S.suspendMembers, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                     const Spacer(),
                     IconButton(
                       icon: const Icon(Icons.close),
@@ -1613,9 +1615,7 @@ Mock exam briefing extended update: please review chapters one through five, pra
               onShare: (msg) async {
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Use Repost to share this note to the global timeline'),
-                  ),
+                  SnackBar(content: Text(S.useRepostToast)),
                 );
               },
               requiresPin: _activeTopic?.requirePin ?? false,
@@ -1678,7 +1678,7 @@ Mock exam briefing extended update: please review chapters one through five, pra
                 children: [
                   Row(
                     children: [
-                      Text('Class settings', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                      Text(S.classSettings, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                       const Spacer(),
                       IconButton(
                         icon: const Icon(Icons.close_rounded),
@@ -1739,7 +1739,7 @@ Mock exam briefing extended update: please review chapters one through five, pra
                                   children: [
                                     Row(
                                       children: [
-                                        Text('Invite by code', style: Theme.of(sheet).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                                        Text(S.inviteByCode, style: Theme.of(sheet).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                                         const Spacer(),
                                         IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.of(sheet).pop()),
                                       ],
@@ -1763,10 +1763,10 @@ Mock exam briefing extended update: please review chapters one through five, pra
                                         onPressed: () async {
                                           await Clipboard.setData(ClipboardData(text: code));
                                           if (context.mounted) {
-                                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invite code copied')));
+                                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(S.inviteCodeCopied)));
                                           }
                                         },
-                                        label: const Text('Copy code'),
+                                        label: Text(S.copyCode),
                                       ),
                                     ),
                                   ],
@@ -1790,7 +1790,7 @@ Mock exam briefing extended update: please review chapters one through five, pra
                       ),
                       OutlinedButton.icon(
                         icon: const Icon(Icons.group_outlined),
-                        label: const Text('Manage admins'),
+                        label: Text(S.manageAdmins),
                         onPressed: () {
                           Navigator.of(ctx).pop();
                           _openManageAdminsSheet(context);
@@ -1798,7 +1798,7 @@ Mock exam briefing extended update: please review chapters one through five, pra
                       ),
                       OutlinedButton.icon(
                         icon: const Icon(Icons.person_add_alt_1_outlined),
-                        label: const Text('Invite member'),
+                        label: Text(S.inviteMember),
                         onPressed: () {
                           Navigator.of(ctx).pop();
                           _addMember(context);
@@ -1806,7 +1806,7 @@ Mock exam briefing extended update: please review chapters one through five, pra
                       ),
                       OutlinedButton.icon(
                         icon: const Icon(Icons.person_remove_alt_1_outlined),
-                        label: const Text('Suspend members'),
+                        label: Text(S.suspendMembers),
                         onPressed: () {
                           Navigator.of(ctx).pop();
                           _openSuspendMembersSheet(context);
@@ -2009,15 +2009,10 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
                   _TopicFeedList(topic: widget.activeTopic!),
                 const SizedBox(height: 16),
               ],
-              Text('Class discussion', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+              Text(S.classDiscussion, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
               const SizedBox(height: 12),
               if (widget.notes.isEmpty)
-                Center(
-                  child: Text(
-                    'No messages yet. Be the first to post!',
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                )
+                const SkeletonList(items: 5)
               else ...[
                 for (final msg in widget.notes.take(_visibleNotes))
                   _ClassMessageTile(message: msg, onShare: () => widget.onShare(msg)),
@@ -2031,7 +2026,7 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
                         onPressed: _loadingMoreNotes ? null : _loadMoreNotes,
                         child: _loadingMoreNotes
                             ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                            : const Text('Load more'),
+                            : Text(S.loadMore),
                       ),
                     ),
                   ),
@@ -2390,13 +2385,13 @@ class _TopicFeedListState extends State<_TopicFeedList> {
     final data = context.watch<DataService>();
     final posts = data.posts.where((p) => p.tags.contains(widget.topic.topicTag)).toList();
     if (posts.isEmpty) {
-      return Text('No notes yet — your first note will appear here.');
+      return const SkeletonList(items: 3);
     }
     final slice = posts.take(_visible == 0 ? posts.length : _visible).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Topic notes', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+        Text(S.topicNotes, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
         const SizedBox(height: 12),
         for (final p in slice) ...[
           // Reuse the class message-style tile so the replies pill remains
@@ -2449,7 +2444,7 @@ class _TopicFeedListState extends State<_TopicFeedList> {
                 onPressed: _loading ? null : _loadMore,
                 child: _loading
                     ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('Load more notes'),
+                    : Text(S.loadMoreNotes),
               ),
             ),
           ),
