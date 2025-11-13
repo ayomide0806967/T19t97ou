@@ -7,32 +7,46 @@ import 'state/app_settings.dart';
 import 'services/data_service.dart';
 import 'services/profile_service.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark.copyWith(
-    statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.dark,
-  ));
+import 'dart:async';
 
-  final settings = AppSettings();
-  await settings.load();
+void main() {
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark.copyWith(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+    ));
 
-// Prepare data service
-  final dataService = DataService();
-  await dataService.load();
-  final profileService = ProfileService();
-  await profileService.load();
+    // Log any framework errors to the zone as well
+    FlutterError.onError = (FlutterErrorDetails details) {
+      FlutterError.presentError(details);
+      Zone.current.handleUncaughtError(details.exception, details.stack ?? StackTrace.empty);
+    };
 
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider<AppSettings>.value(value: settings),
-        ChangeNotifierProvider<DataService>.value(value: dataService),
-        ChangeNotifierProvider<ProfileService>.value(value: profileService),
-      ],
-      child: const MyApp(),
-    ),
-  );
+    final settings = AppSettings();
+    await settings.load();
+
+    // Prepare data services
+    final dataService = DataService();
+    await dataService.load();
+    final profileService = ProfileService();
+    await profileService.load();
+
+    runApp(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<AppSettings>.value(value: settings),
+          ChangeNotifierProvider<DataService>.value(value: dataService),
+          ChangeNotifierProvider<ProfileService>.value(value: profileService),
+        ],
+        child: const MyApp(),
+      ),
+    );
+  }, (error, stack) {
+    // Ensure crashes are visible in logs instead of silently terminating
+    debugPrint('Uncaught error: $error');
+    debugPrint(stack.toString());
+  });
 }
 
 class MyApp extends StatelessWidget {
