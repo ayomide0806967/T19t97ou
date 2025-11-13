@@ -790,7 +790,7 @@ class _CreateClassPageState extends State<_CreateClassPage> {
                   Padding(
                     padding: const EdgeInsets.only(right: 16, top: 6),
                     child: _StepRailVertical(
-                      steps: const ['1', '2'],
+                      steps: const ['1', '2', '3', '4'],
                       activeIndex: _step,
                     ),
                   ),
@@ -800,7 +800,7 @@ class _CreateClassPageState extends State<_CreateClassPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _step == 0 ? 'Basics' : 'Settings',
+                          const ['Basics', 'Privacy & roles', 'Features', 'Review'][_step],
                           style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
                         ),
                         const SizedBox(height: 12),
@@ -862,11 +862,44 @@ class _CreateClassPageState extends State<_CreateClassPage> {
                               focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.black, width: 1.6)),
                             ),
                           ),
+                        ] else if (_step == 1) ...[
+                          SettingSwitchRow(
+                            label: 'Private class',
+                            subtitle: 'Join via invite only',
+                            value: _isPrivate,
+                            onChanged: (v) => setState(() => _isPrivate = v),
+                          ),
+                          SettingSwitchRow(
+                            label: 'Only admins can post',
+                            subtitle: 'Members can still reply',
+                            value: _adminOnlyPosting,
+                            onChanged: (v) => setState(() => _adminOnlyPosting = v),
+                          ),
+                          SettingSwitchRow(
+                            label: 'Approval required for member posts',
+                            subtitle: 'Admins receive requests to approve',
+                            value: _approvalRequired,
+                            onChanged: (v) => setState(() => _approvalRequired = v),
+                          ),
+                        ] else if (_step == 2) ...[
+                          SettingSwitchRow(
+                            label: 'Allow media attachments',
+                            subtitle: 'Images and files in posts',
+                            value: _allowMedia,
+                            onChanged: (v) => setState(() => _allowMedia = v),
+                          ),
                         ] else ...[
-                  SettingSwitchRow(label: 'Private class', value: _isPrivate, onChanged: (v) => setState(() => _isPrivate = v)),
-                  SettingSwitchRow(label: 'Admin-only posting', value: _adminOnlyPosting, onChanged: (v) => setState(() => _adminOnlyPosting = v)),
-                  SettingSwitchRow(label: 'Require approval for notes', value: _approvalRequired, onChanged: (v) => setState(() => _approvalRequired = v)),
-                  SettingSwitchRow(label: 'Allow media attachments', value: _allowMedia, onChanged: (v) => setState(() => _allowMedia = v)),
+                          // Review
+                          _ReviewSummary(
+                            name: _name.text.trim(),
+                            code: _code.text.trim(),
+                            facilitator: _facilitator.text.trim(),
+                            description: _description.text.trim(),
+                            isPrivate: _isPrivate,
+                            adminOnlyPosting: _adminOnlyPosting,
+                            approvalRequired: _approvalRequired,
+                            allowMedia: _allowMedia,
+                          ),
                         ],
                         const SizedBox(height: 16),
                         LayoutBuilder(
@@ -892,18 +925,10 @@ class _CreateClassPageState extends State<_CreateClassPage> {
                             );
 
                             final List<Widget> btns = [
-                              OutlinedButton(
-                                style: outlineStyle,
-                                onPressed: () => Navigator.of(context).pop(),
-                                child: const FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  child: Text('Cancel', maxLines: 1, overflow: TextOverflow.ellipsis),
-                                ),
-                              ),
-                              if (_step == 1)
+                              if (_step > 0)
                                 OutlinedButton(
                                   style: outlineStyle,
-                                  onPressed: () => setState(() => _step = 0),
+                                  onPressed: () => setState(() => _step = _step - 1),
                                   child: const FittedBox(
                                     fit: BoxFit.scaleDown,
                                     child: Text('Back', maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -914,13 +939,17 @@ class _CreateClassPageState extends State<_CreateClassPage> {
                                 onPressed: () {
                                   if (_step == 0) {
                                     if (_formKey.currentState!.validate()) setState(() => _step = 1);
+                                  } else if (_step == 1) {
+                                    setState(() => _step = 2);
+                                  } else if (_step == 2) {
+                                    setState(() => _step = 3);
                                   } else {
                                     _create();
                                   }
                                 },
                                 child: FittedBox(
                                   fit: BoxFit.scaleDown,
-                                  child: Text(_step == 0 ? 'Next' : 'Create', maxLines: 1, overflow: TextOverflow.ellipsis),
+                                  child: Text(_step == 3 ? 'Create' : 'Next', maxLines: 1, overflow: TextOverflow.ellipsis),
                                 ),
                               ),
                             ];
@@ -936,6 +965,71 @@ class _CreateClassPageState extends State<_CreateClassPage> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ReviewSummary extends StatelessWidget {
+  const _ReviewSummary({
+    required this.name,
+    required this.code,
+    required this.facilitator,
+    required this.description,
+    required this.isPrivate,
+    required this.adminOnlyPosting,
+    required this.approvalRequired,
+    required this.allowMedia,
+  });
+
+  final String name;
+  final String code;
+  final String facilitator;
+  final String description;
+  final bool isPrivate;
+  final bool adminOnlyPosting;
+  final bool approvalRequired;
+  final bool allowMedia;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textColorMuted = theme.colorScheme.onSurface.withValues(alpha: 0.75);
+
+    Widget row(String label, String value) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 140,
+                child: Text(label, style: theme.textTheme.bodyMedium?.copyWith(color: textColorMuted)),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  value.isEmpty ? '—' : value,
+                  style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+        );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        row('Class name', name),
+        row('Code', code),
+        row('Facilitator / Admin', facilitator),
+        row('Description', description),
+        const SizedBox(height: 8),
+        Divider(color: theme.dividerColor.withValues(alpha: 0.25)),
+        const SizedBox(height: 8),
+        row('Private class', isPrivate ? 'On' : 'Off'),
+        row('Only admins can post', adminOnlyPosting ? 'On' : 'Off'),
+        row('Approval required', approvalRequired ? 'On' : 'Off'),
+        row('Media attachments', allowMedia ? 'On' : 'Off'),
+      ],
     );
   }
 }
