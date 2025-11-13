@@ -16,8 +16,10 @@ import '../services/simple_auth_service.dart';
 import '../widgets/hexagon_avatar.dart';
 import '../services/roles_service.dart';
 import '../services/members_service.dart';
+import '../services/invites_service.dart';
 import 'student_profile_screen.dart';
 import '../widgets/equal_width_buttons_row.dart';
+import '../widgets/setting_switch_row.dart';
 // Removed unused tweet widgets imports
 
 // Lightweight attachment model used by the class composer
@@ -415,6 +417,35 @@ class _ClassesExperience extends StatelessWidget {
           }
         }),
         const SizedBox(height: 12),
+        _JoinClassTile(onJoin: () async {
+          final handle = _deriveHandle(SimpleAuthService());
+          final code = await _promptForInviteCode(context);
+          if (code == null) return;
+          final resolved = await InvitesService.resolve(code);
+          if (resolved == null) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Invalid invite code')),
+              );
+            }
+            return;
+          }
+          // Find the college in the demo list by code
+          final match = _demoColleges.firstWhere(
+            (c) => c.code.toUpperCase() == resolved.toUpperCase(),
+            orElse: () => _demoColleges.first,
+          );
+          // Persist member add so header counts reflect it
+          final members = await MembersService.getMembersFor(match.code);
+          members.add(handle);
+          await MembersService.saveMembersFor(match.code, members);
+          if (context.mounted) {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => _CollegeScreen(college: match)),
+            );
+          }
+        }),
+        const SizedBox(height: 12),
         Text(
           'Your classes',
           style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
@@ -500,6 +531,87 @@ class _CreateClassTile extends StatelessWidget {
       ),
     );
   }
+}
+
+class _JoinClassTile extends StatelessWidget {
+  const _JoinClassTile({required this.onJoin});
+  final VoidCallback onJoin;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final Color surface = isDark ? const Color(0xFF0E0F12) : Colors.white;
+    final Color border = theme.dividerColor.withValues(alpha: isDark ? 0.3 : 0.2);
+    final Color subtitle = theme.colorScheme.onSurface.withValues(alpha: 0.65);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(28),
+        onTap: onJoin,
+        child: Ink(
+          decoration: BoxDecoration(
+            color: surface,
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: border),
+            boxShadow: [
+              if (!isDark)
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+            ],
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Row(
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
+                ),
+                child: const Icon(Icons.qr_code_2_rounded, size: 28),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Join a class by code', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 6),
+                    Text('Enter an invite code to join a class.', style: theme.textTheme.bodyMedium?.copyWith(color: subtitle)),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, size: 32),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+Future<String?> _promptForInviteCode(BuildContext context) async {
+  final controller = TextEditingController();
+  final result = await showDialog<String>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Enter invite code'),
+      content: TextField(
+        controller: controller,
+        decoration: const InputDecoration(hintText: 'e.g. AB23YZ'),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
+        FilledButton(onPressed: () => Navigator.of(ctx).pop(controller.text.trim()), child: const Text('Join')),
+      ],
+    ),
+  );
+  return result == null || result.isEmpty ? null : result;
 }
 
 class _CollegeCard extends StatelessWidget {
@@ -737,10 +849,10 @@ class _CreateClassPageState extends State<_CreateClassPage> {
                             ),
                           ),
                         ] else ...[
-                          _SwitchRow(label: 'Private class', value: _isPrivate, onChanged: (v) => setState(() => _isPrivate = v)),
-                          _SwitchRow(label: 'Admin-only posting', value: _adminOnlyPosting, onChanged: (v) => setState(() => _adminOnlyPosting = v)),
-                          _SwitchRow(label: 'Require approval for notes', value: _approvalRequired, onChanged: (v) => setState(() => _approvalRequired = v)),
-                          _SwitchRow(label: 'Allow media attachments', value: _allowMedia, onChanged: (v) => setState(() => _allowMedia = v)),
+                  SettingSwitchRow(label: 'Private class', value: _isPrivate, onChanged: (v) => setState(() => _isPrivate = v)),
+                  SettingSwitchRow(label: 'Admin-only posting', value: _adminOnlyPosting, onChanged: (v) => setState(() => _adminOnlyPosting = v)),
+                  SettingSwitchRow(label: 'Require approval for notes', value: _approvalRequired, onChanged: (v) => setState(() => _approvalRequired = v)),
+                  SettingSwitchRow(label: 'Allow media attachments', value: _allowMedia, onChanged: (v) => setState(() => _allowMedia = v)),
                         ],
                         const SizedBox(height: 16),
                         LayoutBuilder(
@@ -1575,27 +1687,27 @@ Mock exam briefing extended update: please review chapters one through five, pra
                     ],
                   ),
                   const SizedBox(height: 8),
-                  _SwitchRow(
+                  SettingSwitchRow(
                     label: 'Admin-only posting',
                     value: _adminOnlyPosting,
                     onChanged: (v) => setState(() => _adminOnlyPosting = v),
                   ),
-                  _SwitchRow(
+                  SettingSwitchRow(
                     label: 'Allow replies',
                     value: _allowReplies,
                     onChanged: (v) => setState(() => _allowReplies = v),
                   ),
-                  _SwitchRow(
+                  SettingSwitchRow(
                     label: 'Allow media attachments',
                     value: _allowMedia,
                     onChanged: (v) => setState(() => _allowMedia = v),
                   ),
-                  _SwitchRow(
+                  SettingSwitchRow(
                     label: 'Private class',
                     value: _isPrivate,
                     onChanged: (v) => setState(() => _isPrivate = v),
                   ),
-                  _SwitchRow(
+                  SettingSwitchRow(
                     label: 'Auto-archive when ending topic',
                     value: _autoArchiveOnEnd,
                     onChanged: (v) => setState(() => _autoArchiveOnEnd = v),
@@ -1605,6 +1717,65 @@ Mock exam briefing extended update: please review chapters one through five, pra
                     spacing: 8,
                     runSpacing: 8,
                     children: [
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.link_outlined),
+                        label: const Text('Invite by code'),
+                        onPressed: () async {
+                          Navigator.of(ctx).pop();
+                          final code = await InvitesService.getOrCreateCode(widget.college.code);
+                          if (!context.mounted) return;
+                          showModalBottomSheet<void>(
+                            context: context,
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                            ),
+                            builder: (sheet) => SafeArea(
+                              top: false,
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Text('Invite by code', style: Theme.of(sheet).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                                        const Spacer(),
+                                        IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.of(sheet).pop()),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Center(
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(14),
+                                          border: Border.all(color: Theme.of(sheet).dividerColor.withValues(alpha: 0.25)),
+                                        ),
+                                        child: Text(code, style: Theme.of(sheet).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Align(
+                                      alignment: Alignment.centerRight,
+                                      child: FilledButton.icon(
+                                        icon: const Icon(Icons.copy),
+                                        onPressed: () async {
+                                          await Clipboard.setData(ClipboardData(text: code));
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invite code copied')));
+                                          }
+                                        },
+                                        label: const Text('Copy code'),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                       OutlinedButton.icon(
                         icon: const Icon(Icons.tune),
                         label: const Text('Setting detail'),
@@ -2064,13 +2235,13 @@ class _StartLectureCardState extends State<_StartLectureCard> {
               ),
             ] else ...[
               const SizedBox(height: 6),
-              _SwitchRow(
+              SettingSwitchRow(
                 label: 'Private lecture (disable repost)',
                 value: _privateLecture,
                 onChanged: (v) => setState(() => _privateLecture = v),
                 monochrome: true,
               ),
-              _SwitchRow(
+              SettingSwitchRow(
                 label: 'Require PIN to access',
                 value: _requirePin,
                 onChanged: (v) => setState(() => _requirePin = v),
@@ -2361,40 +2532,7 @@ class _TopicSettings {
   final DateTime? autoArchiveAt;
 }
 
-class _SwitchRow extends StatelessWidget {
-  const _SwitchRow({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-    this.monochrome = false,
-  });
-  final String label;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-  final bool monochrome;
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(label, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-          ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeColor: monochrome ? Colors.white : null,
-            activeTrackColor: monochrome ? Colors.black : null,
-            inactiveThumbColor: monochrome ? Colors.black : null,
-            inactiveTrackColor: monochrome ? Colors.white : null,
-          ),
-        ],
-      ),
-    );
-  }
-}
+// Replaced by SettingSwitchRow in widgets/setting_switch_row.dart
 
 class _PinGateCard extends StatefulWidget {
   const _PinGateCard({required this.onUnlock});
