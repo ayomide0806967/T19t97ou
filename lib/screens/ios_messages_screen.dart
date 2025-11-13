@@ -1192,6 +1192,192 @@ Mock exam briefing extended update: please review chapters one through five, pra
     }
   }
 
+  Future<void> _openManageAdminsSheet(BuildContext context) async {
+    final theme = Theme.of(context);
+    final code = widget.college.code;
+    final List<String> members = _members.toList()..sort((a, b) => a.compareTo(b));
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: 16,
+              right: 16,
+              top: 12,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text('Manage admins', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.of(ctx).pop(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Flexible(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.6),
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: members.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final handle = members[index];
+                        final bool isAdmin = _admins.contains(handle);
+                        final bool isSelf = handle == _currentUserHandle;
+                        return ListTile(
+                          dense: true,
+                          leading: const Icon(Icons.person_outline),
+                          title: Text(handle),
+                          trailing: Switch(
+                            value: isAdmin,
+                            onChanged: (v) async {
+                              if (!mounted) return;
+                              if (!v) {
+                                // Prevent removing the last admin
+                                if (_admins.length <= 1 && isAdmin) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('At least one admin is required')),
+                                  );
+                                  return;
+                                }
+                                setState(() => _admins.remove(handle));
+                              } else {
+                                setState(() => _admins.add(handle));
+                              }
+                              await RolesService.saveAdminsFor(code, _admins);
+                              if (isSelf && !_admins.contains(_currentUserHandle)) {
+                                // If user demoted self and sheet still open, update UI
+                                setState(() {});
+                              }
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: FilledButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    child: const Text('Done'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _openSuspendMembersSheet(BuildContext context) async {
+    final theme = Theme.of(context);
+    final code = widget.college.code;
+    final List<String> members = _members.toList()..sort((a, b) => a.compareTo(b));
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text('Suspend members', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.of(ctx).pop(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Flexible(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.6),
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: members.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final handle = members[index];
+                        final bool isSelf = handle == _currentUserHandle;
+                        return ListTile(
+                          dense: true,
+                          leading: const Icon(Icons.person_outline),
+                          title: Text(handle),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                tooltip: 'Remove',
+                                icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent),
+                                onPressed: isSelf
+                                    ? null
+                                    : () async {
+                                        final ok = await showDialog<bool>(
+                                              context: ctx,
+                                              builder: (d) => AlertDialog(
+                                                title: const Text('Remove member?'),
+                                                content: Text('Remove $handle from this class?'),
+                                                actions: [
+                                                  TextButton(onPressed: () => Navigator.of(d).pop(false), child: const Text('Cancel')),
+                                                  FilledButton(onPressed: () => Navigator.of(d).pop(true), child: const Text('Remove')),
+                                                ],
+                                              ),
+                                            ) ??
+                                            false;
+                                        if (!ok) return;
+                                        setState(() {
+                                          _members.remove(handle);
+                                          _admins.remove(handle);
+                                        });
+                                        await RolesService.saveAdminsFor(code, _admins);
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text('Removed $handle')),
+                                          );
+                                        }
+                                      },
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
   Future<void> _bootstrapAdmins() async {
     final code = widget.college.code;
     final saved = await RolesService.getAdminsFor(code);
@@ -1434,18 +1620,16 @@ Mock exam briefing extended update: please review chapters one through five, pra
                         icon: const Icon(Icons.group_outlined),
                         label: const Text('Manage admins'),
                         onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Manage admins coming soon')),
-                          );
+                          Navigator.of(ctx).pop();
+                          _openManageAdminsSheet(context);
                         },
                       ),
                       OutlinedButton.icon(
                         icon: const Icon(Icons.person_remove_alt_1_outlined),
                         label: const Text('Suspend members'),
                         onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Suspend members from Students tab')),
-                          );
+                          Navigator.of(ctx).pop();
+                          _openSuspendMembersSheet(context);
                         },
                       ),
                     ],
@@ -1585,7 +1769,7 @@ class _ClassFeedTab extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
             children: [
-              _ClassTopInfo(college: college),
+              _ClassTopInfo(college: college, memberCount: _members.length),
               const SizedBox(height: 16),
               if (activeTopic != null)
                 _ActiveTopicCard(topic: activeTopic!, onArchive: onArchiveTopic)
@@ -4214,9 +4398,10 @@ class _ClassStudentsTab extends StatelessWidget {
 }
 
 class _ClassTopInfo extends StatelessWidget {
-  const _ClassTopInfo({required this.college});
+  const _ClassTopInfo({required this.college, this.memberCount});
 
   final College college;
+  final int? memberCount;
 
   @override
   Widget build(BuildContext context) {
@@ -4249,7 +4434,7 @@ class _ClassTopInfo extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              Text('${college.members} students', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withValues(alpha: 0.7))),
+              Text('${memberCount ?? college.members} students', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withValues(alpha: 0.7))),
             ],
           ),
           const SizedBox(height: 10),
