@@ -110,7 +110,7 @@ class _IosMinimalistMessagePageState extends State<IosMinimalistMessagePage> {
             ],
           ),
         ),
-        ),
+      ),
     );
   }
 
@@ -765,195 +765,108 @@ class _CreateClassPageState extends State<_CreateClassPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final bool isDark = theme.brightness == Brightness.dark;
-    final Color surface = isDark ? const Color(0xFF0F1114) : Colors.white;
-    final Color border = theme.dividerColor.withValues(alpha: isDark ? 0.28 : 0.18);
     const List<String> stepTitles = ['Basics', 'Privacy & roles', 'Features', 'Review'];
 
     return Scaffold(
       appBar: AppBar(title: const Text('Create a class')),
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           child: Form(
-              key: _formKey,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            key: _formKey,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.only(bottom: 24),
+              child: Stack(
                 children: [
-                  // Vertical step rail: 1 | 2
-                  Padding(
-                    padding: const EdgeInsets.only(right: 16, top: 6),
-                    child: SizedBox(
-                      width: 180,
-                      child: _StepRailVertical(
-                        steps: const ['1', '2', '3', '4'],
-                        titles: stepTitles,
-                        activeIndex: _step,
-                        onStepTap: (i) => setState(() => _step = i),
-                      ),
-                    ),
+                  // Vertical rail line behind all steps
+                  Positioned(
+                    left: 12,
+                    top: 12,
+                    bottom: 0,
+                    child: Container(width: 1, color: Colors.black26),
                   ),
-                  // Content
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(stepTitles[_step], style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-                        const SizedBox(height: 12),
-                        if (_step == 0) ...[
-                          TextFormField(
-                            controller: _name,
-                            style: const TextStyle(fontSize: 16, color: Colors.black),
-                            cursorColor: Colors.black,
-                            decoration: InputDecoration(
-                              labelText: 'Class name',
-                              isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.black)),
-                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.black)),
-                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.black, width: 1.6)),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (int i = 0; i < stepTitles.length; i++) ...[
+                        // Header row: dot + title
+                        Row(
+                          children: [
+                            SizedBox(
+                              width: 150,
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  if (i <= _step)
+                                    Positioned.fill(
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(left: 12),
+                                        child: Align(
+                                          alignment: Alignment.centerLeft,
+                                          child: Container(
+                                            width: 2,
+                                            color: Colors.black,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  Row(
+                                    children: [
+                                      GestureDetector(
+                                        onTap: () => setState(() => _step = i),
+                                        child: _StepDot(active: i == _step, label: '${i + 1}', size: 24, dimmed: i > _step),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          stepTitles[i],
+                                          style: theme.textTheme.bodyMedium?.copyWith(
+                                            fontWeight: i == _step ? FontWeight.w700 : FontWeight.w600,
+                                            color: i > _step
+                                                ? Colors.black45
+                                                : theme.colorScheme.onSurface.withValues(alpha: i == _step ? 1.0 : 0.85),
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
-                            validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter a class name' : null,
-                          ),
-                          const SizedBox(height: 12),
-                          TextFormField(
-                            controller: _code,
-                            style: const TextStyle(fontSize: 16, color: Colors.black),
-                            cursorColor: Colors.black,
-                            decoration: InputDecoration(
-                              labelText: 'Code (optional)',
-                              isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.black)),
-                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.black)),
-                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.black, width: 1.6)),
+                          ],
+                        ),
+                        // Active step content directly under the number/title
+                        if (i == _step) ...[
+                          const SizedBox(height: 8),
+                          Padding(
+                            padding: const EdgeInsets.only(left: 44),
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 560),
+                              child: _CreateClassStepContent(
+                                theme: theme,
+                                step: _step,
+                                name: _name,
+                                code: _code,
+                                facilitator: _facilitator,
+                                description: _description,
+                                isPrivate: _isPrivate,
+                                adminOnlyPosting: _adminOnlyPosting,
+                                approvalRequired: _approvalRequired,
+                                allowMedia: _allowMedia,
+                                onBack: () => setState(() => _step -= 1),
+                                onNext: () => setState(() => _step += 1),
+                                onCreate: _create,
+                                formKey: _formKey,
+                                stepTitles: stepTitles,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 12),
-                          TextFormField(
-                            controller: _facilitator,
-                            style: const TextStyle(fontSize: 16, color: Colors.black),
-                            cursorColor: Colors.black,
-                            decoration: InputDecoration(
-                              labelText: 'Facilitator / Admin (optional)',
-                              isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.black)),
-                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.black)),
-                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.black, width: 1.6)),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          TextFormField(
-                            controller: _description,
-                            maxLines: 2,
-                            style: const TextStyle(fontSize: 16, color: Colors.black),
-                            cursorColor: Colors.black,
-                            decoration: InputDecoration(
-                              labelText: 'Description (optional)',
-                              isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.black)),
-                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.black)),
-                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.black, width: 1.6)),
-                            ),
-                          ),
-                        ] else if (_step == 1) ...[
-                          SettingSwitchRow(
-                            label: 'Private class',
-                            subtitle: 'Join via invite only',
-                            value: _isPrivate,
-                            onChanged: (v) => setState(() => _isPrivate = v),
-                          ),
-                          SettingSwitchRow(
-                            label: 'Only admins can post',
-                            subtitle: 'Members can still reply',
-                            value: _adminOnlyPosting,
-                            onChanged: (v) => setState(() => _adminOnlyPosting = v),
-                          ),
-                          SettingSwitchRow(
-                            label: 'Approval required for member posts',
-                            subtitle: 'Admins receive requests to approve',
-                            value: _approvalRequired,
-                            onChanged: (v) => setState(() => _approvalRequired = v),
-                          ),
-                        ] else if (_step == 2) ...[
-                          SettingSwitchRow(
-                            label: 'Allow media attachments',
-                            subtitle: 'Images and files in posts',
-                            value: _allowMedia,
-                            onChanged: (v) => setState(() => _allowMedia = v),
-                          ),
-                        ] else ...[
-                          // Review
-                          _ReviewSummary(
-                            name: _name.text.trim(),
-                            code: _code.text.trim(),
-                            facilitator: _facilitator.text.trim(),
-                            description: _description.text.trim(),
-                            isPrivate: _isPrivate,
-                            adminOnlyPosting: _adminOnlyPosting,
-                            approvalRequired: _approvalRequired,
-                            allowMedia: _allowMedia,
                           ),
                         ],
-                        const SizedBox(height: 16),
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            // Wrap buttons on small widths to avoid overflow, while
-                            // keeping a consistent button height/width where space allows.
-                            final BorderRadiusGeometry radius = BorderRadius.circular(12);
-                            final ButtonStyle outlineStyle = OutlinedButton.styleFrom(
-                              minimumSize: const Size(0, 40),
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                              side: const BorderSide(color: Colors.black),
-                              foregroundColor: Colors.black,
-                              shape: RoundedRectangleBorder(borderRadius: radius),
-                              visualDensity: VisualDensity.compact,
-                            );
-                            final ButtonStyle filledStyle = FilledButton.styleFrom(
-                              backgroundColor: Colors.black,
-                              foregroundColor: Colors.white,
-                              minimumSize: const Size(0, 40),
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                              shape: RoundedRectangleBorder(borderRadius: radius),
-                              visualDensity: VisualDensity.compact,
-                            );
-
-                            final List<Widget> btns = [
-                              if (_step > 0)
-                                OutlinedButton(
-                                  style: outlineStyle,
-                                  onPressed: () => setState(() => _step = _step - 1),
-                                  child: const FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    child: Text('Back', maxLines: 1, overflow: TextOverflow.ellipsis),
-                                  ),
-                                ),
-                              FilledButton(
-                                style: filledStyle,
-                                onPressed: () {
-                                  if (_step == 0) {
-                                    if (_formKey.currentState!.validate()) setState(() => _step = 1);
-                                  } else if (_step == 1) {
-                                    setState(() => _step = 2);
-                                  } else if (_step == 2) {
-                                    setState(() => _step = 3);
-                                  } else {
-                                    _create();
-                                  }
-                                },
-                                child: FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  child: Text(_step == 3 ? 'Create' : 'Next', maxLines: 1, overflow: TextOverflow.ellipsis),
-                                ),
-                              ),
-                            ];
-                            return EqualWidthButtonsRow(children: btns, gap: 8, height: 40);
-                          },
-                        ),
+                        SizedBox(height: i == _step ? 16 : 32),
                       ],
-                    ),
+                    ],
                   ),
                 ],
               ),
@@ -961,6 +874,237 @@ class _CreateClassPageState extends State<_CreateClassPage> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _CreateClassStepContent extends StatelessWidget {
+  const _CreateClassStepContent({
+    required this.theme,
+    required this.step,
+    required this.name,
+    required this.code,
+    required this.facilitator,
+    required this.description,
+    required this.isPrivate,
+    required this.adminOnlyPosting,
+    required this.approvalRequired,
+    required this.allowMedia,
+    required this.onBack,
+    required this.onNext,
+    required this.onCreate,
+    required this.formKey,
+    required this.stepTitles,
+  });
+
+  final ThemeData theme;
+  final int step;
+  final TextEditingController name;
+  final TextEditingController code;
+  final TextEditingController facilitator;
+  final TextEditingController description;
+  final bool isPrivate;
+  final bool adminOnlyPosting;
+  final bool approvalRequired;
+  final bool allowMedia;
+  final VoidCallback onBack;
+  final VoidCallback onNext;
+  final VoidCallback onCreate;
+  final GlobalKey<FormState> formKey;
+  final List<String> stepTitles;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget panel(Widget child) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.25)),
+        ),
+        child: child,
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          stepTitles[step],
+          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 12),
+        if (step == 0) ...[
+          panel(
+            Theme(
+              data: theme.copyWith(
+                inputDecorationTheme: InputDecorationTheme(
+                  isDense: true,
+                  filled: true,
+                  fillColor: theme.colorScheme.surface,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                  labelStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
+                  floatingLabelStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.w700),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Theme.of(context).dividerColor),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Theme.of(context).dividerColor),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Colors.black, width: 1.8),
+                  ),
+                ),
+                textSelectionTheme: const TextSelectionThemeData(cursorColor: Colors.black),
+              ),
+              child: LayoutBuilder(
+                builder: (context, inner) {
+                  final twoCols = inner.maxWidth >= 520;
+                  if (twoCols) {
+                    final double col = (inner.maxWidth - 12) / 2;
+                    return Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        SizedBox(
+                          width: col,
+                          child: TextFormField(
+                            controller: name,
+                            textInputAction: TextInputAction.next,
+                            textCapitalization: TextCapitalization.words,
+                            decoration: const InputDecoration(labelText: 'Class name'),
+                            style: const TextStyle(color: Colors.black),
+                            validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter a class name' : null,
+                          ),
+                        ),
+                        SizedBox(
+                          width: col,
+                          child: TextFormField(
+                            controller: code,
+                            textInputAction: TextInputAction.next,
+                            textCapitalization: TextCapitalization.characters,
+                            decoration: const InputDecoration(labelText: 'Code (optional)'),
+                            style: const TextStyle(color: Colors.black),
+                          ),
+                        ),
+                        SizedBox(
+                          width: col,
+                          child: TextFormField(
+                            controller: facilitator,
+                            textInputAction: TextInputAction.next,
+                            textCapitalization: TextCapitalization.words,
+                            decoration: const InputDecoration(labelText: 'Facilitator (optional)'),
+                            style: const TextStyle(color: Colors.black),
+                          ),
+                        ),
+                        SizedBox(
+                          width: col,
+                          child: TextFormField(
+                            controller: description,
+                            maxLines: 3,
+                            textInputAction: TextInputAction.done,
+                            decoration: const InputDecoration(labelText: 'Description (optional)'),
+                            style: const TextStyle(color: Colors.black),
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextFormField(
+                        controller: name,
+                        textInputAction: TextInputAction.next,
+                        textCapitalization: TextCapitalization.words,
+                        decoration: const InputDecoration(labelText: 'Class name'),
+                        style: const TextStyle(color: Colors.black),
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter a class name' : null,
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: code,
+                        textInputAction: TextInputAction.next,
+                        textCapitalization: TextCapitalization.characters,
+                        decoration: const InputDecoration(labelText: 'Code (optional)'),
+                        style: const TextStyle(color: Colors.black),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: facilitator,
+                        textInputAction: TextInputAction.next,
+                        textCapitalization: TextCapitalization.words,
+                        decoration: const InputDecoration(labelText: 'Facilitator (optional)'),
+                        style: const TextStyle(color: Colors.black),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: description,
+                        maxLines: 3,
+                        textInputAction: TextInputAction.done,
+                        decoration: const InputDecoration(labelText: 'Description (optional)'),
+                        style: const TextStyle(color: Colors.black),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        ] else if (step == 1) ...[
+          SettingSwitchRow(label: 'Private class', subtitle: 'Join via invite only', value: isPrivate, onChanged: (_) {}),
+          SettingSwitchRow(label: 'Only admins can post', subtitle: 'Members can still reply', value: adminOnlyPosting, onChanged: (_) {}),
+          SettingSwitchRow(label: 'Approval required for member posts', subtitle: 'Admins receive requests to approve', value: approvalRequired, onChanged: (_) {}),
+        ] else if (step == 2) ...[
+          SettingSwitchRow(label: 'Allow media attachments', subtitle: 'Images and files in posts', value: allowMedia, onChanged: (_) {}),
+        ] else ...[
+          _ReviewSummary(
+            name: name.text.trim(),
+            code: code.text.trim(),
+            facilitator: facilitator.text.trim(),
+            description: description.text.trim(),
+            isPrivate: isPrivate,
+            adminOnlyPosting: adminOnlyPosting,
+            approvalRequired: approvalRequired,
+            allowMedia: allowMedia,
+          ),
+        ],
+        const SizedBox(height: 16),
+        if (step == 0)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: FilledButton(
+              onPressed: () {
+                if (formKey.currentState!.validate()) onNext();
+              },
+              child: const Text('Next'),
+            ),
+          )
+        else
+          Row(
+            children: [
+              FilledButton(
+                onPressed: () {
+                  if (step < 3) {
+                    onNext();
+                  } else {
+                    onCreate();
+                  }
+                },
+                child: Text(step == 3 ? 'Create' : 'Next'),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton(
+                onPressed: onBack,
+                child: const Text('Back'),
+              ),
+            ],
+          ),
+      ],
     );
   }
 }
@@ -2752,6 +2896,43 @@ class _StepRailVertical extends StatelessWidget {
   }
 }
 
+class _StepRailHorizontal extends StatelessWidget {
+  const _StepRailHorizontal({
+    required this.steps,
+    required this.activeIndex,
+    this.onStepTap,
+  });
+
+  final List<String> steps;
+  final int activeIndex;
+  final ValueChanged<int>? onStepTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final Color connectorColor = theme.colorScheme.onSurface.withValues(alpha: 0.25);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (int i = 0; i < steps.length; i++) ...[
+          InkWell(
+            onTap: onStepTap == null ? null : () => onStepTap!(i),
+            borderRadius: BorderRadius.circular(12),
+            child: _StepDot(active: i == activeIndex, label: steps[i], size: 24),
+          ),
+          if (i < steps.length - 1)
+            Container(
+              width: 28,
+              height: 1,
+              margin: const EdgeInsets.symmetric(horizontal: 6),
+              color: connectorColor,
+            ),
+        ],
+      ],
+    );
+  }
+}
+
 class _StepRailMini extends StatelessWidget {
   const _StepRailMini({required this.activeIndex, required this.steps});
   final int activeIndex;
@@ -2778,16 +2959,17 @@ class _StepRailMini extends StatelessWidget {
 }
 
 class _StepDot extends StatelessWidget {
-  const _StepDot({required this.active, required this.label, this.size = 24});
+  const _StepDot({required this.active, required this.label, this.size = 24, this.dimmed = false});
   final bool active;
   final String label;
   final double size;
+  final bool dimmed;
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final Color border = theme.colorScheme.onSurface;
+    final Color border = dimmed ? Colors.black26 : theme.colorScheme.onSurface;
     final Color fill = active ? Colors.black : Colors.white;
-    final Color text = active ? Colors.white : Colors.black;
+    final Color text = active ? Colors.white : (dimmed ? Colors.black38 : Colors.black);
     return Container(
       width: size,
       height: size,
