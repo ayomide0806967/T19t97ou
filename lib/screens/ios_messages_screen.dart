@@ -4058,6 +4058,132 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
     setState(() => _selected.clear());
   }
 
+  void _replyToSelected() {
+    if (_selected.isEmpty) return;
+    // Reply to the first selected node
+    final _ThreadNode target = _selected.first;
+    _setReplyTarget(target);
+  }
+
+  void _showInfoForSelected() {
+    if (_selected.isEmpty) return;
+    final theme = Theme.of(context);
+    final int count = _selected.length;
+    final preview = _selected
+        .take(3)
+        .map((n) => '• ${n.comment.author}: ${n.comment.body}')
+        .join('\n');
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Selected: $count', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 8),
+            Text(preview, style: theme.textTheme.bodyMedium, maxLines: 8, overflow: TextOverflow.ellipsis),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _deleteSelected() {
+    if (_selected.isEmpty) return;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete comments?'),
+        content: Text('This will remove ${_selected.length} selected ${_selected.length == 1 ? 'comment' : 'comments'}.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              setState(() {
+                _threads = _filterNodes(_threads, _selected);
+                _selected.clear();
+              });
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<_ThreadNode> _filterNodes(List<_ThreadNode> nodes, Set<_ThreadNode> remove) {
+    final List<_ThreadNode> out = <_ThreadNode>[];
+    for (final n in nodes) {
+      if (remove.contains(n)) continue;
+      final children = _filterNodes(n.children, remove);
+      out.add(_ThreadNode(comment: n.comment, children: children));
+    }
+    return out;
+  }
+
+  Future<void> _forwardSelected() async {
+    if (_selected.isEmpty) return;
+    final text = _selected.map((n) => '${n.comment.author}: ${n.comment.body}').join('\n\n');
+    await Clipboard.setData(ClipboardData(text: text));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Copied selected comments')));
+  }
+
+  void _showMoreMenu() {
+    if (_selected.isEmpty) return;
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.copy),
+              title: const Text('Copy'),
+              onTap: () async {
+                Navigator.pop(ctx);
+                await _forwardSelected();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.select_all),
+              title: const Text('Select all'),
+              onTap: () {
+                setState(() {
+                  _selected
+                    ..clear()
+                    ..addAll(_flatten(_threads));
+                });
+                Navigator.pop(ctx);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.clear),
+              title: const Text('Clear selection'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _clearSelection();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Iterable<_ThreadNode> _flatten(List<_ThreadNode> nodes) sync* {
+    for (final n in nodes) {
+      yield n;
+      yield* _flatten(n.children);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -4078,27 +4204,27 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
                 IconButton(
                   tooltip: 'Reply',
                   icon: const Icon(Icons.reply_outlined),
-                  onPressed: () {},
+                  onPressed: _replyToSelected,
                 ),
                 IconButton(
                   tooltip: 'Info',
                   icon: const Icon(Icons.info_outline),
-                  onPressed: () {},
+                  onPressed: _showInfoForSelected,
                 ),
                 IconButton(
                   tooltip: 'Delete',
                   icon: const Icon(Icons.delete_outline_rounded),
-                  onPressed: () {},
+                  onPressed: _deleteSelected,
                 ),
                 IconButton(
                   tooltip: 'Forward',
                   icon: const Icon(Icons.redo_rounded),
-                  onPressed: () {},
+                  onPressed: _forwardSelected,
                 ),
                 IconButton(
                   tooltip: 'More',
                   icon: const Icon(Icons.more_vert),
-                  onPressed: () {},
+                  onPressed: _showMoreMenu,
                 ),
               ]
             : null,
@@ -4371,12 +4497,11 @@ class _CommentTileState extends State<_CommentTile> {
   double _dx = 0;
   double _dragOffset = 0; // visual slide during swipe-to-reply
   int _likes = 0;
-  int _dislikes = 0;
   bool _liked = false;
-  bool _disliked = false;
   bool _reposted = false;
   int _reposts = 0;
   bool _swipeHapticFired = false;
+  final GlobalKey _repostKey = GlobalKey();
 
   @override
   void initState() {
@@ -4418,10 +4543,11 @@ class _CommentTileState extends State<_CommentTile> {
       ),
     ];
 
+    final Color selectedHover = widget.isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFF3F4F6);
     final Widget bubbleCore = Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: bubble,
+          color: widget.selected ? selectedHover : bubble,
           borderRadius: BorderRadius.circular(16),
           boxShadow: popShadow,
         ),
@@ -4493,55 +4619,54 @@ class _CommentTileState extends State<_CommentTile> {
               ),
             ),
             const SizedBox(height: 8),
-            // Three equal columns: Like, Repost, Heartbreak
+            // Two columns: Repost (left), Like (right)
             Row(
               children: [
                 Expanded(
-                  child: Center(
-                    child: _LabelCountButton(
-                      icon: _liked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                      iconSize: 20,
-                      count: _likes,
-                      color: _liked ? Colors.red : null,
-                      onPressed: () {
-                        HapticFeedback.lightImpact();
-                        setState(() {
-                          if (_liked) {
-                            _likes = (_likes - 1).clamp(0, 1 << 30);
-                            _liked = false;
-                          } else {
-                            _likes += 1;
-                            _liked = true;
-                            if (_disliked) {
-                              _dislikes = (_dislikes - 1).clamp(0, 1 << 30);
-                              _disliked = false;
-                            }
-                          }
-                        });
-                      },
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Center(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
                     child: _ScaleTap(
                       onTap: () async {
-                        // Comment tile repost stays local (UI only)
-                        setState(() {
-                          _reposted = !_reposted;
-                          _reposts += _reposted ? 1 : -1;
-                          if (_reposts < 0) _reposts = 0;
-                        });
+                        // Anchor popup menu to the repost label
+                        final RenderBox button = _repostKey.currentContext!.findRenderObject() as RenderBox;
+                        final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+                        final RelativeRect position = RelativeRect.fromRect(
+                          Rect.fromPoints(
+                            button.localToGlobal(Offset.zero, ancestor: overlay),
+                            button.localToGlobal(button.size.bottomRight(Offset.zero), ancestor: overlay),
+                          ),
+                          Offset.zero & overlay.size,
+                        );
+                        final choice = await showMenu<String>(
+                          context: context,
+                          position: position,
+                          items: const [
+                            PopupMenuItem<String>(value: 'repost', child: Text('Repost')),
+                            PopupMenuItem<String>(value: 'reply', child: Text('Reply')),
+                          ],
+                        );
+                        if (choice == 'repost') {
+                          setState(() {
+                            _reposted = !_reposted;
+                            _reposts += _reposted ? 1 : -1;
+                            if (_reposts < 0) _reposts = 0;
+                          });
+                          HapticFeedback.lightImpact();
+                        } else if (choice == 'reply') {
+                          widget.onSwipeReply?.call();
+                        }
                       },
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'REPOST',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: _reposted
-                                  ? Colors.green
-                                  : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      child: Container(
+                        key: _repostKey,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'REPOST',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: _reposted
+                                    ? Colors.green
+                                    : theme.colorScheme.onSurface.withValues(alpha: 0.6),
                               fontWeight: FontWeight.w800,
                               letterSpacing: 0.3,
                             ),
@@ -4557,30 +4682,28 @@ class _CommentTileState extends State<_CommentTile> {
                             ),
                           ),
                         ],
+                        ),
                       ),
                     ),
                   ),
                 ),
                 Expanded(
-                  child: Center(
+                  child: Align(
+                    alignment: Alignment.centerRight,
                     child: _LabelCountButton(
-                      icon: _disliked ? Icons.heart_broken_rounded : Icons.heart_broken_outlined,
-                      iconSize: 18,
-                      count: _dislikes,
-                      color: _disliked ? Colors.black : null,
+                      icon: _liked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                      iconSize: 20,
+                      count: _likes,
+                      color: _liked ? Colors.red : null,
                       onPressed: () {
                         HapticFeedback.lightImpact();
                         setState(() {
-                          if (_disliked) {
-                            _dislikes = (_dislikes - 1).clamp(0, 1 << 30);
-                            _disliked = false;
+                          if (_liked) {
+                            _likes = (_likes - 1).clamp(0, 1 << 30);
+                            _liked = false;
                           } else {
-                            _dislikes += 1;
-                            _disliked = true;
-                            if (_liked) {
-                              _likes = (_likes - 1).clamp(0, 1 << 30);
-                              _liked = false;
-                            }
+                            _likes += 1;
+                            _liked = true;
                           }
                         });
                       },

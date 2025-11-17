@@ -39,8 +39,8 @@ class AppTheme {
     final base = ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      // Offwhite app background
-      scaffoldBackgroundColor: surface,
+      // Pure white app background
+      scaffoldBackgroundColor: background,
       // Pure white containers/cards via surface
       colorScheme: baseColorScheme.copyWith(
         surface: Colors.white,
@@ -65,10 +65,13 @@ class AppTheme {
 
     return base.copyWith(
       appBarTheme: AppBarTheme(
-        backgroundColor: surface,
+        backgroundColor: background,
         elevation: 0,
         titleTextStyle: headline.copyWith(fontSize: 24),
         surfaceTintColor: Colors.transparent,
+      ),
+      popupMenuTheme: const PopupMenuThemeData(
+        color: Colors.white,
       ),
       textTheme: base.textTheme.copyWith(
         headlineLarge: headline.copyWith(fontSize: 44, letterSpacing: -1.2),
@@ -213,6 +216,9 @@ class AppTheme {
         elevation: 0,
         titleTextStyle: headline.copyWith(fontSize: 24),
         surfaceTintColor: Colors.transparent,
+      ),
+      popupMenuTheme: const PopupMenuThemeData(
+        color: Colors.white,
       ),
       textTheme: base.textTheme.copyWith(
         headlineLarge: headline.copyWith(fontSize: 44, letterSpacing: -1.2),
