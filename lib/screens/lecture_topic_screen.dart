@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../services/data_service.dart';
 import '../services/simple_auth_service.dart';
 import '../widgets/lecture_note_card.dart';
+import 'class_note_stepper_screen.dart';
 import 'ios_messages_screen.dart' show ClassTopic, messageRepliesRouteFromPost; // reuse route
 
 class LectureTopicScreen extends StatelessWidget {
@@ -13,7 +14,6 @@ class LectureTopicScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final data = context.watch<DataService>();
     final posts = data.posts.where((p) => p.tags.contains(topic.topicTag)).toList();
 
@@ -37,7 +37,9 @@ class LectureTopicScreen extends StatelessWidget {
             },
             onTap: () {
               Navigator.of(context).push(
-                messageRepliesRouteFromPost(post: post, currentUserHandle: currentUserHandle),
+                MaterialPageRoute(
+                  builder: (_) => const ClassNoteStepperScreen(),
+                ),
               );
             },
           );
@@ -59,4 +61,3 @@ class LectureTopicScreen extends StatelessWidget {
     return normalized.isEmpty ? '@yourprofile' : '@$normalized';
   }
 }
-

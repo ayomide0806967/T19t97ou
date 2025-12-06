@@ -131,7 +131,6 @@ class _ClassNoteStepperScreenState extends State<ClassNoteStepperScreen> {
                 ],
               ),
               const SizedBox(height: 20),
-              // Step rails – only the current and next rails are fully "revealed"
               Expanded(
                 child: ListView.builder(
                   padding: const EdgeInsets.only(bottom: 16),
@@ -139,10 +138,8 @@ class _ClassNoteStepperScreenState extends State<ClassNoteStepperScreen> {
                   itemBuilder: (context, index) {
                     final section = _sections[index];
                     final isActive = index == _activeIndex;
-                    final isNext = index == _activeIndex + 1;
-                    // We "reveal" at most two sections at a time:
-                    // current rail (expanded) and the next rail (peeked).
-                    final isRevealed = isActive || isNext;
+                    // Only the active step is "open" – others stay collapsed.
+                    final isRevealed = isActive;
                     return _NoteRailStep(
                       index: index,
                       total: _sections.length,
@@ -164,12 +161,15 @@ class _ClassNoteStepperScreenState extends State<ClassNoteStepperScreen> {
                     icon: const Icon(Icons.forum_outlined, size: 18),
                     label: const Text('Open class discussion'),
                     style: OutlinedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 10,
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(999),
+                        side: const BorderSide(color: Colors.black),
                       ),
                     ),
                     onPressed: () {
@@ -220,6 +220,9 @@ class _NoteRailStep extends StatelessWidget {
     // WhatsApp-style accent for active highlights
     const whatsAppGreen = Color(0xFF25D366);
 
+    final Color connectorColor =
+        isActive ? Colors.black : onSurface.withValues(alpha: 0.25);
+
     final circleColor = isActive
         ? whatsAppGreen
         : onSurface.withValues(alpha: isRevealed ? 0.15 : 0.08);
@@ -248,7 +251,7 @@ class _NoteRailStep extends StatelessWidget {
                     Container(
                       width: 2,
                       height: 18,
-                      color: onSurface.withValues(alpha: 0.25),
+                      color: connectorColor,
                     ),
                   Container(
                     width: 24,
@@ -271,7 +274,7 @@ class _NoteRailStep extends StatelessWidget {
                     Container(
                       width: 2,
                       height: 26,
-                      color: onSurface.withValues(alpha: 0.25),
+                      color: connectorColor,
                     ),
                 ],
               ),
@@ -396,35 +399,6 @@ class ClassNoteDiscussionScreen extends StatelessWidget {
     );
     final controller = TextEditingController();
 
-    final List<_DiscussionMessage> messages = [
-      for (final section in sections)
-        _DiscussionMessage(
-          author: 'Tutor',
-          isTutor: true,
-          timeAgo: '',
-          body: [
-            section.title,
-            section.subtitle,
-            if (section.bullets.isNotEmpty)
-              section.bullets.map((b) => '• $b').join('\n'),
-          ].where((t) => t.trim().isNotEmpty).join('\n\n'),
-        ),
-      const _DiscussionMessage(
-        author: 'Tutor',
-        isTutor: true,
-        timeAgo: '2h ago',
-        body:
-            'If you are unsure about a red‑flag value, always escalate early rather than waiting.',
-      ),
-      const _DiscussionMessage(
-        author: 'Ada',
-        isTutor: false,
-        timeAgo: '1h ago',
-        body:
-            'Is there an easy way to remember the high‑risk medication list for exams?',
-      ),
-    ];
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Class discussion'),
@@ -453,13 +427,8 @@ class ClassNoteDiscussionScreen extends StatelessWidget {
             ),
             const Divider(height: 1),
             Expanded(
-              child: ListView.builder(
+              child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                itemCount: messages.length,
-                itemBuilder: (context, index) {
-                  final m = messages[index];
-                  return _DiscussionBubble(message: m);
-                },
               ),
             ),
             SafeArea(
@@ -523,262 +492,6 @@ class ClassNoteDiscussionScreen extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _DiscussionMessage {
-  const _DiscussionMessage({
-    required this.author,
-    required this.isTutor,
-    required this.timeAgo,
-    required this.body,
-  });
-
-  final String author;
-  final bool isTutor;
-  final String timeAgo;
-  final String body;
-}
-
-class _DiscussionBubble extends StatelessWidget {
-  const _DiscussionBubble({required this.message});
-
-  final _DiscussionMessage message;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final onSurface = theme.colorScheme.onSurface;
-    final subtle = onSurface.withValues(
-      alpha: theme.brightness == Brightness.dark ? 0.6 : 0.55,
-    );
-
-    final bool isTutor = message.isTutor;
-    final Color border = theme.colorScheme.onSurface.withValues(alpha: 0.18);
-    final Color fill = theme.colorScheme.surface;
-
-    final avatarFrame = Container(
-      width: 32,
-      height: 32,
-      decoration: const BoxDecoration(
-        color: Color(0xFFF4F1EC),
-        borderRadius: BorderRadius.zero,
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        message.author.isNotEmpty
-            ? message.author.substring(0, 1).toUpperCase()
-            : '?',
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: isTutor ? Colors.white : onSurface,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-
-    Future<void> showRepostOptions() async {
-      final theme = Theme.of(context);
-      await showModalBottomSheet<void>(
-        context: context,
-        backgroundColor: Colors.transparent,
-        builder: (sheetContext) {
-          final bool isDark = theme.brightness == Brightness.dark;
-          final Color surface = theme.colorScheme.surface.withValues(
-            alpha: isDark ? 0.92 : 0.96,
-          );
-          final Color borderColor =
-              Colors.white.withValues(alpha: isDark ? 0.12 : 0.25);
-
-          return SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(24),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: surface,
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: borderColor),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.12),
-                            blurRadius: 24,
-                            offset: const Offset(0, 12),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ListTile(
-                            leading: const Icon(Icons.repeat_rounded),
-                            title: const Text('Repost'),
-                            subtitle: const Text(
-                              'Share this note message with your class',
-                            ),
-                            onTap: () {
-                              Navigator.of(sheetContext).pop();
-                            },
-                          ),
-                          Divider(
-                            height: 1,
-                            thickness: 1,
-                            color: theme.dividerColor.withValues(alpha: 0.16),
-                          ),
-                          ListTile(
-                            leading: const Icon(Icons.mode_comment_outlined),
-                            title: const Text('Repost with comment'),
-                            subtitle: const Text(
-                              'Add your explanation before sharing',
-                            ),
-                            onTap: () {
-                              Navigator.of(sheetContext).pop();
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  GestureDetector(
-                    onTap: () => Navigator.of(sheetContext).pop(),
-                    child: Container(
-                      width: 60,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.onSurface
-                            .withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      );
-    }
-
-    // Use a reply-card style layout: rounded card with border and a
-    // picture-frame avatar cutting into the left edge.
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          // Main discussion card
-          Container(
-            margin: const EdgeInsets.only(left: 32),
-            padding: const EdgeInsets.fromLTRB(16, 12, 12, 10),
-            decoration: BoxDecoration(
-              color: fill,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: border, width: 1),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      message.author,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
-                        color: onSurface,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    if (isTutor)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF25D366).withValues(
-                            alpha: 0.15,
-                          ),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Text(
-                          'Tutor',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: const Color(0xFF167C3A),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    const Spacer(),
-                    Text(
-                      message.timeAgo,
-                      style:
-                          theme.textTheme.labelSmall?.copyWith(color: subtle),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  message.body,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: onSurface,
-                    fontSize: 16,
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        // Hook up to scroll to composer in a real implementation.
-                      },
-                      child: Text(
-                        'Reply',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppTheme.accent,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    const Spacer(),
-                    TextButton(
-                      onPressed: showRepostOptions,
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        minimumSize: const Size(0, 0),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: Text(
-                        'REPOST',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5,
-                          color: subtle,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          // Picture-frame avatar overlapping the left edge.
-          Positioned(
-            left: 0,
-            top: 12,
-            child: avatarFrame,
-          ),
-        ],
       ),
     );
   }

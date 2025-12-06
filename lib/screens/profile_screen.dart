@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -7,7 +6,7 @@ import 'package:provider/provider.dart';
 import '../services/simple_auth_service.dart';
 import '../services/data_service.dart';
 import '../widgets/tweet_post_card.dart';
-import 'thread_screen.dart';
+import 'ios_messages_screen.dart' show messageRepliesRouteFromPost;
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -539,13 +538,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         key: ValueKey(post.id),
                         post: post,
                         currentUserHandle: currentUserHandle,
-                        onTap: () {
-                          final thread = dataService.buildThreadForPost(
-                            post.id,
-                          );
+                        onReply: (_) {
                           Navigator.of(context).push(
-                            ThreadScreen.route(
-                              entry: thread,
+                            messageRepliesRouteFromPost(
+                              post: post,
+                              currentUserHandle: currentUserHandle,
+                            ),
+                          );
+                        },
+                        onTap: () {
+                          Navigator.of(context).push(
+                            messageRepliesRouteFromPost(
+                              post: post,
                               currentUserHandle: currentUserHandle,
                             ),
                           );
@@ -839,9 +843,9 @@ class _ProfileLevelStat extends StatelessWidget {
     final barBg = onSurface.withValues(
       alpha: theme.brightness == Brightness.dark ? 0.25 : 0.15,
     );
-    // Cyan indicator fills the grey track as progress grows
-    final Color barFg = theme.colorScheme.primary;
     final clamped = progress.clamp(0.0, 1.0);
+    // Color-coded indicator fills the grey track as progress grows
+    final Color barFg = _progressColor(theme, clamped);
     return InkWell(
       onTap: () => _openLevelDetails(context),
       borderRadius: BorderRadius.circular(8),
@@ -879,8 +883,23 @@ class _ProfileLevelStat extends StatelessWidget {
     );
   }
 
+  Color _progressColor(ThemeData theme, double value) {
+    final p = value.clamp(0.0, 1.0);
+    if (p <= 0.30) {
+      return Colors.red;
+    }
+    if (p <= 0.60) {
+      // Dark cyan for mid-range progress
+      return const Color(0xFF00838F);
+    }
+    return Colors.green;
+  }
+
   void _openLevelDetails(BuildContext context) {
     final theme = Theme.of(context);
+    final clamped = progress.clamp(0.0, 1.0);
+    final percent = (clamped * 100).round();
+
     final levels = <Map<String, String>>[
       {
         'title': 'Novice',
@@ -930,8 +949,48 @@ class _ProfileLevelStat extends StatelessWidget {
       },
     ];
 
-    // Map progress [0,1] to an index in levels
-    int currentIndex = (progress.clamp(0.0, 1.0) * (levels.length - 1)).round();
+    // Group levels into three stages, each with its own step rail section.
+    final categories = [
+      {
+        'title': 'Foundations',
+        'range': 'Novice – Apprentice',
+        'indices': [0, 1, 2, 3],
+      },
+      {
+        'title': 'Developing practice',
+        'range': 'Intermediate – Advanced',
+        'indices': [4, 5, 6, 7],
+      },
+      {
+        'title': 'Expertise',
+        'range': 'Expert – Professional',
+        'indices': [8, 9, 10],
+      },
+    ];
+
+    // Prefer mapping the current level from the label (e.g. "Novice")
+    // so the highlighted row always matches what the user sees,
+    // and fall back to the numeric progress if no label match is found.
+    int currentLevelIndex = levels.indexWhere(
+      (m) =>
+          (m['title'] as String).toLowerCase() ==
+          label.toLowerCase(),
+    );
+    if (currentLevelIndex < 0) {
+      currentLevelIndex =
+          (clamped * (levels.length - 1)).round().clamp(0, levels.length - 1);
+    }
+
+    int activeCategoryIndex;
+    if (currentLevelIndex <= 3) {
+      activeCategoryIndex = 0;
+    } else if (currentLevelIndex <= 7) {
+      activeCategoryIndex = 1;
+    } else {
+      activeCategoryIndex = 2;
+    }
+
+    int expandedCategoryIndex = 0;
 
     showModalBottomSheet<void>(
       context: context,
@@ -945,10 +1004,14 @@ class _ProfileLevelStat extends StatelessWidget {
         final subtle = onSurface.withValues(
           alpha: theme.brightness == Brightness.dark ? 0.6 : 0.6,
         );
-        final highlight = onSurface;
-        // Persist scroll metrics within this bottom sheet instance
-        double listScrollOffset = 0.0;
-        double listMaxScrollExtent = 0.0;
+        final highlight = _progressColor(theme, clamped);
+
+        const stageIcons = <IconData>[
+          Icons.layers_rounded, // Foundations
+          Icons.auto_graph_rounded, // Developing practice
+          Icons.emoji_events_rounded, // Expertise
+        ];
+
         return StatefulBuilder(
           builder: (innerCtx, setModalState) {
             return SafeArea(
@@ -973,166 +1036,336 @@ class _ProfileLevelStat extends StatelessWidget {
                           ),
                         ),
                         const Spacer(),
-                        // Overall progress bar snapshot
-                        SizedBox(
-                          width: 120,
-                          height: 8,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(999),
-                            child: Stack(
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              '$percent% complete',
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                color: subtle,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            SizedBox(
+                              width: 140,
+                              height: 8,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(999),
+                                child: Stack(
+                                  children: [
+                                    Container(
+                                      color: onSurface.withValues(
+                                        alpha: 0.15,
+                                      ),
+                                    ),
+                                    FractionallySizedBox(
+                                      widthFactor: clamped,
+                                      child: Container(color: highlight),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      height: (MediaQuery.of(innerCtx).size.height * 0.5)
+                          .clamp(260.0, 420.0),
+                      child: Stack(
+                        children: [
+                          // Single continuous vertical rail behind all steps
+                          Positioned(
+                            left: 16, // centered under 32px leading column
+                            top: 0,
+                            bottom: 0,
+                            child: Container(
+                              width: 2,
+                              color: theme.dividerColor
+                                  .withValues(alpha: 0.6),
+                            ),
+                          ),
+                          SingleChildScrollView(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Column(
+                              children: List.generate(
+                                  categories.length, (index) {
+                        final cat = categories[index];
+                        final isCurrentCategory = index == activeCategoryIndex;
+                        final isCompletedCategory =
+                            index < activeCategoryIndex;
+                        final isExpanded = index == expandedCategoryIndex;
+
+                        final circleColor = isCurrentCategory
+                            ? highlight
+                            : isCompletedCategory
+                                ? highlight.withValues(alpha: 0.15)
+                                : Colors.transparent;
+                        final borderColor =
+                            isCompletedCategory || isCurrentCategory
+                                ? highlight
+                                : subtle.withValues(alpha: 0.4);
+
+                        final titleStyle = theme.textTheme.bodyLarge?.copyWith(
+                          fontWeight: isCurrentCategory
+                              ? FontWeight.w700
+                              : FontWeight.w600,
+                          color: onSurface,
+                        );
+
+                        final subtitleStyle =
+                            theme.textTheme.bodySmall?.copyWith(
+                          color: subtle,
+                        );
+
+                        final List<int> indices =
+                            (cat['indices'] as List<int>);
+
+                        return Padding(
+                          padding: EdgeInsets.only(
+                            bottom: index == categories.length - 1 ? 0 : 18,
+                          ),
+                          child: InkWell(
+                            onTap: () {
+                              setModalState(() {
+                                expandedCategoryIndex = index;
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Container(
-                                    color:
-                                        onSurface.withValues(alpha: 0.15)),
-                                FractionallySizedBox(
-                                  widthFactor:
-                                      progress.clamp(0.0, 1.0),
-                                  child: Container(color: highlight),
+                                SizedBox(
+                                  width: 32,
+                                  child: Column(
+                                    children: [
+                                      if (index != 0)
+                                        Container(
+                                          width: 2,
+                                          height: 18,
+                                          color: isCurrentCategory
+                                              ? Colors.black
+                                              : Colors.transparent,
+                                        ),
+                                      Container(
+                                        width: 24,
+                                        height: 24,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: circleColor,
+                                          border: Border.all(
+                                            color: borderColor,
+                                            width: 1.6,
+                                          ),
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: isCompletedCategory
+                                            ? Icon(
+                                                Icons.check,
+                                                size: 14,
+                                                color: isCurrentCategory
+                                                    ? Colors.white
+                                                    : highlight,
+                                              )
+                                            : Text(
+                                                '${index + 1}',
+                                                style: theme
+                                                    .textTheme.labelSmall
+                                                    ?.copyWith(
+                                                  color: isCurrentCategory
+                                                      ? Colors.white
+                                                      : borderColor,
+                                                  fontWeight:
+                                                      FontWeight.w600,
+                                                ),
+                                              ),
+                                      ),
+                                      if (index != categories.length - 1)
+                                        Container(
+                                          width: 2,
+                                          height: 26,
+                                          color: isCurrentCategory
+                                              ? Colors.black
+                                              : Colors.transparent,
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: AnimatedContainer(
+                                    duration: const Duration(
+                                      milliseconds: 180,
+                                    ),
+                                    curve: Curves.easeOut,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 10,
+                                      horizontal: 10,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.transparent,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              stageIcons[index],
+                                              size: 18,
+                                              color: highlight,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              cat['title'] as String,
+                                              style: titleStyle,
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          cat['range'] as String,
+                                          style: theme
+                                              .textTheme.labelSmall
+                                              ?.copyWith(
+                                            color: subtle,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        if (isExpanded) ...[
+                                          const SizedBox(height: 8),
+                                          SizedBox(
+                                            // Keep each stage compact so the
+                                            // next rail/category is still visible.
+                                            height: 170,
+                                            child: SingleChildScrollView(
+                                              padding:
+                                                  const EdgeInsets.only(
+                                                right: 2,
+                                              ),
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: indices
+                                                    .map((levelIndex) {
+                                              final isUserLevel =
+                                                  levelIndex ==
+                                                      currentLevelIndex;
+                                                      return Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .only(
+                                                          bottom: 6,
+                                                        ),
+                                                        child: Container(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .symmetric(
+                                                            vertical: 8,
+                                                            horizontal: 10,
+                                                          ),
+                                                          decoration:
+                                                              isUserLevel
+                                                                  ? BoxDecoration(
+                                                                      color: highlight
+                                                                          .withValues(
+                                                                        alpha:
+                                                                            0.06,
+                                                                      ),
+                                                                      borderRadius:
+                                                                          BorderRadius.circular(
+                                                                              10),
+                                                                      border:
+                                                                          Border
+                                                                              .all(
+                                                                        color: highlight
+                                                                            .withValues(
+                                                                          alpha:
+                                                                              0.7,
+                                                                        ),
+                                                                        width:
+                                                                            1.1,
+                                                                      ),
+                                                                    )
+                                                                  : BoxDecoration(
+                                                                      borderRadius:
+                                                                          BorderRadius.circular(
+                                                                              10),
+                                                                    ),
+                                                          child: Row(
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .start,
+                                                            children: [
+                                                              if (isUserLevel)
+                                                                ...[
+                                                                  Icon(
+                                                                    Icons
+                                                                        .check_rounded,
+                                                                    size: 18,
+                                                                    color:
+                                                                        highlight,
+                                                                  ),
+                                                                  const SizedBox(
+                                                                    width: 8,
+                                                                  ),
+                                                                ],
+                                                              Expanded(
+                                                                child: Column(
+                                                                  crossAxisAlignment:
+                                                                      CrossAxisAlignment
+                                                                          .start,
+                                                                  children: [
+                                                                    Text(
+                                                                      levels[levelIndex]['title'] ??
+                                                                          '',
+                                                                      style: theme
+                                                                          .textTheme
+                                                                          .bodyMedium
+                                                                          ?.copyWith(
+                                                                        fontWeight:
+                                                                            FontWeight.w600,
+                                                                        color:
+                                                                            onSurface,
+                                                                      ),
+                                                                    ),
+                                                                    const SizedBox(
+                                                                      height: 2,
+                                                                    ),
+                                                                    Text(
+                                                                      levels[levelIndex]['desc'] ??
+                                                                          '',
+                                                                      style:
+                                                                          subtitleStyle,
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      );
+                                                    }).toList(),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
                           ),
+                        );
+                      }),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    // Limit height to show about five items; blur the rest and reveal on scroll
-                    SizedBox(
-                      height: (MediaQuery.of(innerCtx).size.height * 0.55)
-                          .clamp(
-                        280.0,
-                        420.0,
                       ),
-                      child: Stack(
-                        children: [
-                          NotificationListener<ScrollNotification>(
-                            onNotification: (sn) {
-                              // Update cached scroll metrics to drive the blur
-                              listScrollOffset = sn.metrics.pixels;
-                              listMaxScrollExtent = sn.metrics.maxScrollExtent;
-                              setModalState(() {});
-                              return false;
-                            },
-                            child: ListView.separated(
-                              shrinkWrap: true,
-                              itemCount: levels.length,
-                              separatorBuilder: (_, __) => Divider(
-                                height: 1,
-                                color: theme.dividerColor
-                                    .withValues(alpha: 0.2),
-                              ),
-                              itemBuilder: (context, index) {
-                                final m = levels[index];
-                                final isActive = index == currentIndex;
-                                final reached = index <= currentIndex;
-                                // Use cached metrics from the NotificationListener
-                                final scrolled = listScrollOffset;
-                                final maxScroll = listMaxScrollExtent;
-                                const tileH = 68.0;
-                                double sigma = 0;
-                                double opacity = 1.0;
-                                if (index >= 5) {
-                                  final baseThreshold =
-                                      (index - 4) * tileH;
-                                  double rawSigma = 0;
-                                  final remain = baseThreshold - scrolled;
-                                  if (remain > 0) {
-                                    rawSigma =
-                                        (remain / 24).clamp(2.0, 6.0);
-                                  }
-                                  // Ensure last items fully reveal near the end of the list
-                                  if (scrolled >= (maxScroll - tileH)) {
-                                    rawSigma = 0;
-                                  }
-                                  sigma = rawSigma;
-                                  opacity = sigma > 0 ? 0.65 : 1.0;
-                                }
-                                final tile = ListTile(
-                                  contentPadding:
-                                      const EdgeInsets.symmetric(
-                                    horizontal: 0,
-                                  ),
-                                  leading: CircleAvatar(
-                                    radius: 14,
-                                    backgroundColor: reached
-                                        ? (isActive
-                                              ? highlight
-                                              : onSurface.withValues(
-                                                  alpha: 0.18))
-                                        : onSurface.withValues(
-                                            alpha: 0.08),
-                                    child: reached
-                                        ? Icon(
-                                            isActive
-                                                ? Icons.star
-                                                : Icons.check,
-                                            size: 16,
-                                            color: isActive
-                                                ? Colors.white
-                                                : highlight,
-                                          )
-                                        : Text(
-                                            '${index + 1}',
-                                            style: theme
-                                                .textTheme
-                                                .labelSmall
-                                                ?.copyWith(color: subtle),
-                                          ),
-                                  ),
-                                  title: Text(
-                                    m['title'] ?? '',
-                                    style: theme.textTheme.bodyLarge?.copyWith(
-                                      fontWeight: isActive
-                                          ? FontWeight.w700
-                                          : FontWeight.w600,
-                                      color: onSurface,
-                                    ),
-                                  ),
-                                  subtitle: Text(
-                                    m['desc'] ?? '',
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: subtle,
-                                    ),
-                                  ),
-                                );
-                                if (sigma <= 0) return tile;
-                                return AnimatedOpacity(
-                                  duration:
-                                      const Duration(milliseconds: 200),
-                                  opacity: opacity,
-                                  child: ImageFiltered(
-                                    imageFilter: ui.ImageFilter.blur(
-                                      sigmaX: sigma,
-                                      sigmaY: sigma,
-                                    ),
-                                    child: tile,
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                          // Bottom gradient hint
-                          IgnorePointer(
-                            child: Align(
-                              alignment: Alignment.bottomCenter,
-                              child: Container(
-                                height: 24,
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      theme.colorScheme.surface
-                                          .withValues(
-                                        alpha: 0.0,
-                                      ),
-                                      theme.colorScheme.surface,
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
                         ],
                       ),
                     ),

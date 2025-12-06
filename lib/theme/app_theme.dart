@@ -72,6 +72,7 @@ class AppTheme {
       ),
       popupMenuTheme: const PopupMenuThemeData(
         color: Colors.white,
+        surfaceTintColor: Colors.transparent,
       ),
       textTheme: base.textTheme.copyWith(
         headlineLarge: headline.copyWith(fontSize: 44, letterSpacing: -1.2),
@@ -219,6 +220,7 @@ class AppTheme {
       ),
       popupMenuTheme: const PopupMenuThemeData(
         color: Colors.white,
+        surfaceTintColor: Colors.transparent,
       ),
       textTheme: base.textTheme.copyWith(
         headlineLarge: headline.copyWith(fontSize: 44, letterSpacing: -1.2),

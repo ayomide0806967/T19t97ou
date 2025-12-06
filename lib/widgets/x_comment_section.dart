@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/tagged_text_input.dart';
-import '../widgets/tweet_composer_card.dart';
-import '../widgets/tweet_shell.dart';
 
 class XCommentSection extends StatefulWidget {
   const XCommentSection({
@@ -73,7 +71,6 @@ class _XCommentSectionState extends State<XCommentSection>
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           Expanded(
             child: Center(
@@ -86,21 +83,28 @@ class _XCommentSectionState extends State<XCommentSection>
           ),
           Expanded(
             child: Center(
-              child: Transform.translate(
-                offset: const Offset(8, 0),
-                child: action(
-                  Icons.repeat_rounded,
-                  label: metrics != null ? _formatCount(metrics.reposts) : null,
-                ),
-              ),
-            ),
-          ),
-          Expanded(
-            child: Center(
-              child: _XActionButton(
-                icon: Icons.favorite_border_rounded,
-                label: metrics != null ? _formatCount(metrics.likes) : null,
-                onTap: () {},
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Transform.translate(
+                    offset: const Offset(4, 0),
+                    child: action(
+                      Icons.repeat_rounded,
+                      label: metrics != null
+                          ? _formatCount(metrics.reposts)
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  _XActionButton(
+                    icon: Icons.favorite_border_rounded,
+                    label: metrics != null
+                        ? _formatCount(metrics.likes)
+                        : null,
+                    onTap: () {},
+                  ),
+                ],
               ),
             ),
           ),
@@ -131,6 +135,7 @@ class _XCommentSectionState extends State<XCommentSection>
     );
     _animationController.forward();
     _inputFocusNode = FocusNode();
+    _commentController.addListener(_handleComposerTextChanged);
 
     if (widget.autoFocusComposer) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -156,6 +161,7 @@ class _XCommentSectionState extends State<XCommentSection>
   @override
   void dispose() {
     _animationController.dispose();
+    _commentController.removeListener(_handleComposerTextChanged);
     _commentController.dispose();
     _scrollController.dispose();
     _inputFocusNode.dispose();
@@ -184,6 +190,11 @@ class _XCommentSectionState extends State<XCommentSection>
       }
       _inputFocusNode.requestFocus();
     });
+  }
+
+  void _handleComposerTextChanged() {
+    if (!mounted) return;
+    setState(() {});
   }
 
   void _startReply(String commentId, String author) {
@@ -541,37 +552,196 @@ class _XCommentSectionState extends State<XCommentSection>
                 ),
               ),
 
-              // Reply indicator
-              TweetComposerCard(
-                controller: _commentController,
-                focusNode: _inputFocusNode,
-                replyingTo: _isReplying && _replyingTo != null
-                    ? _replyingTo!.startsWith('@')
-                        ? _replyingTo!.substring(1)
-                        : _replyingTo!
-                    : null,
-                onCancelReply: _isReplying ? _cancelReply : null,
-                hintText: 'Post your reply',
-                backgroundColor:
-                    isDark ? const Color(0xFFF4F1EC) : Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    blurRadius: 16,
-                    offset: const Offset(0, -2),
+              // Reply composer - WhatsApp-inspired UI
+              Container(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? const Color(0xFF111B21)
+                      : const Color(0xFFF0F2F5),
+                  border: Border(
+                    top: BorderSide(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.05)
+                          : Colors.black.withValues(alpha: 0.06),
+                    ),
                   ),
-                ],
-                onSubmit: (_) => _submitComment(),
-                isSubmitting: false,
-                onChanged: (_) => setState(() {}),
-                textInputAction: TextInputAction.send,
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_isReplying && _replyingTo != null)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppTheme.accent.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 4,
+                              height: 24,
+                              decoration: const BoxDecoration(
+                                color: AppTheme.accent,
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(2)),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            ConstrainedBox(
+                              constraints:
+                                  const BoxConstraints(maxWidth: 220),
+                              child: Text(
+                                'Replying to ${_replyingTo!.startsWith('@') ? _replyingTo! : '@$_replyingTo'}',
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: AppTheme.accent,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            if (_isReplying)
+                              GestureDetector(
+                                onTap: _cancelReply,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(left: 8),
+                                  child: Icon(
+                                    Icons.close,
+                                    size: 16,
+                                    color: AppTheme.accent,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? Colors.black.withValues(alpha: 0.25)
+                                  : Colors.white,
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.emoji_emotions_outlined,
+                                  size: 22,
+                                  color: theme.colorScheme.onSurface
+                                      .withValues(alpha: 0.55),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: TextField(
+                                    controller: _commentController,
+                                    focusNode: _inputFocusNode,
+                                    minLines: 1,
+                                    maxLines: 4,
+                                    textInputAction:
+                                        TextInputAction.newline,
+                                    keyboardType: TextInputType.multiline,
+                                    onSubmitted: (_) => _submitComment(),
+                                    style: theme.textTheme.bodyMedium
+                                        ?.copyWith(
+                                      color: theme.colorScheme.onSurface,
+                                      height: 1.35,
+                                    ),
+                                    decoration: InputDecoration(
+                                      border: InputBorder.none,
+                                      isDense: true,
+                                      contentPadding: EdgeInsets.zero,
+                                      hintText: 'Write a reply...',
+                                      hintStyle: theme.textTheme.bodyMedium
+                                          ?.copyWith(
+                                        color: theme.colorScheme.onSurface
+                                            .withValues(alpha: 0.4),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Icon(
+                                  Icons.attach_file_rounded,
+                                  size: 22,
+                                  color: theme.colorScheme.onSurface
+                                      .withValues(alpha: 0.5),
+                                ),
+                                const SizedBox(width: 8),
+                                Icon(
+                                  Icons.camera_alt_outlined,
+                                  size: 22,
+                                  color: theme.colorScheme.onSurface
+                                      .withValues(alpha: 0.5),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: _commentController.text
+                                  .trim()
+                                  .isNotEmpty
+                              ? _submitComment
+                              : null,
+                          child: CircleAvatar(
+                            radius: 20,
+                            backgroundColor:
+                                _commentController.text.trim().isNotEmpty
+                                    ? AppTheme.accent
+                                    : theme.colorScheme.onSurface
+                                        .withValues(alpha: 0.2),
+                            child: const Icon(
+                              Icons.send_rounded,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
         );
       },
+    );
+  }
+}
+
+class GlobalReplyCard extends StatelessWidget {
+  const GlobalReplyCard({
+    super.key,
+    required this.comment,
+    required this.onReply,
+    required this.onLike,
+  });
+
+  final XComment comment;
+  final VoidCallback onReply;
+  final VoidCallback onLike;
+
+  @override
+  Widget build(BuildContext context) {
+    return _XCommentTile(
+      comment: comment,
+      onReply: onReply,
+      onLike: onLike,
     );
   }
 }
@@ -636,167 +806,150 @@ class _XCommentTileState extends State<_XCommentTile>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
-    final Color cardBackground =
-        isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white;
-    final Color cornerAccent = AppTheme.accent.withValues(
-      alpha: isDark ? 0.18 : 0.24,
-    );
+    final Color bubbleColor = isDark
+        ? Colors.white.withValues(alpha: 0.06)
+        : const Color(0xFFEDEDED);
+    final Color textColor = isDark
+        ? Colors.white.withValues(alpha: 0.95)
+        : Colors.black.withValues(alpha: 0.9);
+    final Color metaTextColor =
+        theme.colorScheme.onSurface.withValues(alpha: 0.6);
+    const double avatarSize = 36;
 
     return AnimatedBuilder(
       animation: _scaleAnimation,
       builder: (context, child) {
         return Transform.scale(
           scale: _scaleAnimation.value,
-          child: TweetShell(
-            showBorder: false,
-            backgroundColor: cardBackground,
-            cornerAccentColor: cornerAccent,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Avatar
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: widget.comment.avatarColors,
-                          ),
-                          shape: BoxShape.circle,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              // Card + reply text, shifted right so the avatar cuts into the left edge.
+              Container(
+                margin: const EdgeInsets.only(left: avatarSize / 2),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.only(top: 4),
+                      padding: const EdgeInsets.fromLTRB(12, 8, 10, 6),
+                      decoration: BoxDecoration(
+                        color: bubbleColor,
+                        borderRadius: const BorderRadius.all(
+                          Radius.circular(18),
                         ),
-                        child: Center(
-                          child: Text(
-                            widget.comment.initials,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
+                        border: Border.all(
+                          color: theme.colorScheme.onSurface
+                              .withValues(alpha: isDark ? 0.22 : 0.08),
                         ),
                       ),
-                      const SizedBox(width: 12),
-
-                      // Content
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Header
-                            Row(
-                              children: [
-                                Text(
-                                  widget.comment.author,
-                                  style: theme.textTheme.titleSmall?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    color: theme.colorScheme.onSurface,
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  widget.comment.handle,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onSurface
-                                        .withValues(alpha: 0.6),
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '·',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onSurface
-                                        .withValues(alpha: 0.4),
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  widget.comment.timeAgo,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onSurface
-                                        .withValues(alpha: 0.5),
-                                  ),
-                                ),
-                              ],
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.comment.author,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: textColor.withValues(alpha: 0.9),
                             ),
-
-                            const SizedBox(height: 4),
-
-                            // Body
-                            Text(
-                              widget.comment.body,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurface,
-                                height: 1.4,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            widget.comment.body,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: textColor,
+                              height: 1.35,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                widget.comment.timeAgo,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontSize: 10,
+                                  color: metaTextColor,
+                                ),
                               ),
-                            ),
-
-                            const SizedBox(height: 12),
-
-                            // Actions - X style
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  Expanded(
-                                    child: Center(
-                                      child: _XActionButton(
-                                        icon: Icons.chat_bubble_outline_rounded,
-                                        label: 'Reply',
-                                        onTap: widget.onReply,
-                                      ),
+                              const SizedBox(width: 6),
+                              GestureDetector(
+                                onTap: widget.onLike,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      widget.comment.isLiked
+                                          ? Icons.favorite_rounded
+                                          : Icons.favorite_border_rounded,
+                                      size: 14,
+                                      color: widget.comment.isLiked
+                                          ? Colors.red
+                                          : metaTextColor,
                                     ),
-                                  ),
-                                  Expanded(
-                                    child: Center(
-                                      child: Transform.translate(
-                                        offset: const Offset(8, 0),
-                                        child: _XActionButton(
-                                          icon: Icons.repeat_rounded,
-                                          label: 'REPOST',
-                                          onTap: () {},
+                                    if (widget.comment.likes > 0) ...[
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        _formatCount(widget.comment.likes),
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                          fontSize: 10,
+                                          color: metaTextColor,
+                                          fontWeight: FontWeight.w500,
                                         ),
                                       ),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: Center(
-                                      child: _XActionButton(
-                                        icon: widget.comment.isLiked
-                                            ? Icons.favorite_rounded
-                                            : Icons.favorite_border_rounded,
-                                        label: _formatCount(widget.comment.likes),
-                                        isActive: widget.comment.isLiked,
-                                        onTap: widget.onLike,
-                                      ),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: Center(
-                                      child: _XActionButton(
-                                        icon: Icons.send_rounded,
-                                        onTap: () {},
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                                    ],
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    GestureDetector(
+                      onTap: widget.onReply,
+                      child: Text(
+                        'Reply',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppTheme.accent,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
-            ),
+              // Picture-frame avatar overlapping the card's left edge.
+              Positioned(
+                left: 0,
+                top: 8,
+                child: Container(
+                  width: avatarSize,
+                  height: avatarSize,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: widget.comment.avatarColors,
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Center(
+                    child: Text(
+                      widget.comment.initials,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         );
       },

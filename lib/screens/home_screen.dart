@@ -10,9 +10,11 @@ import '../services/simple_auth_service.dart';
 import '../state/app_settings.dart';
 import '../theme/app_theme.dart';
 import '../widgets/hexagon_avatar.dart';
+import '../services/class_service.dart';
 import '../widgets/brand_mark.dart';
 import '../widgets/floating_nav_bar.dart';
 import 'compose_screen.dart';
+import 'class_note_stepper_screen.dart';
 import '../widgets/tweet_post_card.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
@@ -131,14 +133,18 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 24,
-                  vertical: 32,
+                  // Pull first tweet closer to the stories rail
+                  vertical: 12,
                 ),
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 720),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [_StoryRail(), SizedBox(height: 16)],
+                      children: [
+                        _StoryRail(currentUserHandle: currentUserHandle),
+                        const SizedBox(height: 8),
+                      ],
                     ),
                   ),
                 ),
@@ -163,7 +169,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     );
 
                     return Container(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: EdgeInsets.only(
+                        top: index == 0 ? 8 : 14,
+                        bottom: 14,
+                      ),
                       decoration: BoxDecoration(border: border),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -1383,11 +1392,18 @@ class _HexagonComposeButton extends StatelessWidget {
 // Legacy hexagon button shapes removed after switching to rectangular FAB
 
 class _StoryRail extends StatelessWidget {
-  const _StoryRail();
+  const _StoryRail({required this.currentUserHandle});
+
+  final String currentUserHandle;
 
   @override
   Widget build(BuildContext context) {
-    final stories = _demoStories;
+    final classes = ClassService.userColleges(currentUserHandle);
+    final List<_Story> stories = [
+      const _Story('Trending'),
+      const _Story('Notes'),
+      ...classes.map((c) => _Story(c.name)),
+    ];
     final theme = Theme.of(context);
 
     return SizedBox(
@@ -1404,16 +1420,30 @@ class _StoryRail extends StatelessWidget {
           separatorBuilder: (_, __) => const SizedBox(width: 16),
           itemBuilder: (context, index) {
             final story = stories[index];
-            final bool isSelf = story.label == 'You';
-            final Color borderColor = isSelf
+            final bool isTrending = story.label == 'Trending';
+            final bool isNotes = story.label == 'Notes';
+            final Color borderColor = isTrending
                 ? AppTheme.accent
                 : theme.colorScheme.primary.withValues(alpha: 0.25);
-            final Color background = isSelf
+            final Color background = isTrending
                 ? AppTheme.accent.withValues(alpha: 0.9)
                 : Theme.of(context).colorScheme.surface;
 
             return GestureDetector(
-              onTap: () => HapticFeedback.lightImpact(),
+              onTap: () {
+                HapticFeedback.lightImpact();
+                if (isTrending) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const TrendingScreen()),
+                  );
+                } else if (isNotes) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const ClassNoteStepperScreen(),
+                    ),
+                  );
+                }
+              },
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -1421,18 +1451,18 @@ class _StoryRail extends StatelessWidget {
                     size: 56,
                     backgroundColor: background,
                     borderColor: borderColor,
-                    borderWidth: isSelf ? 2 : 1.1,
+                    borderWidth: isTrending ? 2 : 1.1,
                     child: Center(
                       child: Text(
                         story.initials,
                         style: theme.textTheme.labelLarge?.copyWith(
-                          color: isSelf ? Colors.white : AppTheme.textPrimary,
+                          color: isTrending ? Colors.white : AppTheme.textPrimary,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
                   ),
-                  if (isSelf)
+                  if (isTrending)
                     Padding(
                       padding: const EdgeInsets.only(top: 6),
                       child: Container(
@@ -1446,11 +1476,7 @@ class _StoryRail extends StatelessWidget {
                             width: 1.5,
                           ),
                         ),
-                        child: const Icon(
-                          Icons.add_rounded,
-                          color: AppTheme.accent,
-                          size: 14,
-                        ),
+                        child: const Icon(Icons.trending_up, color: AppTheme.accent, size: 14),
                       ),
                     ),
                   const SizedBox(height: 6),
@@ -1459,8 +1485,8 @@ class _StoryRail extends StatelessWidget {
                     child: Text(
                       story.label,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: isSelf ? FontWeight.w600 : FontWeight.w500,
-                        color: isSelf
+                        fontWeight: isTrending ? FontWeight.w600 : FontWeight.w500,
+                        color: isTrending
                             ? AppTheme.accent
                             : AppTheme.textSecondary,
                       ),
@@ -1534,11 +1560,5 @@ class _Story {
   }
 }
 
-const List<_Story> _demoStories = [
-  _Story('You'),
-  _Story('Design Lab'),
-  _Story('Campus Radio'),
-  _Story('AI Society'),
-  _Story('Eco Club'),
-  _Story('Career Office'),
-];
+// Stories are now built dynamically from ClassService and include a leading
+// 'Trending' tile that opens the Trending page.

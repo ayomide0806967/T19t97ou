@@ -134,13 +134,7 @@ class _TweetDetailViewState extends State<TweetDetailView> {
                 backgroundColor: theme.brightness == Brightness.dark
                     ? const Color(0xFFF4F1EC)
                     : Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
+                boxShadow: const [],
                 textInputAction: TextInputAction.send,
                 onSubmit: (_) => _submit(),
               ),
@@ -163,113 +157,138 @@ class _TweetReplyTile extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final Color bg = isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white;
+    const double avatarSize = 40;
+    const double avatarSpacing = 12;
+    const double avatarInset = avatarSize / 2 + avatarSpacing;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.08)
-              : AppTheme.accent.withValues(alpha: 0.25),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Avatar
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: comment.avatarColors,
-                ),
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: Text(
-                  comment.initials,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        // Reply container with border and rounded corners
+        Container(
+          margin: const EdgeInsets.only(left: avatarSize / 2),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : AppTheme.accent.withValues(alpha: 0.25),
             ),
-            const SizedBox(width: 12),
-            // Content
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Leave space so content aligns after the overlapping avatar.
+                const SizedBox(width: avatarInset),
+                // Content
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Row(
+                        children: [
+                          Text(
+                            comment.author,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: theme.colorScheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            comment.handle,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurface
+                                  .withValues(alpha: 0.6),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '·',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurface
+                                  .withValues(alpha: 0.4),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            comment.timeAgo,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurface
+                                  .withValues(alpha: 0.5),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
                       Text(
-                        comment.author,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
+                        comment.body,
+                        style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.colorScheme.onSurface,
+                          height: 1.4,
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      Text(
-                        comment.handle,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '·',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        comment.timeAgo,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                        ),
+                      const SizedBox(height: 12),
+                      // Simple actions
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _Action(
+                              icon: Icons.chat_bubble_outline_rounded,
+                              onTap: () {}),
+                          _Action(
+                              icon: Icons.repeat_rounded, onTap: () {}),
+                          _Action(
+                            icon: comment.isLiked
+                                ? Icons.favorite_rounded
+                                : Icons.favorite_border_rounded,
+                            color:
+                                comment.isLiked ? Colors.red : null,
+                            label: _formatCount(comment.likes),
+                            onTap: onToggleLike,
+                          ),
+                          _Action(
+                              icon: Icons.send_rounded, onTap: () {}),
+                        ],
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    comment.body,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface,
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  // Simple actions
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _Action(icon: Icons.chat_bubble_outline_rounded, onTap: () {}),
-                      _Action(icon: Icons.repeat_rounded, onTap: () {}),
-                      _Action(
-                        icon: comment.isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                        color: comment.isLiked ? Colors.red : null,
-                        label: _formatCount(comment.likes),
-                        onTap: onToggleLike,
-                      ),
-                      _Action(icon: Icons.send_rounded, onTap: () {}),
-                    ],
-                  ),
-                ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        // Overlapping avatar that "cuts into" the left edge.
+        Positioned(
+          left: 0,
+          top: 16,
+          child: Container(
+            width: avatarSize,
+            height: avatarSize,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: comment.avatarColors,
+              ),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                comment.initials,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 

@@ -7,9 +7,10 @@ import '../services/data_service.dart';
 import '../theme/app_theme.dart';
 // Removed card-style shell for timeline layout
 import 'hexagon_avatar.dart';
-import '../screens/post_detail_screen.dart';
+// import '../screens/post_detail_screen.dart'; // no longer used for replies
+import '../screens/thread_screen.dart';
 import '../screens/quote_screen.dart';
-// Using a network-style icon for stats; custom icon not required here.
+import 'icons/x_retweet_icon.dart';
 
 class TweetPostCard extends StatefulWidget {
   const TweetPostCard({
@@ -111,9 +112,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
     _showReinOptions();
   }
 
-  void _incrementReply() {
-    setState(() => _replies += 1);
-  }
+  // Replies are updated from thread screen on return
 
   void _incrementView() {
     setState(() => _views += 1);
@@ -280,6 +279,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
     );
     final rein = TweetMetricData(
       type: TweetMetricType.rein,
+      icon: Icons.repeat_rounded,
       label: 'REPOST',
       count: widget.post.originalId == null ? _reposts : widget.post.reposts,
       isActive: repostedByUser,
@@ -583,6 +583,17 @@ class _TweetPostCardState extends State<TweetPostCard> {
         final maxW = constraints.maxWidth;
         final bool ultraTight = maxW.isFinite && maxW < 56; // ~ icon + tiny text
         final bool tight = maxW.isFinite && maxW < 80;
+        
+        // Special-case: REPOST uses encapsulating arrow button
+        if (data.type == TweetMetricType.rein) {
+          return XRetweetButton(
+            label: data.label ?? 'REPOST',
+            count: data.count,
+            isActive: data.isActive,
+            onTap: onTap,
+          );
+        }
+        
         // Special-case: compress VIEW under very tight width (icon only)
         if (data.type == TweetMetricType.view && ultraTight) {
           final compactView = TweetMetricData(type: data.type, icon: Icons.signal_cellular_alt_rounded);
@@ -613,7 +624,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
             child: TweetMetric(data: data, onTap: onTap, compact: compact),
           );
         }
-        // For other metrics (repost/like), scale down under tight width
+        // For other metrics (like), scale down under tight width
         if (tight) {
           return FittedBox(
             fit: BoxFit.scaleDown,
@@ -627,40 +638,20 @@ class _TweetPostCardState extends State<TweetPostCard> {
   }
 
   Future<void> _openReplyComposer() async {
-    final payload = PostDetailPayload(
-      author: widget.post.author,
-      handle: widget.post.handle,
-      timeAgo: widget.post.timeAgo,
-      body: widget.post.body,
-      initials: _initialsFrom(widget.post.author),
-      tags: widget.post.tags,
-      replies: _replies,
-      reposts: _reposts,
-      likes: _likes,
-      bookmarks: widget.post.bookmarks,
-      views: _views,
-      quoted: widget.post.quoted != null
-          ? PostDetailQuote(
-              author: widget.post.quoted!.author,
-              handle: widget.post.quoted!.handle,
-              timeAgo: widget.post.quoted!.timeAgo,
-              body: widget.post.quoted!.body,
-            )
-          : null,
-    );
-
+    // Open the same thread view used in profile, focusing the composer
+    final data = context.read<DataService>();
+    final thread = data.buildThreadForPost(widget.post.id);
     await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => PostDetailScreen(
-          post: payload,
-          focusComposer: true,
-          onReplyPosted: () {
-            if (!mounted) return;
-            _incrementReply();
-          },
-        ),
+      ThreadScreen.route(
+        entry: thread,
+        currentUserHandle: widget.currentUserHandle,
+        initialReplyPostId: widget.post.id,
       ),
     );
+    // After returning, refresh reply count from service to reflect potential changes
+    if (!mounted) return;
+    final updated = data.buildThreadForPost(widget.post.id).post.replies;
+    setState(() => _replies = updated);
   }
 }
 
@@ -836,6 +827,8 @@ class TweetMetric extends StatelessWidget {
       content = Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          XRetweetIcon(size: iconSize, color: highlightColor),
+          SizedBox(width: gap),
           Text(
             displayLabel ?? 'REPOST',
             style: theme.textTheme.bodyMedium?.copyWith(
@@ -865,9 +858,14 @@ class TweetMetric extends StatelessWidget {
         children: [
           if (hasIcon) ...[
             (() {
-              Widget icon = data.type == TweetMetricType.view
-                  ? Icon(Icons.signal_cellular_alt_rounded, size: iconSize, color: iconColor)
-                  : Icon(data.icon, size: iconSize, color: iconColor);
+              Widget icon;
+              if (data.type == TweetMetricType.view) {
+                icon = Icon(Icons.signal_cellular_alt_rounded, size: iconSize, color: iconColor);
+              } else if (data.type == TweetMetricType.rein) {
+                icon = XRetweetIcon(size: iconSize, color: iconColor);
+              } else {
+                icon = Icon(data.icon, size: iconSize, color: iconColor);
+              }
               if (isLike) {
                 icon = AnimatedScale(
                   duration: const Duration(milliseconds: 140),
