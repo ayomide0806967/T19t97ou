@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import 'ios_messages_screen.dart' show ClassDiscussionThreadPage;
 
 class ClassNoteStepperScreen extends StatefulWidget {
   const ClassNoteStepperScreen({super.key});
@@ -392,107 +393,9 @@ class ClassNoteDiscussionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final onSurface = theme.colorScheme.onSurface;
-    final subtle = onSurface.withValues(
-      alpha: theme.brightness == Brightness.dark ? 0.6 : 0.55,
-    );
-    final controller = TextEditingController();
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Class discussion'),
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Medication safety in NICU',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Discussion space for this note',
-                    style: theme.textTheme.bodySmall?.copyWith(color: subtle),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-              ),
-            ),
-            SafeArea(
-              top: false,
-              child: Padding(
-                padding:
-                    const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: controller,
-                        textInputAction: TextInputAction.send,
-                        decoration: InputDecoration(
-                          hintText: 'Ask a question or share a thought…',
-                          filled: true,
-                          fillColor: theme.colorScheme.surface,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 10,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(999),
-                            borderSide: BorderSide(
-                              color: onSurface.withValues(alpha: 0.16),
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(999),
-                            borderSide: BorderSide(
-                              color: onSurface.withValues(alpha: 0.16),
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(999),
-                            borderSide: const BorderSide(
-                              color: Color(0xFF25D366),
-                              width: 1.4,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    CircleAvatar(
-                      radius: 20,
-                      backgroundColor: const Color(0xFF25D366),
-                      child: IconButton(
-                        padding: EdgeInsets.zero,
-                        icon: const Icon(Icons.send_rounded, size: 18),
-                        color: Colors.white,
-                        onPressed: () {
-                          // In this mock screen we just clear; hook into backend later.
-                          controller.clear();
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return ClassDiscussionThreadPage(
+      title: 'Medication safety in NICU',
+      subtitle: 'Discussion space for this note',
     );
   }
 }

@@ -4505,6 +4505,19 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
     super.dispose();
   }
 
+  Future<void> _ensureRepostForReply() async {
+    final handle = widget.currentUserHandle.trim();
+    if (handle.isEmpty) return;
+
+    final data = context.read<DataService>();
+    final String targetId = widget.message.id;
+
+    final bool alreadyReposted = data.hasUserRetweeted(targetId, handle);
+    if (alreadyReposted) return;
+
+    await data.toggleRepost(postId: targetId, userHandle: handle);
+  }
+
   void _setReplyTarget(_ThreadNode node) {
     setState(() {
       _replyTarget = node;
@@ -4521,6 +4534,9 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
   void _sendReply() {
     final text = _composer.text.trim();
     if (text.isEmpty) return;
+
+    // Ensure replying also surfaces the post on the global feed as a repost.
+    _ensureRepostForReply();
 
     final _ThreadNode newNode = _ThreadNode(
       comment: _ThreadComment(
@@ -4846,6 +4862,241 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
   }
 }
 
+/// Shared "chat-style" discussion thread UI used by the class note stepper.
+class ClassDiscussionThreadPage extends StatefulWidget {
+  const ClassDiscussionThreadPage({
+    super.key,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final String title;
+  final String subtitle;
+
+  @override
+  State<ClassDiscussionThreadPage> createState() =>
+      _ClassDiscussionThreadPageState();
+}
+
+class _ClassDiscussionThreadPageState
+    extends State<ClassDiscussionThreadPage> {
+  final TextEditingController _composer = TextEditingController();
+  final FocusNode _composerFocusNode = FocusNode();
+  _ThreadNode? _replyTarget;
+  late List<_ThreadNode> _threads;
+
+  @override
+  void initState() {
+    super.initState();
+    _threads = <_ThreadNode>[];
+  }
+
+  @override
+  void dispose() {
+    _composer.dispose();
+    _composerFocusNode.dispose();
+    super.dispose();
+  }
+
+  String get _currentUserHandle {
+    String me = '@yourprofile';
+    final email = SimpleAuthService().currentUserEmail;
+    if (email != null && email.isNotEmpty) {
+      final normalized = email
+          .split('@')
+          .first
+          .replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '')
+          .toLowerCase();
+      if (normalized.isNotEmpty) me = '@$normalized';
+    }
+    return me;
+  }
+
+  void _setReplyTarget(_ThreadNode node) {
+    setState(() {
+      _replyTarget = node;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _composerFocusNode.requestFocus();
+      }
+    });
+  }
+
+  void _sendReply() {
+    final text = _composer.text.trim();
+    if (text.isEmpty) return;
+
+    final _ThreadNode newNode = _ThreadNode(
+      comment: _ThreadComment(
+        author: 'You',
+        timeAgo: 'now',
+        body: text,
+        quotedFrom: _replyTarget?.comment.author,
+        quotedBody: _replyTarget?.comment.body,
+      ),
+    );
+
+    bool appended = false;
+    if (_replyTarget != null) {
+      _replyTarget!.children.add(newNode);
+      appended = true;
+    }
+    if (!appended) {
+      _threads.add(newNode);
+    }
+
+    setState(() {
+      _replyTarget = null;
+      _composer.clear();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final String handle = _currentUserHandle;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Class discussion'),
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.title,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  widget.subtitle,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface
+                        .withValues(alpha: 0.6),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              children: [
+                if (_threads.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 40),
+                    child: Text(
+                      'Ask a question to start the discussion.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurface
+                            .withValues(alpha: 0.5),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  )
+                else
+                  _ThreadCommentsView(
+                    nodes: _threads,
+                    currentUserHandle: handle,
+                    onReply: _setReplyTarget,
+                    selectionMode: false,
+                    selected: const <_ThreadNode>{},
+                    onToggleSelect: (_) {},
+                  ),
+              ],
+            ),
+          ),
+          if (_replyTarget != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: theme.brightness == Brightness.dark
+                      ? Colors.white.withValues(alpha: 0.06)
+                      : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: theme.dividerColor.withValues(alpha: 0.22),
+                  ),
+                ),
+                padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 3,
+                      height: 40,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _replyTarget!.comment.author
+                                .replaceFirst(RegExp(r'^\s*@'), ''),
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: theme.colorScheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _replyTarget!.comment.body,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              color: theme.colorScheme.onSurface
+                                  .withValues(alpha: 0.75),
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () {
+                        setState(() {
+                          _replyTarget = null;
+                        });
+                        _composer
+                          ..clear()
+                          ..clearComposing();
+                        _composerFocusNode.unfocus();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          SafeArea(
+            top: false,
+            minimum: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: _ClassComposer(
+              controller: _composer,
+              focusNode: _composerFocusNode,
+              hintText: _replyTarget == null
+                  ? 'Ask a question or share a thought…'
+                  : 'Replying to ${_replyTarget!.comment.author.replaceFirst(RegExp(r'^\s*@'), '')}',
+              onSend: _sendReply,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ThreadNode {
   _ThreadNode({required this.comment, List<_ThreadNode>? children})
       : children = children != null ? List<_ThreadNode>.from(children) : <_ThreadNode>[];
@@ -5059,6 +5310,22 @@ class _CommentTileState extends State<_CommentTile> {
     if (!_showRepostActions) return;
     setState(() {
       _showRepostActions = false;
+    });
+  }
+
+  void _toggleRepostActions() {
+    setState(() {
+      final bool opening = !_showRepostActions;
+      if (opening) {
+        _openRepostTile?._closeRepostActions();
+        _openRepostTile = this;
+        _showRepostActions = true;
+      } else {
+        _showRepostActions = false;
+        if (identical(_openRepostTile, this)) {
+          _openRepostTile = null;
+        }
+      }
     });
   }
 
@@ -5602,58 +5869,31 @@ class _CommentTileState extends State<_CommentTile> {
                 height: 1.4,
               ),
             ),
-            const SizedBox(height: 6),
-            // Inside-card repost trigger row (fixed at horizontal center)
-            Align(
-              alignment: Alignment.center,
-              child: _ScaleTap(
-                onTap: () {
-                  setState(() {
-                    final bool opening = !_showRepostActions;
-                    if (opening) {
-                      _openRepostTile?._closeRepostActions();
-                      _openRepostTile = this;
-                      _showRepostActions = true;
-                    } else {
-                      _showRepostActions = false;
-                      if (identical(_openRepostTile, this)) {
-                        _openRepostTile = null;
-                      }
-                    }
-                  });
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'REPOST',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontSize: 11,
-                          letterSpacing: 0.25,
-                          fontWeight: FontWeight.w700,
-                          color: _reposted
-                              ? Colors.green
-                              : theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                        ),
+            if (_reposted && !_showRepostActions) ...[
+              const SizedBox(height: 4),
+              Align(
+                alignment: Alignment.center,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.repeat_rounded,
+                      size: 14,
+                      color: Colors.green,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Reposted',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.green,
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '$_reposts',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: _reposted
-                              ? Colors.green
-                              : theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-            ),
+            ],
             if (_showRepostActions) ...[
               const SizedBox(height: 6),
               Align(
@@ -5661,8 +5901,8 @@ class _CommentTileState extends State<_CommentTile> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.surface.withValues(
-                      alpha: widget.isDark ? 0.35 : 0.9,
+                    color: theme.colorScheme.onSurface.withValues(
+                      alpha: widget.isDark ? 0.25 : 0.06,
                     ),
                     borderRadius: BorderRadius.circular(999),
                   ),
@@ -5692,7 +5932,7 @@ class _CommentTileState extends State<_CommentTile> {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                _reposted ? 'Reposted' : 'Repost',
+                                _reposted ? 'Unrepost' : 'Repost',
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
@@ -5706,7 +5946,9 @@ class _CommentTileState extends State<_CommentTile> {
                       Container(
                         width: 1,
                         height: 18,
-                        color: theme.dividerColor.withValues(alpha: 0.5),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: widget.isDark ? 0.35 : 0.25,
+                        ),
                       ),
                       InkWell(
                         borderRadius: BorderRadius.circular(999),
@@ -5805,7 +6047,13 @@ class _CommentTileState extends State<_CommentTile> {
       onTapDown: (_) => setState(() => _highlight = true),
       onTapUp: (_) => setState(() => _highlight = false),
       onTapCancel: () => setState(() => _highlight = false),
-      onTap: widget.onTap,
+      onTap: () {
+        if (widget.onTap != null) {
+          widget.onTap!();
+        } else {
+          _toggleRepostActions();
+        }
+      },
       onDoubleTap: _openReactionPicker,
       onLongPress: widget.onLongPress,
       onHorizontalDragUpdate: (details) {

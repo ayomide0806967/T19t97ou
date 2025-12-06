@@ -86,6 +86,34 @@ class _TweetPostCardState extends State<TweetPostCard> {
     });
   }
 
+  Future<void> _ensureRepostForReply() async {
+    final handle = widget.currentUserHandle;
+    if (handle.isEmpty) {
+      return;
+    }
+
+    final dataService = context.read<DataService>();
+    final targetId = widget.post.originalId ?? widget.post.id;
+
+    final alreadyReposted = dataService.hasUserRetweeted(targetId, handle);
+    if (alreadyReposted) {
+      return;
+    }
+
+    final toggled = await dataService.toggleRepost(
+      postId: targetId,
+      userHandle: handle,
+    );
+
+    if (!mounted || !toggled) return;
+
+    if (widget.post.originalId == null) {
+      setState(() {
+        _reposts = _reposts + 1;
+      });
+    }
+  }
+
   Future<void> _performReinstitute() async {
     final handle = widget.currentUserHandle;
     if (handle.isEmpty) {
@@ -547,7 +575,8 @@ class _TweetPostCardState extends State<TweetPostCard> {
 
     switch (data.type) {
       case TweetMetricType.reply:
-        onTap = () {
+        onTap = () async {
+          await _ensureRepostForReply();
           final handler = widget.onReply;
           if (handler != null) {
             handler(widget.post);

@@ -75,6 +75,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
   late List<XComment> _comments;
   late int _replyCount;
+  late int _repostCount;
 
   @override
   void initState() {
@@ -84,11 +85,13 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     _replyCount = widget.post.replies > seededReplies
         ? widget.post.replies
         : seededReplies;
+    _repostCount = widget.post.reposts;
   }
 
   void _handleAddComment(String content) {
     setState(() {
       _replyCount += 1;
+      _repostCount += 1;
       _comments.add(
         XComment(
           id: 'local_${DateTime.now().microsecondsSinceEpoch}',
@@ -214,7 +217,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   Widget build(BuildContext context) {
     final metrics = XPostMetrics(
       replyCount: _replyCount,
-      reposts: widget.post.reposts,
+      reposts: _repostCount,
       likes: widget.post.likes,
       bookmarks: widget.post.bookmarks,
       views: widget.post.views,
