@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'dart:typed_data';
@@ -20,6 +21,7 @@ import '../services/roles_service.dart';
 import '../services/members_service.dart';
 import '../services/invites_service.dart';
 import 'student_profile_screen.dart';
+import 'class_note_stepper_screen.dart';
 import '../widgets/equal_width_buttons_row.dart';
 import '../widgets/setting_switch_row.dart';
 // Removed unused tweet widgets imports
@@ -2260,27 +2262,13 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
               ],
               Text(S.classDiscussion, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
               const SizedBox(height: 12),
-              if (widget.notes.isEmpty)
-                const SkeletonList(items: 5)
-              else ...[
-                for (final msg in widget.notes.take(_visibleNotes))
-                  _ClassMessageTile(message: msg, onShare: () => widget.onShare(msg)),
-                if (_visibleNotes < widget.notes.length) ...[
-                  const SizedBox(height: 8),
-                  Center(
-                    child: SizedBox(
-                      width: 160,
-                      height: 36,
-                      child: OutlinedButton(
-                        onPressed: _loadingMoreNotes ? null : _loadMoreNotes,
-                        child: _loadingMoreNotes
-                            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                            : Text(S.loadMore),
-                      ),
-                    ),
-                  ),
+              Row(
+                children: const [
+                  Expanded(child: _ClassNotesCard()),
+                  SizedBox(width: 12),
+                  Expanded(child: _ClassNotesCard()),
                 ],
-              ],
+              ),
               const SizedBox(height: 4),
             ],
           ),
@@ -3453,50 +3441,32 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
       return first.toUpperCase();
     }
 
-    // Card container for note
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isDark ? Theme.of(context).colorScheme.surface : const Color(0xFFFAFAFA),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: theme.dividerColor.withValues(alpha: isDark ? 0.3 : 0.18)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  // Match main tweet avatar size (48x48)
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? theme.colorScheme.surfaceContainerHighest
-                        : Colors.white,
-                    border: Border.all(
-                      color: theme.dividerColor.withValues(alpha: isDark ? 0.35 : 0.25),
-                      width: 1.5,
-                    ),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    avatarText(),
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 15,
-                      color: theme.colorScheme.onSurface,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Row(
+    // Card container for note – reuse the same cut-in avatar + rounded border
+    // treatment as the Replies cards.
+    final Color cardBackground = isDark
+        ? theme.colorScheme.surface
+        : const Color(0xFFFAFAFA);
+    final Color borderColor = theme.colorScheme.onSurface.withValues(
+      alpha: isDark ? 0.30 : 0.14,
+    );
+
+    /*return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          margin: const EdgeInsets.only(left: 24, bottom: 16),
+          decoration: BoxDecoration(
+            color: cardBackground,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: borderColor, width: 1),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 12, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Expanded(
                       child: Text.rich(
@@ -3524,9 +3494,6 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                     ),
                   ],
                 ),
-              ),
-            ],
-          ),
           const SizedBox(height: 6),
           // Body now uses full width (no left indent under avatar)
           LayoutBuilder(builder: (context, constraints) {
@@ -3792,8 +3759,341 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
               ),
             ],
           ),
-        ],
+        ),
+        // Picture-frame avatar overlapping the left edge of the card.
+        Positioned(
+          left: 0,
+          top: 16,
+          child: Container(
+            width: 48,
+            height: 48,
+            decoration: const BoxDecoration(
+              color: Color(0xFFF4F1EC),
+              borderRadius: BorderRadius.zero,
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              avatarText(),
+              style: theme.textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+                fontSize: 15,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );*/
+
+    final Widget card = Container(
+      margin: const EdgeInsets.only(left: 24, bottom: 16),
+      decoration: BoxDecoration(
+        color: cardBackground,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: borderColor, width: 1),
       ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 12, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Text.rich(
+                    TextSpan(
+                      text: _formatDisplayName(message.author, message.handle),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: nameColor,
+                      ),
+                      children: [
+                        TextSpan(
+                          text: ' • ${message.timeAgo}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: meta,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.more_vert, size: 18),
+                  color: meta,
+                  onPressed: () {},
+                  tooltip: 'More',
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              message.body,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface,
+                fontSize: 16,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                if (widget.showReplyButton)
+                  Flexible(
+                    fit: FlexFit.loose,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton(
+                        onPressed: () => _openComments(context, message),
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(0, 0),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          alignment: Alignment.centerLeft,
+                        ),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: theme.colorScheme.onSurface
+                                    .withValues(alpha: 0.35),
+                              ),
+                            ),
+                            child: Text(
+                              'View ${message.replies} ${message.replies == 1 ? 'reply' : 'replies'}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurface
+                                    .withValues(alpha: 0.85),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  const SizedBox.shrink(),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Center(
+                          child: _LabelCountButton(
+                            icon: _goodActive
+                                ? Icons.favorite_rounded
+                                : Icons.favorite_border_rounded,
+                            iconSize: 20,
+                            count: _good,
+                            color: _goodActive ? Colors.red : null,
+                            onPressed: () {
+                              HapticFeedback.lightImpact();
+                              setState(() {
+                                if (_goodActive) {
+                                  _good = (_good - 1).clamp(0, 1 << 30);
+                                  _goodActive = false;
+                                } else {
+                                  _good += 1;
+                                  _goodActive = true;
+                                  if (_badActive) {
+                                    _bad =
+                                        (_bad - 1).clamp(0, 1 << 30);
+                                    _badActive = false;
+                                  }
+                                }
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Center(
+                          child: widget.repostEnabled
+                              ? _ScaleTap(
+                                  onTap: () async {
+                                    if (widget.onRepost != null) {
+                                      final bool next =
+                                          await widget.onRepost!.call();
+                                      setState(() {
+                                        if (_saved != next) {
+                                          _reposts += next ? 1 : -1;
+                                          if (_reposts < 0) _reposts = 0;
+                                        }
+                                        _saved = next;
+                                      });
+                                    } else {
+                                      setState(() {
+                                        _saved = !_saved;
+                                        _reposts += _saved ? 1 : -1;
+                                        if (_reposts < 0) _reposts = 0;
+                                      });
+                                    }
+                                  },
+                                  child: LayoutBuilder(
+                                    builder: (context, c) {
+                                      final maxW = c.maxWidth;
+                                      final bool tight = maxW.isFinite &&
+                                          maxW < 60;
+                                      final bool ultra = maxW.isFinite &&
+                                          maxW < 38;
+                                      final String label = ultra
+                                          ? 'R'
+                                          : (tight ? 'Rep' : 'Repost');
+                                      final double gap = ultra
+                                          ? 2
+                                          : (tight ? 4 : 6);
+                                      return Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            label,
+                                            style: theme
+                                                .textTheme.bodySmall
+                                                ?.copyWith(
+                                              color: _saved
+                                                  ? Colors.green
+                                                  : meta,
+                                              fontWeight:
+                                                  FontWeight.w700,
+                                            ),
+                                          ),
+                                          SizedBox(width: gap),
+                                          Text(
+                                            '$_reposts',
+                                            style: theme
+                                                .textTheme.bodySmall
+                                                ?.copyWith(
+                                              color: _saved
+                                                  ? Colors.green
+                                                  : meta,
+                                              fontWeight:
+                                                  FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  ),
+                                )
+                              : LayoutBuilder(
+                                  builder: (context, c) {
+                                    final maxW = c.maxWidth;
+                                    final bool tight = maxW.isFinite &&
+                                        maxW < 60;
+                                    final bool ultra = maxW.isFinite &&
+                                        maxW < 38;
+                                    final String label = ultra
+                                        ? 'R'
+                                        : (tight ? 'Rep' : 'Repost');
+                                    final double gap = ultra
+                                        ? 2
+                                        : (tight ? 4 : 6);
+                                    return Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          label,
+                                          style: theme
+                                              .textTheme.bodySmall
+                                              ?.copyWith(
+                                            color: meta,
+                                            fontWeight:
+                                                FontWeight.w700,
+                                          ),
+                                        ),
+                                        SizedBox(width: gap),
+                                        Text(
+                                          '$_reposts',
+                                          style: theme
+                                              .textTheme.bodySmall
+                                              ?.copyWith(
+                                            color: meta,
+                                            fontWeight:
+                                                FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Center(
+                          child: _LabelCountButton(
+                            icon: _badActive
+                                ? Icons.heart_broken_rounded
+                                : Icons.heart_broken_outlined,
+                            iconSize: 18,
+                            count: _bad,
+                            color: _badActive ? Colors.black : null,
+                            onPressed: () {
+                              HapticFeedback.lightImpact();
+                              setState(() {
+                                if (_badActive) {
+                                  _bad = (_bad - 1).clamp(0, 1 << 30);
+                                  _badActive = false;
+                                } else {
+                                  _bad += 1;
+                                  _badActive = true;
+                                  if (_goodActive) {
+                                    _good =
+                                        (_good - 1).clamp(0, 1 << 30);
+                                    _goodActive = false;
+                                  }
+                                }
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+
+    // Picture-frame avatar overlapping the left edge of the card.
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        card,
+        Positioned(
+          left: 0,
+          top: 16,
+          child: Container(
+            width: 48,
+            height: 48,
+            decoration: const BoxDecoration(
+              color: Color(0xFFF4F1EC),
+              borderRadius: BorderRadius.zero,
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              avatarText(),
+              style: theme.textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+                fontSize: 15,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -3810,6 +4110,168 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
     }
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => _MessageCommentsPage(message: message, currentUserHandle: me)),
+    );
+  }
+}
+
+class _ClassNotesCard extends StatelessWidget {
+  const _ClassNotesCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final onSurface = theme.colorScheme.onSurface;
+    final subtle = onSurface.withValues(
+      alpha: theme.brightness == Brightness.dark ? 0.6 : 0.55,
+    );
+    final bool isDark = theme.brightness == Brightness.dark;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const ClassNoteStepperScreen(),
+            ),
+          );
+        },
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.black,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Colors.black,
+            ),
+            boxShadow: [
+              if (!isDark)
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.18),
+                  blurRadius: 18,
+                  offset: const Offset(0, 10),
+                ),
+            ],
+          ),
+          constraints: const BoxConstraints(minHeight: 160),
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      color: Colors.white.withValues(alpha: 0.08),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.4),
+                          blurRadius: 14,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      Icons.description_outlined,
+                      size: 20,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Medication safety in NICU',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Class note · NUR 301 · Week 4',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.white.withValues(alpha: 0.7),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.list_alt_outlined,
+                        size: 16,
+                        color: Colors.white.withValues(alpha: 0.8),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '5 steps',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.8),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.schedule_rounded,
+                        size: 16,
+                        color: Colors.white.withValues(alpha: 0.8),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '3 min review',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.8),
+                        ),
+                      ),
+                    ],
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const ClassNoteStepperScreen(),
+                        ),
+                      );
+                    },
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      minimumSize: const Size(0, 0),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Text(
+                      'Open',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -3933,6 +4395,48 @@ class _ScaleTapState extends State<_ScaleTap> {
           onTapUp: (_) => setState(() => _pressed = false),
           child: child,
         ),
+      ),
+    );
+  }
+}
+
+class _EmojiReactionChip extends StatelessWidget {
+  const _EmojiReactionChip({
+    required this.emoji,
+    required this.count,
+    this.isActive = false,
+    this.onTap,
+  });
+
+  final String emoji;
+  final int count;
+  final bool isActive;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bool isHeart = emoji == '❤️';
+    final Color fg = isHeart
+        ? Colors.red
+        : (isActive
+            ? theme.colorScheme.primary
+            : theme.colorScheme.onSurface.withValues(alpha: 0.8));
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(999),
+      onTap: onTap,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            emoji,
+            style: TextStyle(
+              fontSize: 14,
+              color: fg,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -4417,14 +4921,42 @@ class _ThreadNodeTile extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _CommentTile(
-            comment: node.comment,
-            isDark: isDark,
-            currentUserHandle: currentUserHandle,
-            onSwipeReply: selectionMode ? null : () => onReply?.call(node),
-            selected: selected.contains(node),
-            onLongPress: onToggleSelect,
-            onTap: selectionMode ? onToggleSelect : null,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (depth > 0) ...[
+                Container(
+                  width: 10,
+                  alignment: Alignment.topCenter,
+                  child: Container(
+                    width: 2,
+                    margin: EdgeInsets.only(
+                      top: 8,
+                      bottom: isLast ? 18 : 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.dividerColor.withValues(
+                        alpha: isDark ? 0.45 : 0.35,
+                      ),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+              ],
+              Expanded(
+                child: _CommentTile(
+                  comment: node.comment,
+                  isDark: isDark,
+                  currentUserHandle: currentUserHandle,
+                  onSwipeReply:
+                      selectionMode ? null : () => onReply?.call(node),
+                  selected: selected.contains(node),
+                  onLongPress: onToggleSelect,
+                  onTap: selectionMode ? onToggleSelect : null,
+                ),
+              ),
+            ],
           ),
           if (node.children.isNotEmpty)
             Column(
@@ -4493,6 +5025,9 @@ class _CommentTile extends StatefulWidget {
 }
 
 class _CommentTileState extends State<_CommentTile> {
+  // Track which comment currently shows inline repost actions so only one is open.
+  static _CommentTileState? _openRepostTile;
+
   bool _highlight = false;
   double _dx = 0;
   double _dragOffset = 0; // visual slide during swipe-to-reply
@@ -4501,12 +5036,429 @@ class _CommentTileState extends State<_CommentTile> {
   bool _reposted = false;
   int _reposts = 0;
   bool _swipeHapticFired = false;
-  final GlobalKey _repostKey = GlobalKey();
+  bool _showRepostActions = false;
+  final Map<String, int> _reactions = <String, int>{};
+  String? _currentUserReaction;
 
   @override
   void initState() {
     super.initState();
     _likes = widget.comment.likes;
+    _seedMockReactions();
+  }
+
+  @override
+  void dispose() {
+    if (identical(_openRepostTile, this)) {
+      _openRepostTile = null;
+    }
+    super.dispose();
+  }
+
+  void _closeRepostActions() {
+    if (!_showRepostActions) return;
+    setState(() {
+      _showRepostActions = false;
+    });
+  }
+
+  void _showReactionDetails(String emoji) {
+    final theme = Theme.of(context);
+    final int count = _reactions[emoji] ?? 0;
+    if (count <= 0) return;
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: theme.colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      isScrollControlled: false,
+      builder: (BuildContext ctx) {
+        final String title =
+            '$count reaction${count == 1 ? '' : 's'}';
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: theme.dividerColor.withValues(alpha: 0.9),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                Text(
+                  title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Emoji filters row – show all reaction emojis with counts.
+                Builder(
+                  builder: (_) {
+                    final List<MapEntry<String, int>> sorted =
+                        _reactions.entries.toList()
+                          ..sort((a, b) => b.value.compareTo(a.value));
+                    return SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          for (int i = 0; i < sorted.length; i++) ...[
+                            _EmojiReactionChip(
+                              emoji: sorted[i].key,
+                              count: sorted[i].value,
+                              isActive: sorted[i].key == emoji,
+                            ),
+                            if (i != sorted.length - 1)
+                              const SizedBox(width: 8),
+                          ],
+                        ],
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  height: 220,
+                  child: ListView.builder(
+                    itemCount: count,
+                    itemBuilder: (BuildContext _, int index) {
+                      final bool isYou =
+                          index == 0 && _currentUserReaction == emoji;
+                      final String name = isYou
+                          ? 'You'
+                          : '${widget.comment.author} #${index + 1}';
+                      final String subtitle = isYou
+                          ? widget.currentUserHandle
+                          : widget.currentUserHandle;
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: CircleAvatar(
+                          backgroundColor: theme.colorScheme.primary
+                              .withValues(alpha: 0.12),
+                          child: Text(
+                            name.substring(0, 1).toUpperCase(),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        title: Text(
+                          name,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight:
+                                isYou ? FontWeight.w700 : FontWeight.w500,
+                          ),
+                        ),
+                        subtitle: Text(
+                          subtitle,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface
+                                .withValues(alpha: 0.6),
+                          ),
+                        ),
+                        trailing: Text(
+                          emoji,
+                          style: const TextStyle(fontSize: 22),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _seedMockReactions() {
+    if (_reactions.isNotEmpty) return;
+    final List<String> pool = <String>['👍', '❤️', '😂', '😮', '😢', '👏'];
+    final int base = widget.comment.body.hashCode.abs();
+    // Between 0 and 3 mock reactions.
+    final int reactionCount = (base % 4); // 0–3
+    for (int i = 0; i < reactionCount; i++) {
+      final String emoji = pool[(base + i * 5) % pool.length];
+      final int value = 1 + ((base >> (i * 3)) & 0x3); // 1–4
+      _reactions[emoji] = value;
+    }
+  }
+
+  Future<void> _openReactionPicker() async {
+    const List<String> emojis = <String>[
+      '👍',
+      '❤️',
+      '😂',
+      '😮',
+      '😢',
+      '👏',
+      '🔥',
+      '🎉',
+      '🙏',
+      '😍',
+    ];
+    final theme = Theme.of(context);
+    final RenderBox box = context.findRenderObject() as RenderBox;
+    final Offset origin = box.localToGlobal(Offset.zero);
+    final Size size = box.size;
+
+    String? choice = await showDialog<String>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.12),
+      barrierDismissible: true,
+      builder: (BuildContext dialogContext) {
+        final double top = (origin.dy - 72).clamp(16.0, double.infinity);
+        final double centerX = origin.dx + size.width / 2;
+        return Stack(
+          children: [
+            Positioned(
+              top: top,
+              left: centerX - 160,
+              right: centerX - 160,
+              child: Center(
+                child: Material(
+                  color: Colors.transparent,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surface,
+                      borderRadius: BorderRadius.circular(999),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.18),
+                          blurRadius: 24,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Scrollable emoji strip
+                        Flexible(
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            physics: const BouncingScrollPhysics(),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                for (final String emoji in emojis)
+                                  GestureDetector(
+                                    onTap: () =>
+                                        Navigator.of(dialogContext).pop(emoji),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                      ),
+                                      child: Text(
+                                        emoji,
+                                        style: TextStyle(
+                                          fontSize: 26,
+                                          color: emoji == '❤️'
+                                              ? Colors.red
+                                              : theme
+                                                  .colorScheme.onSurface
+                                                  .withValues(alpha: 0.95),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Plus button (always visible)
+                        GestureDetector(
+                          onTap: () =>
+                              Navigator.of(dialogContext).pop('__more__'),
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: SweepGradient(
+                                colors: [
+                                  theme.colorScheme.primary
+                                      .withValues(alpha: 0.15),
+                                  theme.colorScheme.primary
+                                      .withValues(alpha: 0.0),
+                                ],
+                              ),
+                            ),
+                            child: Center(
+                              child: Container(
+                                width: 26,
+                                height: 26,
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.surface,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.add,
+                                  size: 18,
+                                  color: theme.colorScheme.onSurface
+                                      .withValues(alpha: 0.7),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+	    );
+
+    if (choice == '__more__') {
+      choice = await _openFullEmojiSheet();
+    }
+    if (choice == null) return;
+    final String selected = choice;
+    setState(() {
+      // Enforce a single active reaction per user.
+      if (_currentUserReaction == selected) {
+        // Tapping the same reaction again clears it.
+        final int existing = _reactions[selected] ?? 0;
+        if (existing > 0) {
+          final int next = existing - 1;
+          if (next > 0) {
+            _reactions[selected] = next;
+          } else {
+            _reactions.remove(selected);
+          }
+        }
+        _currentUserReaction = null;
+      } else {
+        // Remove previous reaction, if any.
+        final String? previous = _currentUserReaction;
+        if (previous != null) {
+          final int current = _reactions[previous] ?? 0;
+          if (current > 0) {
+            final int next = current - 1;
+            if (next > 0) {
+              _reactions[previous] = next;
+            } else {
+              _reactions.remove(previous);
+            }
+          }
+        }
+        // Apply new reaction.
+        _reactions[selected] = (_reactions[selected] ?? 0) + 1;
+        _currentUserReaction = selected;
+      }
+    });
+  }
+
+  Future<String?> _openFullEmojiSheet() async {
+    final theme = Theme.of(context);
+    return showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: theme.colorScheme.surface,
+      isScrollControlled: false,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext ctx) {
+        return SafeArea(
+          top: false,
+          child: Container(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.16),
+                  blurRadius: 24,
+                  offset: const Offset(0, -4),
+                ),
+              ],
+            ),
+            child: EmojiPicker(
+              onEmojiSelected: (Category? category, Emoji emoji) {
+                Navigator.of(ctx).pop(emoji.emoji);
+              },
+              config: Config(
+                height: 320,
+                // Avoid platform channel call for getSupportedEmojis on
+                // platforms where the plugin is not registered.
+                checkPlatformCompatibility: false,
+                // Order: search bar on top, emoji grid in middle,
+                // category bar at the very bottom like WhatsApp.
+                viewOrderConfig: const ViewOrderConfig(
+                  top: EmojiPickerItem.searchBar,
+                  middle: EmojiPickerItem.emojiView,
+                  bottom: EmojiPickerItem.categoryBar,
+                ),
+                emojiViewConfig: EmojiViewConfig(
+                  columns: 8,
+                  emojiSizeMax: 30,
+                  backgroundColor: theme.colorScheme.surface,
+                  verticalSpacing: 8,
+                  horizontalSpacing: 8,
+                  gridPadding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  buttonMode: ButtonMode.CUPERTINO,
+                ),
+                // Start on RECENT so frequently used emojis are shown first,
+                // then users can scroll through other categories.
+                categoryViewConfig: CategoryViewConfig(
+                  initCategory: Category.SMILEYS,
+                  recentTabBehavior: RecentTabBehavior.RECENT,
+                  backgroundColor: theme.colorScheme.surface,
+                  iconColor: theme.colorScheme.onSurface.withValues(
+                    alpha: 0.45,
+                  ),
+                  iconColorSelected: theme.colorScheme.primary,
+                  indicatorColor: theme.colorScheme.primary,
+                  backspaceColor: theme.colorScheme.primary,
+                  dividerColor:
+                      theme.dividerColor.withValues(alpha: 0.2),
+                ),
+                bottomActionBarConfig: BottomActionBarConfig(
+                  enabled: false,
+                  backgroundColor: theme.colorScheme.surface,
+                ),
+                searchViewConfig: SearchViewConfig(
+                  backgroundColor:
+                      theme.colorScheme.surface.withValues(alpha: 0.98),
+                  buttonIconColor: theme.colorScheme.onSurface.withValues(
+                    alpha: 0.6),
+                  hintText: 'Search emoji',
+                  hintTextStyle: theme.textTheme.bodyMedium?.copyWith(
+                    color:
+                        theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                  ),
+                  inputTextStyle: theme.textTheme.bodyMedium,
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -4516,74 +5468,102 @@ class _CommentTileState extends State<_CommentTile> {
     final _ThreadComment comment = widget.comment;
     final bool isMine =
         comment.author == widget.currentUserHandle || comment.author == 'You';
-    // Strict black/white palette
+    // Light: subtle card variants. Dark: glassy card with semi-transparent white.
     final Color lightMine = const Color(0xFFF8FAFC);
     final Color lightOther = Colors.white;
-    final Color darkMine = const Color(0xFF131517);
-    final Color darkOther = const Color(0xFF101214);
+    final Color baseLight =
+        isMine ? lightMine : lightOther; // used only in light mode
     final Color bubble = widget.isDark
-        ? (isMine ? darkMine : darkOther)
-        : (isMine ? lightMine : lightOther);
+        ? Colors.white.withValues(alpha: 0.06)
+        : baseLight;
 
     // Meta text color uses default onSurface alpha in light theme
     final Color meta = theme.colorScheme.onSurface.withValues(alpha: 0.6);
 
     final bool isDark = widget.isDark;
-    // Neutral grey shadow for all messages; selected gets stronger shadow
-    final List<BoxShadow>? popShadow = [
-      BoxShadow(
-        color: Colors.grey.withValues(
-          alpha: widget.selected
-              ? (isDark ? 0.60 : 0.45)
-              : (isDark ? 0.35 : 0.25),
-        ),
-        blurRadius: widget.selected ? 30 : 18,
-        spreadRadius: widget.selected ? 2 : 1,
-        offset: widget.selected ? const Offset(0, 14) : const Offset(0, 6),
-      ),
-    ];
+    // No drop shadow – keep replies flat against the background.
+    final List<BoxShadow>? popShadow = null;
+    const double avatarSize = 48;
 
-    final Color selectedHover = widget.isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFF3F4F6);
+    final Color selectedHover =
+        widget.isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFF3F4F6);
+    final Color borderColor = theme.colorScheme.onSurface.withValues(
+      alpha: isDark ? 0.30 : 0.14,
+    );
+    // Add extra left padding for other users so text doesn't sit under
+    // the picture-frame avatar that overlaps the left edge.
+    final EdgeInsets bubblePadding = EdgeInsets.fromLTRB(
+      isMine ? 10 : 32,
+      8,
+      10,
+      8,
+    );
     final Widget bubbleCore = Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: bubblePadding,
         decoration: BoxDecoration(
           color: widget.selected ? selectedHover : bubble,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: borderColor,
+            width: 1,
+          ),
           boxShadow: popShadow,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    comment.author.replaceFirst(RegExp(r'^\s*@'), ''),
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
+            // Username row: for other users, shift left so it visually starts
+            // above the picture frame avatar.
+            Transform.translate(
+              offset: Offset(isMine ? 0 : -(avatarSize / 2 + 6), 0),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        comment.author.replaceFirst(RegExp(r'^\s*@'), ''),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
-                  ),
+                    Text(
+                      comment.timeAgo,
+                      style: theme.textTheme.bodySmall?.copyWith(color: meta),
+                    ),
+                  ],
                 ),
-                Text(
-                  comment.timeAgo,
-                  style: theme.textTheme.bodySmall?.copyWith(color: meta),
-                ),
-              ],
+              ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             if (comment.quotedBody != null) ...[
               Container(
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.surface,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: theme.dividerColor.withValues(alpha: 0.2)),
+                  color: widget.isDark
+                      ? Colors.white.withValues(alpha: 0.06)
+                      : theme.colorScheme.surfaceVariant
+                          .withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: theme.dividerColor.withValues(
+                      alpha: widget.isDark ? 0.4 : 0.3,
+                    ),
+                  ),
                 ),
-                padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(width: 3, height: 36, color: theme.colorScheme.onSurface),
-                    const SizedBox(width: 8),
+                    Container(
+                      width: 3,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -4591,16 +5571,20 @@ class _CommentTileState extends State<_CommentTile> {
                           Text(
                             (comment.quotedFrom ?? 'Reply')
                                 .replaceFirst(RegExp(r'^\s*@'), ''),
-                            style: theme.textTheme.labelSmall?.copyWith(
+                            style: theme.textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.w700,
-                              color: meta,
+                              color: theme.colorScheme.onSurface,
                             ),
                           ),
+                          const SizedBox(height: 4),
                           Text(
                             comment.quotedBody!,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodySmall,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: widget.isDark ? 0.9 : 0.85,
+                              ),
+                              height: 1.35,
+                            ),
                           ),
                         ],
                       ),
@@ -4618,100 +5602,144 @@ class _CommentTileState extends State<_CommentTile> {
                 height: 1.4,
               ),
             ),
-            const SizedBox(height: 8),
-            // Two columns: Repost (left), Like (right)
-            Row(
-              children: [
-                Expanded(
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: _ScaleTap(
-                      onTap: () async {
-                        // Anchor popup menu to the repost label
-                        final RenderBox button = _repostKey.currentContext!.findRenderObject() as RenderBox;
-                        final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
-                        final RelativeRect position = RelativeRect.fromRect(
-                          Rect.fromPoints(
-                            button.localToGlobal(Offset.zero, ancestor: overlay),
-                            button.localToGlobal(button.size.bottomRight(Offset.zero), ancestor: overlay),
-                          ),
-                          Offset.zero & overlay.size,
-                        );
-                        final choice = await showMenu<String>(
-                          context: context,
-                          position: position,
-                          items: const [
-                            PopupMenuItem<String>(value: 'repost', child: Text('Repost')),
-                            PopupMenuItem<String>(value: 'reply', child: Text('Reply')),
-                          ],
-                        );
-                        if (choice == 'repost') {
+            const SizedBox(height: 6),
+            // Inside-card repost trigger row (fixed at horizontal center)
+            Align(
+              alignment: Alignment.center,
+              child: _ScaleTap(
+                onTap: () {
+                  setState(() {
+                    final bool opening = !_showRepostActions;
+                    if (opening) {
+                      _openRepostTile?._closeRepostActions();
+                      _openRepostTile = this;
+                      _showRepostActions = true;
+                    } else {
+                      _showRepostActions = false;
+                      if (identical(_openRepostTile, this)) {
+                        _openRepostTile = null;
+                      }
+                    }
+                  });
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'REPOST',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontSize: 11,
+                          letterSpacing: 0.25,
+                          fontWeight: FontWeight.w700,
+                          color: _reposted
+                              ? Colors.green
+                              : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '$_reposts',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: _reposted
+                              ? Colors.green
+                              : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            if (_showRepostActions) ...[
+              const SizedBox(height: 6),
+              Align(
+                alignment: Alignment.center,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surface.withValues(
+                      alpha: widget.isDark ? 0.35 : 0.9,
+                    ),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      InkWell(
+                        borderRadius: BorderRadius.circular(999),
+                        onTap: () {
+                          HapticFeedback.lightImpact();
                           setState(() {
                             _reposted = !_reposted;
                             _reposts += _reposted ? 1 : -1;
                             if (_reposts < 0) _reposts = 0;
+                            _showRepostActions = false;
                           });
-                          HapticFeedback.lightImpact();
-                        } else if (choice == 'reply') {
-                          widget.onSwipeReply?.call();
-                        }
-                      },
-                      child: Container(
-                        key: _repostKey,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'REPOST',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: _reposted
-                                    ? Colors.green
-                                    : theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.3,
-                            ),
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.repeat_rounded,
+                                size: 16,
+                                color: _reposted ? Colors.green : meta,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                _reposted ? 'Reposted' : 'Repost',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: _reposted ? Colors.green : meta,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 6),
-                          Text(
-                            '$_reposts',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: _reposted
-                                  ? Colors.green
-                                  : theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
                         ),
                       ),
-                    ),
+                      Container(
+                        width: 1,
+                        height: 18,
+                        color: theme.dividerColor.withValues(alpha: 0.5),
+                      ),
+                      InkWell(
+                        borderRadius: BorderRadius.circular(999),
+                        onTap: () {
+                          setState(() {
+                            _showRepostActions = false;
+                          });
+                          widget.onSwipeReply?.call();
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.reply_rounded, size: 16),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Reply',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: meta,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                Expanded(
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: _LabelCountButton(
-                      icon: _liked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                      iconSize: 20,
-                      count: _likes,
-                      color: _liked ? Colors.red : null,
-                      onPressed: () {
-                        HapticFeedback.lightImpact();
-                        setState(() {
-                          if (_liked) {
-                            _likes = (_likes - 1).clamp(0, 1 << 30);
-                            _liked = false;
-                          } else {
-                            _likes += 1;
-                            _liked = true;
-                          }
-                        });
-                      },
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ],
         ),
       );
@@ -4746,33 +5774,39 @@ class _CommentTileState extends State<_CommentTile> {
       ),
     );
 
-    // Prepare left-aligned avatar to match TweetPostCard sizing (size 48)
+    // Prepare left-aligned avatar as a picture-frame square that can "cut into"
+    // the left edge of the reply bubble.
     final String _displayAuthor = comment.author.replaceFirst(RegExp(r'^\s*@'), '').trim();
     final String _initial = _displayAuthor.isNotEmpty
         ? _displayAuthor.substring(0, 1).toUpperCase()
         : 'U';
-    final Widget avatar = HexagonAvatar(
-      size: 48,
-      borderWidth: 1.5,
-      borderColor: theme.colorScheme.primary.withValues(alpha: 0.35),
-      backgroundColor: theme.colorScheme.surfaceContainerHighest,
-      child: Center(
-        child: Text(
-          _initial,
-          style: theme.textTheme.labelLarge?.copyWith(
-            color: theme.colorScheme.onSurface,
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
-    );
+    final Widget avatar = isMine
+        ? const SizedBox.shrink()
+        : Container(
+            width: avatarSize,
+            height: avatarSize,
+            decoration: const BoxDecoration(
+              color: Color(0xFFF4F1EC),
+              borderRadius: BorderRadius.zero, // sharp corners, no border
+            ),
+            child: Center(
+              child: Text(
+                _initial,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: theme.colorScheme.onSurface,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          );
 
     return GestureDetector(
       onTapDown: (_) => setState(() => _highlight = true),
       onTapUp: (_) => setState(() => _highlight = false),
       onTapCancel: () => setState(() => _highlight = false),
       onTap: widget.onTap,
+      onDoubleTap: _openReactionPicker,
       onLongPress: widget.onLongPress,
       onHorizontalDragUpdate: (details) {
         _dx += details.delta.dx;
@@ -4812,12 +5846,16 @@ class _CommentTileState extends State<_CommentTile> {
         decoration: const BoxDecoration(
           color: Colors.transparent,
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Stack(
+          clipBehavior: Clip.none,
           children: [
-            avatar,
-            const SizedBox(width: 6),
-            Expanded(
+            // Reply bubble + swipe background, inset so the avatar can sit
+            // partially "inside" the left edge of the rounded border.
+            Padding(
+              padding: EdgeInsets.only(
+                left: isMine ? 0 : avatarSize / 2 + 6,
+                bottom: _reactions.isNotEmpty ? 14 : 0,
+              ),
               child: Stack(
                 alignment: Alignment.centerLeft,
                 children: [
@@ -4835,6 +5873,70 @@ class _CommentTileState extends State<_CommentTile> {
                 ],
               ),
             ),
+            if (!isMine)
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                child: Center(child: avatar),
+              ),
+            if (_reactions.isNotEmpty)
+              Positioned(
+                left: isMine ? 12 : avatarSize / 2 + 12,
+                bottom: -10,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surface,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Builder(
+                    builder: (_) {
+                      final List<MapEntry<String, int>> sorted =
+                          _reactions.entries.toList()
+                            ..sort((a, b) => b.value.compareTo(a.value));
+                      const int maxVisible = 4;
+                      final int visibleCount =
+                          sorted.length > maxVisible ? maxVisible : sorted.length;
+
+                      int totalCount = 0;
+                      for (final entry in sorted) {
+                        totalCount += entry.value;
+                      }
+
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          for (int i = 0; i < visibleCount; i++) ...[
+                            _EmojiReactionChip(
+                              emoji: sorted[i].key,
+                              count: sorted[i].value,
+                              isActive: sorted[i].key == _currentUserReaction,
+                              onTap: () => _showReactionDetails(sorted[i].key),
+                            ),
+                            if (i != visibleCount - 1)
+                              const SizedBox(width: 8),
+                          ],
+                          if (totalCount > 0) ...[
+                            const SizedBox(width: 6),
+                            Text(
+                              '$totalCount',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                fontSize: 11,
+                                color: theme.colorScheme.onSurface
+                                    .withValues(alpha: 0.8),
+                              ),
+                            ),
+                          ],
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ),
           ],
         ),
       ),
