@@ -2276,7 +2276,7 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
         if (widget.isAdmin && widget.activeTopic != null) ...[
           SafeArea(
             top: false,
-            minimum: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            minimum: const EdgeInsets.fromLTRB(16, 6, 16, 6),
             child: _ClassComposer(
               controller: textController,
               hintText: 'Message',
@@ -3210,33 +3210,38 @@ class _ClassComposerState extends State<_ClassComposer> {
     final input = TextField(
       controller: widget.controller,
       focusNode: widget.focusNode,
-      maxLines: 4,
+      maxLines: 3,
       minLines: 1,
       textCapitalization: TextCapitalization.sentences,
       textInputAction: TextInputAction.newline,
       cursorColor: Colors.black,
       style: theme.textTheme.bodyLarge?.copyWith(
         color: Colors.black,
-        fontSize: 16,
-        height: 1.45,
+        fontSize: 13,
+        height: 1.25,
         letterSpacing: 0.1,
       ),
       decoration: InputDecoration(
         hintText: widget.hintText,
         isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
         filled: true,
         fillColor: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white,
         hintStyle: theme.textTheme.bodyLarge?.copyWith(
           color: subtle,
-          fontSize: 18,
-          height: 1.45,
+          fontSize: 13,
+          height: 1.25,
           letterSpacing: 0.1,
         ),
+        prefixIconConstraints:
+            const BoxConstraints(minWidth: 30, minHeight: 30),
         prefixIcon: IconButton(
           tooltip: 'Emoji',
           onPressed: _openEmojiPicker,
-          icon: Icon(Icons.emoji_emotions_outlined, color: subtle),
+          icon: Icon(Icons.emoji_emotions_outlined, color: subtle, size: 18),
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+          visualDensity: VisualDensity.compact,
         ),
         suffixIcon: Row(
           mainAxisSize: MainAxisSize.min,
@@ -3245,7 +3250,11 @@ class _ClassComposerState extends State<_ClassComposer> {
               IconButton(
                 tooltip: 'Attach',
                 onPressed: _openAttachMenu,
-                icon: Icon(Icons.attach_file_rounded, color: subtle),
+                icon: Icon(Icons.attach_file_rounded, color: subtle, size: 18),
+                padding: EdgeInsets.zero,
+                constraints:
+                    const BoxConstraints(minWidth: 30, minHeight: 30),
+                visualDensity: VisualDensity.compact,
               ),
             IconButton(
               tooltip: 'Send',
@@ -3258,7 +3267,14 @@ class _ClassComposerState extends State<_ClassComposer> {
                   setState(() => _attachments.clear());
                 }
               },
-              icon: Icon(Icons.send_rounded, color: theme.colorScheme.primary),
+              icon: Icon(
+                Icons.send_rounded,
+                color: theme.colorScheme.primary,
+                size: 18,
+              ),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+              visualDensity: VisualDensity.compact,
             ),
           ],
         ),
@@ -3288,7 +3304,13 @@ class _ClassComposerState extends State<_ClassComposer> {
       onSubmitted: (_) => widget.onSend(),
     );
 
-    if (_attachments.isEmpty) return input;
+    // Keep the composer visually compact by constraining height.
+    final compactInput = SizedBox(
+      height: 30,
+      child: Center(child: input),
+    );
+
+    if (_attachments.isEmpty) return compactInput;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -3364,7 +3386,7 @@ class _ClassComposerState extends State<_ClassComposer> {
           ),
         ),
         const SizedBox(height: 8),
-        input,
+        compactInput,
       ],
     );
   }
@@ -4771,6 +4793,8 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
                     bookmarks: 0,
                   ),
                   currentUserHandle: widget.currentUserHandle,
+                  fullWidthHeader: true,
+                  showTimeInHeader: false,
                 ),
                 const SizedBox(height: 12),
                 _ThreadCommentsView(
@@ -4846,7 +4870,7 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
           if (_replyTarget != null || _composerVisible)
             SafeArea(
               top: false,
-              minimum: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+              minimum: const EdgeInsets.fromLTRB(16, 2, 16, 4),
               child: _ClassComposer(
                 controller: _composer,
                 focusNode: _composerFocusNode,
@@ -5754,9 +5778,12 @@ class _CommentTileState extends State<_CommentTile> {
 
     final Color selectedHover =
         widget.isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFF3F4F6);
-    final Color borderColor = theme.colorScheme.onSurface.withValues(
-      alpha: isDark ? 0.30 : 0.14,
-    );
+    // When a reply has been reposted, highlight its card border in green.
+    final Color borderColor = _reposted
+        ? Colors.green
+        : theme.colorScheme.onSurface.withValues(
+            alpha: isDark ? 0.30 : 0.14,
+          );
     // Add extra left padding for other users so text doesn't sit under
     // the picture-frame avatar that overlaps the left edge.
     final EdgeInsets bubblePadding = EdgeInsets.fromLTRB(

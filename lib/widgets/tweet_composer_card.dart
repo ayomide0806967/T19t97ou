@@ -234,9 +234,8 @@ class _TweetComposerCardState extends State<TweetComposerCard> {
                       onSubmitted: widget.onSubmit == null
                           ? null
                           : (_) => _handleSubmit(),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        height: 1.35,
-                        color: theme.colorScheme.onSurface,
+                      style: AppTheme.tweetBody(
+                        theme.colorScheme.onSurface,
                       ),
                       decoration: InputDecoration(
                         border: InputBorder.none,
@@ -246,9 +245,7 @@ class _TweetComposerCardState extends State<TweetComposerCard> {
                         isDense: true,
                         contentPadding: EdgeInsets.zero,
                         hintText: widget.hintText,
-                        hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                          color: hintColor,
-                        ),
+                        hintStyle: AppTheme.tweetBody(hintColor),
                         filled: false,
                       ),
                     ),

@@ -27,6 +27,18 @@ class AppTheme {
     borderRadius: BorderRadius.circular(999),
   );
 
+  /// Primary tweet body style – tuned to feel like X's Chirp:
+  /// slightly larger, compact line height, light tracking.
+  static TextStyle tweetBody(Color color) {
+    return GoogleFonts.inter(
+      color: color,
+      fontSize: 14,
+      height: 1.35,
+      letterSpacing: -0.01,
+      fontWeight: FontWeight.w400,
+    );
+  }
+
   static ThemeData lightTheme = _buildLightTheme();
   static ThemeData darkTheme = _buildDarkTheme();
 

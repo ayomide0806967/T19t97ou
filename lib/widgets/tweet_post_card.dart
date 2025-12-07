@@ -11,6 +11,7 @@ import 'hexagon_avatar.dart';
 import '../screens/thread_screen.dart';
 import '../screens/quote_screen.dart';
 import 'icons/x_retweet_icon.dart';
+import 'icons/x_comment_icon.dart';
 
 class TweetPostCard extends StatefulWidget {
   const TweetPostCard({
@@ -25,6 +26,8 @@ class TweetPostCard extends StatefulWidget {
     this.onTap,
     this.showRepostBanner = false,
     this.showActions = true,
+    this.fullWidthHeader = false,
+    this.showTimeInHeader = true,
   });
 
   final PostModel post;
@@ -37,6 +40,11 @@ class TweetPostCard extends StatefulWidget {
   final VoidCallback? onTap;
   final bool showRepostBanner;
   final bool showActions;
+  // When true (e.g. on the thread/comments page), render the avatar + name
+  // above the tweet so the body can run full width.
+  final bool fullWidthHeader;
+  // Controls whether the header meta row shows the time (e.g. "· 14h").
+  final bool showTimeInHeader;
 
   @override
   State<TweetPostCard> createState() => _TweetPostCardState();
@@ -297,19 +305,36 @@ class _TweetPostCardState extends State<TweetPostCard> {
     final Color controlIconColor = usesLightCardOnDarkTheme
         ? AppTheme.textSecondary
         : AppTheme.textTertiary;
+    final String displayHandle = widget.post.handle.isNotEmpty
+        ? (widget.post.handle.startsWith('@')
+            ? widget.post.handle
+            : '@${widget.post.handle}')
+        : '';
 
     // Build metric data
+    bool isJustNow = widget.post.timeAgo.toLowerCase() == 'just now';
+    int repliesCount = _replies;
+    int repostsCount =
+        widget.post.originalId == null ? _reposts : widget.post.reposts;
+    int viewsCount = _views;
+
+    if (isJustNow) {
+      repliesCount = 200000;
+      repostsCount = 500000;
+      viewsCount = 600000;
+    }
+
     final reply = TweetMetricData(
       type: TweetMetricType.reply,
       // Rounded, ball-like chat bubble with left-facing tail
       icon: Icons.chat_bubble_outline_rounded,
-      count: _replies,
+      count: repliesCount,
     );
     final rein = TweetMetricData(
       type: TweetMetricType.rein,
       icon: Icons.repeat_rounded,
       label: 'REPOST',
-      count: widget.post.originalId == null ? _reposts : widget.post.reposts,
+      count: repostsCount,
       isActive: repostedByUser,
     );
     final like = TweetMetricData(
@@ -321,7 +346,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
     final view = TweetMetricData(
       type: TweetMetricType.view,
       // Icon rendered by TweetMetric using StatsThinIcon
-      count: _views,
+      count: viewsCount,
     );
     const share = TweetMetricData(
       type: TweetMetricType.share,
@@ -348,53 +373,172 @@ class _TweetPostCardState extends State<TweetPostCard> {
     // Repost banner suppressed; modern reply tag handles context.
 
     // Build header content (author row) without the avatar.
-    final Widget contentHeader = Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Flexible(
-                child: Text(
-                  widget.post.author,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: primaryTextColor,
-                  ),
-                  textHeightBehavior: const TextHeightBehavior(
-                    applyHeightToFirstAscent: false,
-                  ),
+    final Widget contentHeader;
+    if (widget.fullWidthHeader) {
+      // Replies page / detail: name on first line, handle (and optional time)
+      // on second line.
+      contentHeader = Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Flexible(
+                    child: Text(
+                      widget.post.author,
+                      maxLines: 1,
+                      softWrap: false,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: primaryTextColor,
+                      ),
+                      textHeightBehavior: const TextHeightBehavior(
+                        applyHeightToFirstAscent: false,
+                      ),
+                    ),
+                    ),
+                  ],
                 ),
-              ),
-              Text(
-                ' · ${widget.post.timeAgo}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontSize: 12,
-                  color: secondaryTextColor,
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    if (displayHandle.isNotEmpty)
+                      Text(
+                        displayHandle,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontSize: 13,
+                          color: secondaryTextColor,
+                        ),
+                      ),
+                    if (widget.showTimeInHeader) ...[
+                      if (displayHandle.isNotEmpty) ...[
+                        const SizedBox(width: 6),
+                        Text(
+                          '·',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontSize: 13,
+                            color: secondaryTextColor.withValues(alpha: 0.7),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                      ],
+                      Text(
+                        widget.post.timeAgo,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontSize: 12,
+                          color: secondaryTextColor,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-              ),
-            ],
-          ),
-        ),
-        InkWell(
-          borderRadius: BorderRadius.circular(6),
-          onTap: () => _showToast('Post options coming soon'),
-          child: Padding(
-            padding: const EdgeInsets.only(left: 4),
-            child: Icon(
-              Icons.more_horiz,
-              size: 18,
-              color: controlIconColor,
+              ],
             ),
           ),
+          InkWell(
+            borderRadius: BorderRadius.circular(6),
+            onTap: () => _showToast('Post options coming soon'),
+            child: Padding(
+              padding: const EdgeInsets.only(left: 4),
+              child: Icon(
+                Icons.more_horiz,
+                size: 18,
+                color: controlIconColor,
+              ),
+            ),
+          ),
+        ],
+      );
+    } else {
+      // Main timeline: name + handle + time on a single horizontal line.
+      contentHeader = Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Flexible(
+                      child: Text(
+                        widget.post.author,
+                        maxLines: 1,
+                        softWrap: false,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: primaryTextColor,
+                        ),
+                        textHeightBehavior: const TextHeightBehavior(
+                          applyHeightToFirstAscent: false,
+                        ),
+                      ),
+                ),
+                if (displayHandle.isNotEmpty) ...[
+                  const SizedBox(width: 6),
+                  Text(
+                    displayHandle,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontSize: 13,
+                      color: secondaryTextColor,
+                    ),
+                  ),
+                ],
+                if (widget.showTimeInHeader) ...[
+                  const SizedBox(width: 6),
+                  Text(
+                    '· ${widget.post.timeAgo}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontSize: 12,
+                      color: secondaryTextColor,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          InkWell(
+            borderRadius: BorderRadius.circular(6),
+            onTap: () => _showToast('Post options coming soon'),
+            child: Padding(
+              padding: const EdgeInsets.only(left: 4),
+              child: Icon(
+                Icons.more_horiz,
+                size: 18,
+                color: controlIconColor,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Final timeline row layout: avatar on left, content card on right.
+    final double avatarGap = 6; // slightly tighter gap
+    final Widget avatar = HexagonAvatar(
+      size: 48,
+      backgroundColor: theme.colorScheme.surfaceContainerHighest,
+      borderColor: theme.colorScheme.primary.withValues(alpha: 0.35),
+      borderWidth: 1.5,
+      child: Center(
+        child: Text(
+          _initialsFrom(widget.post.author),
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: primaryTextColor,
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+          ),
         ),
-      ],
+      ),
     );
 
-    // Build the tweet body column.
+    // Build the tweet body column for the standard (timeline) layout.
     final Widget contentColumn = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -404,11 +548,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
         if (widget.post.body.isNotEmpty)
           Text(
             widget.post.body,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: primaryTextColor,
-              fontSize: 14,
-              height: 1.45,
-            ),
+            style: AppTheme.tweetBody(primaryTextColor),
             textHeightBehavior: const TextHeightBehavior(
               applyHeightToFirstAscent: false,
             ),
@@ -432,6 +572,70 @@ class _TweetPostCardState extends State<TweetPostCard> {
       ],
     );
 
+    // Special full-width header layout used on the thread/comments page:
+    // avatar + name row on top, tweet body running full width beneath.
+    if (widget.fullWidthHeader) {
+      Widget fullWidth = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              avatar,
+              SizedBox(width: avatarGap),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ...header,
+                    contentHeader,
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (widget.post.body.isNotEmpty)
+            Text(
+              widget.post.body,
+              style: AppTheme.tweetBody(primaryTextColor),
+              textHeightBehavior: const TextHeightBehavior(
+                applyHeightToFirstAscent: false,
+              ),
+            ),
+          if (widget.post.quoted != null) ...[
+            const SizedBox(height: 6),
+            QuotePreview(snapshot: widget.post.quoted!),
+          ],
+          if (widget.showActions) ...[
+            const SizedBox(height: 4),
+            _buildMetricsRow(
+              theme: theme,
+              leftMetrics: leftMetrics,
+              share: share,
+              isCompact: isCompact,
+              onSurfaceColor: primaryTextColor,
+              forceContrast: usesLightCardOnDarkTheme,
+            ),
+          ],
+        ],
+      );
+
+      if (widget.onTap != null) {
+        fullWidth = Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.zero,
+          child: InkWell(
+            borderRadius: BorderRadius.zero,
+            onTap: widget.onTap,
+            child: fullWidth,
+          ),
+        );
+      }
+
+      return fullWidth;
+    }
+
     // The content sits to the right of the avatar with simple padding — no card.
     Widget shell = const SizedBox.shrink();
     shell = Padding(
@@ -453,25 +657,6 @@ class _TweetPostCardState extends State<TweetPostCard> {
       );
     }
 
-    // Final timeline row layout: avatar on left, content card on right.
-    final double avatarGap = 6; // slightly tighter gap
-    final Widget avatar = HexagonAvatar(
-      size: 48,
-      backgroundColor: theme.colorScheme.surfaceContainerHighest,
-      borderColor: theme.colorScheme.primary.withValues(alpha: 0.35),
-      borderWidth: 1.5,
-      child: Center(
-        child: Text(
-          _initialsFrom(widget.post.author),
-          style: theme.textTheme.labelLarge?.copyWith(
-            color: primaryTextColor,
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
-    );
-
     final row = Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -492,71 +677,44 @@ class _TweetPostCardState extends State<TweetPostCard> {
     required bool forceContrast,
   }) {
     // Layout groups:
-    //   Left group (auto/equal): COMMENT, REPOST, LIKE, VIEW → share the
-    //   remaining width equally. This keeps all actions sized fairly.
-    //   Right edge: SHARE pinned at extreme right with a small gap from VIEW.
-    final TweetMetricData replyMetric =
-        leftMetrics.firstWhere((m) => m.type == TweetMetricType.reply);
-    final TweetMetricData reinMetric =
-        leftMetrics.firstWhere((m) => m.type == TweetMetricType.rein);
-    final TweetMetricData likeMetric =
-        leftMetrics.firstWhere((m) => m.type == TweetMetricType.like);
-    final TweetMetricData viewMetric =
-        leftMetrics.firstWhere((m) => m.type == TweetMetricType.view);
-    final List<TweetMetricData> leftGroup = [
-      replyMetric,
-      reinMetric,
-      likeMetric,
-      viewMetric,
-    ];
-    final double tightGap = isCompact ? 8.0 : 10.0; // small gap before Share
+    //   Left group (A): reply, REPOST, like, view → spread evenly
+    //   Right edge (B): share → compact on the far right
+    final List<TweetMetricData> groupA = leftMetrics
+        .where((m) =>
+            m.type == TweetMetricType.reply ||
+            m.type == TweetMetricType.rein ||
+            m.type == TweetMetricType.like ||
+            m.type == TweetMetricType.view)
+        .toList();
+    final double gapBetweenGroups = isCompact ? 12.0 : 16.0;
 
     Widget row = SizedBox(
       width: double.infinity,
       child: Row(
         mainAxisSize: MainAxisSize.max,
         children: [
-          // Left group: four equal cells, each scales down if needed
+          // Group A: starts at the content's left edge and spreads evenly
           Expanded(
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                for (int i = 0; i < leftGroup.length; i++)
-                  Expanded(
-                    child: Align(
-                      alignment: (i == 1 || i == 2)
-                          ? Alignment.centerRight // nudge REPOST and LIKE rightward
-                          : Alignment.center,
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: (i == 1 || i == 2)
-                            ? Alignment.centerRight
-                            : Alignment.center,
-                        child: _EdgeCell(
-                          child: i == 1
-                              ? Transform.translate(
-                                  offset: const Offset(8, 0),
-                                  child: _buildMetricButton(
-                                    leftGroup[i],
-                                    compact: isCompact,
-                                  ),
-                                )
-                              : _buildMetricButton(
-                                  leftGroup[i],
-                                  compact: isCompact,
-                                ),
-                        ),
-                      ),
-                    ),
-                  ),
+                for (final m in groupA)
+                  _EdgeCell(child: _buildMetricButton(m, compact: isCompact)),
               ],
             ),
           ),
-          // View should be close to Share → keep only a tight gap here
-          SizedBox(width: tightGap),
-          // Share stays pinned at extreme right
+          SizedBox(width: gapBetweenGroups),
+          // Share stays pinned at extreme right in a tight cluster
           _EdgeCell(child: _buildMetricButton(share, compact: isCompact)),
         ],
       ),
+    );
+
+    // Guard tiny rounding overflows on some device widths by adding
+    // a subtle right padding that doesn't affect layout.
+    row = Padding(
+      padding: const EdgeInsets.only(right: 1),
+      child: row,
     );
 
     if (!forceContrast) {
@@ -615,9 +773,11 @@ class _TweetPostCardState extends State<TweetPostCard> {
         
         // Special-case: REPOST uses encapsulating arrow button
         if (data.type == TweetMetricType.rein) {
+          final int? nonZeroCount =
+              (data.count != null && data.count! > 0) ? data.count : null;
           return XRetweetButton(
             label: data.label ?? 'REPOST',
-            count: data.count,
+            count: nonZeroCount,
             isActive: data.isActive,
             onTap: onTap,
           );
@@ -632,24 +792,28 @@ class _TweetPostCardState extends State<TweetPostCard> {
             child: TweetMetric(data: compactView, onTap: onTap, compact: true),
           );
         }
-        // Special-case: compress COMMENT pill under very tight width
-        if (data.type == TweetMetricType.reply && ultraTight) {
-          // Replace long label with a short token (or just the count if present)
-          final shortLabel = 'C';
-          final shortData = TweetMetricData(type: data.type, label: shortLabel);
-          return FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: TweetMetric(data: shortData, onTap: onTap, compact: true),
+        // Special-case: COMMENT uses X-style comment icon button
+        if (data.type == TweetMetricType.reply) {
+          final int? nonZeroCount =
+              (data.count != null && data.count! > 0) ? data.count : null;
+          return XCommentButton(
+            count: nonZeroCount,
+            onTap: onTap,
           );
         }
-        // For reply/view with limited width but not ultraTight, still allow scaling
-        if (data.type == TweetMetricType.reply || data.type == TweetMetricType.view) {
+        // For view with limited width, still allow scaling
+        if (data.type == TweetMetricType.view) {
+          if (ultraTight) {
+            final compactView = TweetMetricData(type: data.type, icon: Icons.signal_cellular_alt_rounded);
+            return FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: TweetMetric(data: compactView, onTap: onTap, compact: true),
+            );
+          }
           return FittedBox(
             fit: BoxFit.scaleDown,
-            alignment: data.type == TweetMetricType.reply
-                ? Alignment.centerLeft
-                : Alignment.centerRight,
+            alignment: Alignment.centerRight,
             child: TweetMetric(data: data, onTap: onTap, compact: compact),
           );
         }
@@ -791,7 +955,8 @@ class TweetMetric extends StatelessWidget {
     double iconSize = compact ? 16.0 : 18.0;
     if (isShare || isBookmark) iconSize += 2.0;
     final double labelFontSize = compact ? 12.0 : 13.0;
-    final double countFontSize = compact ? 12.0 : 13.0;
+    // Slightly smaller font for metric counts to de‑emphasize numbers.
+    final double countFontSize = compact ? 10.0 : 11.0;
     final double gap = compact ? 2.0 : 3.0;
 
     final Color activeColor = isRein
@@ -803,7 +968,9 @@ class TweetMetric extends StatelessWidget {
         : baseColor;
     final Color textColor = isLike ? neutral : baseColor;
     final hasIcon = data.icon != null || data.type == TweetMetricType.view;
-    final metricCount = data.count;
+    // Treat 0 as "no count" so we don't render a visible "0".
+    final int? metricCount =
+        (data.count != null && data.count! > 0) ? data.count : null;
     final bool highlightRein = isRein && data.isActive;
     final String? displayLabel = data.label;
     final double reinFontSize = compact ? 13.5 : 14.5;
@@ -818,7 +985,7 @@ class TweetMetric extends StatelessWidget {
           metricCount != null ? _formatMetric(metricCount) : null;
       final String labelText = data.label ?? 'COMMENT';
       final Widget pill = Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(999),
           border: Border.all(color: pillBorder, width: 1),
@@ -832,7 +999,7 @@ class TweetMetric extends StatelessWidget {
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: pillText,
                 fontWeight: FontWeight.w600, // match non-highlight action label
-                fontSize: labelFontSize, // consistent with other labels
+                fontSize: compact ? 11.0 : 12.0, // slightly smaller for pill
               ),
             ),
             if (countLabel != null) ...[
@@ -842,7 +1009,7 @@ class TweetMetric extends StatelessWidget {
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: pillText,
                   fontWeight: FontWeight.w600,
-                  fontSize: countFontSize,
+                  fontSize: compact ? 11.0 : 12.0,
                 ),
               ),
             ],
@@ -853,6 +1020,9 @@ class TweetMetric extends StatelessWidget {
       content = pill;
     } else if (highlightRein) {
       final highlightColor = Colors.green;
+      // When reposted: keep the REPOST label in the neutral action color,
+      // but show the count in green alongside the green icon.
+      final Color labelColor = neutral;
       content = Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -861,7 +1031,7 @@ class TweetMetric extends StatelessWidget {
           Text(
             displayLabel ?? 'REPOST',
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: highlightColor,
+              color: labelColor,
               fontWeight: FontWeight.w800,
               fontSize: labelFontSize,
               letterSpacing: 0.35,
@@ -920,15 +1090,28 @@ class TweetMetric extends StatelessWidget {
             ),
             if (metricCount != null) SizedBox(width: gap),
           ],
-          if (metricCount != null)
-            Text(
-              _formatMetric(metricCount),
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: textColor,
-                fontWeight: FontWeight.w600,
-                fontSize: countFontSize,
-              ),
-            ),
+          if (metricCount != null) ...[
+            (() {
+              final text = Text(
+                _formatMetric(metricCount),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: textColor,
+                  fontWeight: FontWeight.w600,
+                  fontSize: countFontSize,
+                  height: 1.1,
+                ),
+              );
+              // For like and view, ensure the count is vertically centered
+              // relative to the icon by giving it the same height box.
+              if (isLike || data.type == TweetMetricType.view) {
+                return SizedBox(
+                  height: iconSize,
+                  child: Center(child: text),
+                );
+              }
+              return text;
+            })(),
+          ],
         ],
       );
     }

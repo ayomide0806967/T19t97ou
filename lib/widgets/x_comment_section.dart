@@ -554,7 +554,7 @@ class _XCommentSectionState extends State<XCommentSection>
 
               // Reply composer - WhatsApp-inspired UI
               Container(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+                padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
                 decoration: BoxDecoration(
                   color: isDark
                       ? const Color(0xFF111B21)
@@ -626,8 +626,8 @@ class _XCommentSectionState extends State<XCommentSection>
                         Expanded(
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 4,
+                              horizontal: 10,
+                              vertical: 2,
                             ),
                             decoration: BoxDecoration(
                               color: isDark
@@ -639,7 +639,7 @@ class _XCommentSectionState extends State<XCommentSection>
                               children: [
                                 Icon(
                                   Icons.emoji_emotions_outlined,
-                                  size: 22,
+                                  size: 20,
                                   color: theme.colorScheme.onSurface
                                       .withValues(alpha: 0.55),
                                 ),
@@ -649,7 +649,7 @@ class _XCommentSectionState extends State<XCommentSection>
                                     controller: _commentController,
                                     focusNode: _inputFocusNode,
                                     minLines: 1,
-                                    maxLines: 4,
+                                    maxLines: 3,
                                     textInputAction:
                                         TextInputAction.newline,
                                     keyboardType: TextInputType.multiline,
@@ -657,7 +657,7 @@ class _XCommentSectionState extends State<XCommentSection>
                                     style: theme.textTheme.bodyMedium
                                         ?.copyWith(
                                       color: theme.colorScheme.onSurface,
-                                      height: 1.35,
+                                      height: 1.25,
                                     ),
                                     decoration: InputDecoration(
                                       border: InputBorder.none,
@@ -675,14 +675,14 @@ class _XCommentSectionState extends State<XCommentSection>
                                 const SizedBox(width: 4),
                                 Icon(
                                   Icons.attach_file_rounded,
-                                  size: 22,
+                                  size: 20,
                                   color: theme.colorScheme.onSurface
                                       .withValues(alpha: 0.5),
                                 ),
                                 const SizedBox(width: 8),
                                 Icon(
                                   Icons.camera_alt_outlined,
-                                  size: 22,
+                                  size: 20,
                                   color: theme.colorScheme.onSurface
                                       .withValues(alpha: 0.5),
                                 ),
@@ -698,7 +698,7 @@ class _XCommentSectionState extends State<XCommentSection>
                               ? _submitComment
                               : null,
                           child: CircleAvatar(
-                            radius: 20,
+                            radius: 18,
                             backgroundColor:
                                 _commentController.text.trim().isNotEmpty
                                     ? AppTheme.accent
@@ -720,28 +720,6 @@ class _XCommentSectionState extends State<XCommentSection>
           ),
         );
       },
-    );
-  }
-}
-
-class GlobalReplyCard extends StatelessWidget {
-  const GlobalReplyCard({
-    super.key,
-    required this.comment,
-    required this.onReply,
-    required this.onLike,
-  });
-
-  final XComment comment;
-  final VoidCallback onReply;
-  final VoidCallback onLike;
-
-  @override
-  Widget build(BuildContext context) {
-    return _XCommentTile(
-      comment: comment,
-      onReply: onReply,
-      onLike: onLike,
     );
   }
 }

@@ -239,6 +239,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
                   replyContext: thread.replyToHandle,
                   onTap: null,
                   onReply: (_) => _handleReplyTap(thread),
+                  fullWidthHeader: true,
                 ),
                 const SizedBox(height: 24),
                 if (thread.replies.isEmpty)

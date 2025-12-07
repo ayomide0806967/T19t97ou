@@ -135,7 +135,7 @@ class _XRetweetButtonState extends State<XRetweetButton>
                   style: TextStyle(
                     color: primaryColor,
                     fontWeight: FontWeight.w600,
-                    fontSize: 13,
+                    fontSize: 11,
                   ),
                 ),
               ],
