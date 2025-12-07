@@ -12,6 +12,7 @@ import '../screens/thread_screen.dart';
 import '../screens/quote_screen.dart';
 import 'icons/x_retweet_icon.dart';
 import 'icons/x_comment_icon.dart';
+import '../screens/post_activity_screen.dart';
 
 class TweetPostCard extends StatefulWidget {
   const TweetPostCard({
@@ -538,6 +539,10 @@ class _TweetPostCardState extends State<TweetPostCard> {
       ),
     );
 
+    // Simple flag to enable demo media carousel for certain posts.
+    final bool hasDemoMedia =
+        widget.post.tags.any((t) => t.toLowerCase() == 'gallery');
+
     // Build the tweet body column for the standard (timeline) layout.
     final Widget contentColumn = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -553,6 +558,10 @@ class _TweetPostCardState extends State<TweetPostCard> {
               applyHeightToFirstAscent: false,
             ),
           ),
+        if (hasDemoMedia) ...[
+          const SizedBox(height: 10),
+          _TweetMediaCarousel(),
+        ],
         if (widget.post.quoted != null) ...[
           const SizedBox(height: 6),
           QuotePreview(snapshot: widget.post.quoted!),
@@ -603,6 +612,10 @@ class _TweetPostCardState extends State<TweetPostCard> {
                 applyHeightToFirstAscent: false,
               ),
             ),
+          if (hasDemoMedia) ...[
+            const SizedBox(height: 10),
+            _TweetMediaCarousel(),
+          ],
           if (widget.post.quoted != null) ...[
             const SizedBox(height: 6),
             QuotePreview(snapshot: widget.post.quoted!),
@@ -752,7 +765,9 @@ class _TweetPostCardState extends State<TweetPostCard> {
       case TweetMetricType.view:
         onTap = () {
           _incrementView();
-          _showToast('Insights panel coming soon');
+          Navigator.of(context).push(
+            PostActivityScreen.route(post: widget.post),
+          );
         };
         break;
       case TweetMetricType.bookmark:
@@ -1182,6 +1197,91 @@ class TagChip extends StatelessWidget {
       side: BorderSide.none,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
+  }
+}
+
+/// Simple demo media carousel that allows horizontal swiping between
+/// multiple images, inspired by Instagram's multi-photo posts.
+class _TweetMediaCarousel extends StatefulWidget {
+  @override
+  State<_TweetMediaCarousel> createState() => _TweetMediaCarouselState();
+}
+
+class _TweetMediaCarouselState extends State<_TweetMediaCarousel> {
+  late final PageController _controller;
+  int _index = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = PageController(viewportFraction: 0.88);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final Color border =
+        theme.dividerColor.withValues(alpha: isDark ? 0.4 : 0.24);
+
+    const int itemCount = 3; // demo three-image carousel
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          height: 280,
+          child: PageView.builder(
+            controller: _controller,
+            itemCount: itemCount,
+            onPageChanged: (i) => setState(() => _index = i),
+            itemBuilder: (context, i) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: border),
+                      image: const DecorationImage(
+                        image: AssetImage('assets/images/in_logo.png'),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(
+            itemCount,
+            (i) => AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOutCubic,
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              width: _index == i ? 8 : 6,
+              height: _index == i ? 8 : 6,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _index == i
+                    ? theme.colorScheme.onSurface.withValues(alpha: 0.9)
+                    : theme.colorScheme.onSurface.withValues(alpha: 0.25),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

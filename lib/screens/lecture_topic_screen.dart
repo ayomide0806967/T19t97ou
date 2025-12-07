@@ -5,6 +5,7 @@ import '../services/data_service.dart';
 import '../services/simple_auth_service.dart';
 import '../widgets/lecture_note_card.dart';
 import 'class_note_stepper_screen.dart';
+import 'create_note_flow/create_note_welcome_screen.dart';
 import 'ios_messages_screen.dart' show ClassTopic, messageRepliesRouteFromPost; // reuse route
 
 class LectureTopicScreen extends StatelessWidget {
@@ -46,6 +47,17 @@ class LectureTopicScreen extends StatelessWidget {
         },
         separatorBuilder: (_, __) => const SizedBox(height: 12),
         itemCount: posts.length,
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const CreateNoteWelcomeScreen(),
+            ),
+          );
+        },
+        label: const Text('Start Lecture'),
+        icon: const Icon(Icons.add),
       ),
     );
   }

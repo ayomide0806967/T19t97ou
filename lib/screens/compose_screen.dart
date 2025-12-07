@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../services/data_service.dart';
@@ -28,7 +31,6 @@ class _ComposeScreenState extends State<ComposeScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Scaffold(
       appBar: AppBar(
@@ -65,55 +67,54 @@ class _ComposeScreenState extends State<ComposeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            // Scrollable area: header + text editor
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                 children: [
-                  HexagonAvatar(
-                    size: 44,
-                    child: const Icon(Icons.person, color: Colors.white, size: 20),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      HexagonAvatar(
+                        size: 44,
+                        child: const Icon(Icons.person, color: Colors.white, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('You', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                            SizedBox(height: 2),
+                            Text('your@institution.edu', style: TextStyle(color: Color(0xFF64748B), fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('You', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                        SizedBox(height: 2),
-                        Text('your@institution.edu', style: TextStyle(color: Color(0xFF64748B), fontSize: 12)),
-                      ],
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _controller,
+                    autofocus: true,
+                    maxLines: null,
+                    keyboardType: TextInputType.multiline,
+                    textInputAction: TextInputAction.newline,
+                    decoration: const InputDecoration(
+                      hintText: "What's happening?",
+                      border: InputBorder.none,
                     ),
+                    onChanged: (_) => setState(() {}),
                   ),
+                  const SizedBox(height: 12),
+                  const _RecentMediaStrip(),
                 ],
               ),
             ),
 
-            // Text editor
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: TextField(
-                  controller: _controller,
-                  autofocus: true,
-                  maxLines: null,
-                  keyboardType: TextInputType.multiline,
-                  textInputAction: TextInputAction.newline,
-                  decoration: const InputDecoration(
-                    hintText: "What's happening?",
-                    border: InputBorder.none,
-                  ),
-                  onChanged: (_) => setState(() {}),
-                ),
-              ),
-            ),
-
-            // Character count, pinned to bottom and respecting keyboard
-            AnimatedPadding(
-              duration: const Duration(milliseconds: 180),
-              curve: Curves.easeOutCubic,
-              padding: EdgeInsets.fromLTRB(16, 8, 16, 12 + bottomInset),
+            // Character count, pinned to bottom; let Scaffold handle
+            // keyboard insets to avoid overflow.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
               child: Align(
                 alignment: Alignment.centerRight,
                 child: Text(
@@ -152,3 +153,96 @@ class _ComposeScreenState extends State<ComposeScreen> {
   }
 }
 
+/// Horizontal preview strip for user-selected gallery items (using image_picker).
+/// Appears under the compose text field and can be swiped left/right.
+class _RecentMediaStrip extends StatefulWidget {
+  const _RecentMediaStrip();
+
+  @override
+  State<_RecentMediaStrip> createState() => _RecentMediaStripState();
+}
+
+class _RecentMediaStripState extends State<_RecentMediaStrip> {
+  final List<XFile> _selected = <XFile>[];
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _pickImages() async {
+    try {
+      final List<XFile> files = await _picker.pickMultiImage();
+      if (!mounted || files.isEmpty) return;
+      setState(() {
+        _selected
+          ..clear()
+          ..addAll(files);
+      });
+    } catch (_) {
+      // Swallow errors for now; could show a SnackBar if needed.
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final Color borderColor =
+        theme.dividerColor.withValues(alpha: isDark ? 0.4 : 0.3);
+    final Color placeholderBg =
+        theme.colorScheme.surface.withValues(alpha: isDark ? 0.6 : 1.0);
+
+    final int itemCount = 1 + _selected.length;
+
+    return SizedBox(
+      height: 96,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: itemCount,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return GestureDetector(
+              onTap: _pickImages,
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: placeholderBg,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: borderColor),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.camera_alt_outlined,
+                      size: 26,
+                      color: theme.colorScheme.onSurface.withValues(
+                        alpha: 0.7,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }
+
+          final XFile file = _selected[index - 1];
+
+          return AspectRatio(
+            aspectRatio: 3 / 4,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: placeholderBg,
+                  border: Border.all(color: borderColor),
+                ),
+                child: Image.file(
+                  File(file.path),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}

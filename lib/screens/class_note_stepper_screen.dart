@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import 'ios_messages_screen.dart' show ClassDiscussionThreadPage;
+import '../models/class_note.dart';
+import '../widgets/note_rail_step.dart';
 
 class ClassNoteStepperScreen extends StatefulWidget {
   const ClassNoteStepperScreen({super.key});
@@ -13,8 +15,8 @@ class _ClassNoteStepperScreenState extends State<ClassNoteStepperScreen> {
   int _activeIndex = 0;
 
   // Example data – a single note broken into short rails/sections.
-  final List<_ClassNoteSection> _sections = const [
-    _ClassNoteSection(
+  final List<ClassNoteSection> _sections = const [
+    ClassNoteSection(
       title: '1 · Overview',
       subtitle: 'Why this topic matters today',
       bullets: [
@@ -23,7 +25,7 @@ class _ClassNoteStepperScreenState extends State<ClassNoteStepperScreen> {
         'States the outcome: what you should be able to do after this note.',
       ],
     ),
-    _ClassNoteSection(
+    ClassNoteSection(
       title: '2 · Key facts',
       subtitle: 'Numbers and red‑flag thresholds',
       bullets: [
@@ -32,7 +34,7 @@ class _ClassNoteStepperScreenState extends State<ClassNoteStepperScreen> {
         'Keep each line readable on one screen without scrolling sideways.',
       ],
     ),
-    _ClassNoteSection(
+    ClassNoteSection(
       title: '3 · Simple example',
       subtitle: 'Short story from the ward',
       bullets: [
@@ -41,7 +43,7 @@ class _ClassNoteStepperScreenState extends State<ClassNoteStepperScreen> {
         'End with: “What would you do next?” to keep them thinking.',
       ],
     ),
-    _ClassNoteSection(
+    ClassNoteSection(
       title: '4 · Checklist',
       subtitle: 'Steps to follow in practice',
       bullets: [
@@ -50,7 +52,7 @@ class _ClassNoteStepperScreenState extends State<ClassNoteStepperScreen> {
         'Highlight any “never” behaviours in a different colour in real notes.',
       ],
     ),
-    _ClassNoteSection(
+    ClassNoteSection(
       title: '5 · Self‑check',
       subtitle: 'Tiny quiz to close the loop',
       bullets: [
@@ -141,7 +143,7 @@ class _ClassNoteStepperScreenState extends State<ClassNoteStepperScreen> {
                     final isActive = index == _activeIndex;
                     // Only the active step is "open" – others stay collapsed.
                     final isRevealed = isActive;
-                    return _NoteRailStep(
+                    return NoteRailStep(
                       index: index,
                       total: _sections.length,
                       section: section,
@@ -193,183 +195,6 @@ class _ClassNoteStepperScreenState extends State<ClassNoteStepperScreen> {
   }
 }
 
-class _NoteRailStep extends StatelessWidget {
-  const _NoteRailStep({
-    required this.index,
-    required this.total,
-    required this.section,
-    required this.isActive,
-    required this.isRevealed,
-    required this.onTap,
-  });
-
-  final int index;
-  final int total;
-  final _ClassNoteSection section;
-  final bool isActive;
-  final bool isRevealed;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final onSurface = theme.colorScheme.onSurface;
-    final subtle = onSurface.withValues(
-      alpha: theme.brightness == Brightness.dark ? 0.6 : 0.55,
-    );
-
-    // WhatsApp-style accent for active highlights
-    const whatsAppGreen = Color(0xFF25D366);
-
-    final Color connectorColor =
-        isActive ? Colors.black : onSurface.withValues(alpha: 0.25);
-
-    final circleColor = isActive
-        ? whatsAppGreen
-        : onSurface.withValues(alpha: isRevealed ? 0.15 : 0.08);
-    final borderColor =
-        isActive ? whatsAppGreen : onSurface.withValues(alpha: 0.25);
-
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: index == total - 1 ? 0 : 18,
-      ),
-      child: InkWell(
-        onTap: onTap,
-        splashColor: Colors.transparent,
-        highlightColor: Colors.transparent,
-        hoverColor: Colors.transparent,
-        focusColor: Colors.transparent,
-        borderRadius: BorderRadius.circular(14),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: 32,
-              child: Column(
-                children: [
-                  if (index != 0)
-                    Container(
-                      width: 2,
-                      height: 18,
-                      color: connectorColor,
-                    ),
-                  Container(
-                    width: 24,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: circleColor,
-                      border: Border.all(color: borderColor, width: 1.6),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      '${index + 1}',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: isActive ? Colors.white : borderColor,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  if (index != total - 1)
-                    Container(
-                      width: 2,
-                      height: 26,
-                      color: connectorColor,
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 10,
-                  horizontal: 12,
-                ),
-                decoration: BoxDecoration(
-                  color: isActive
-                      ? whatsAppGreen.withValues(alpha: 0.08)
-                      : theme.colorScheme.surface,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: isActive
-                        ? whatsAppGreen
-                        : theme.dividerColor.withValues(alpha: 0.6),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      section.title,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        fontWeight:
-                            isActive ? FontWeight.w700 : FontWeight.w600,
-                        color: onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      section.subtitle,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: subtle,
-                      ),
-                    ),
-                    if (isRevealed) ...[
-                      const SizedBox(height: 10),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: section.bullets
-                            .map(
-                              (b) => Padding(
-                                padding: const EdgeInsets.only(bottom: 6),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text('•  '),
-                                    Expanded(
-                                      child: Text(
-                                        b,
-                                        style: theme.textTheme.bodyMedium
-                                            ?.copyWith(
-                                          color: onSurface,
-                                          // Slightly larger, chat-like reading size
-                                          fontSize: isActive ? 16 : null,
-                                          height: isActive ? 1.5 : 1.35,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            )
-                            .toList(),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ClassNoteSection {
-  const _ClassNoteSection({
-    required this.title,
-    required this.subtitle,
-    required this.bullets,
-  });
-
-  final String title;
-  final String subtitle;
-  final List<String> bullets;
-}
-
 Color _progressColor(ThemeData theme, double value) {
   // Keep the 3‑colour progress logic: red → dark cyan → green.
   final p = value.clamp(0.0, 1.0);
@@ -389,7 +214,7 @@ class ClassNoteDiscussionScreen extends StatelessWidget {
     required this.sections,
   });
 
-  final List<_ClassNoteSection> sections;
+  final List<ClassNoteSection> sections;
 
   @override
   Widget build(BuildContext context) {

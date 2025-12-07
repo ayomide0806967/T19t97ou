@@ -18,6 +18,8 @@ import '../widgets/tweet_post_card.dart';
 import '../services/simple_auth_service.dart';
 import '../widgets/hexagon_avatar.dart';
 import '../services/roles_service.dart';
+import '../screens/post_activity_screen.dart';
+import '../screens/create_note_flow/teacher_note_creation_screen.dart';
 import '../services/members_service.dart';
 import '../services/invites_service.dart';
 import 'student_profile_screen.dart';
@@ -2245,7 +2247,21 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
               if (widget.activeTopic != null)
                 _ActiveTopicCard(topic: widget.activeTopic!, onArchive: widget.onArchiveTopic)
               else if (widget.isAdmin)
-                _StartLectureCard(onStart: (c, t, k, s) => widget.onStartLecture(c, t, k, s))
+                _StartLectureCard(
+                  onStart: (c, t, k, s) {
+                    // Start the lecture state first
+                    widget.onStartLecture(c, t, k, s);
+                    // Then seamlessly move to the note creating stepper
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => TeacherNoteCreationScreen(
+                          topic: k,
+                          subtitle: t.isNotEmpty ? t : c,
+                        ),
+                      ),
+                    );
+                  },
+                )
               else
                 const SizedBox.shrink(),
               const SizedBox(height: 12),
@@ -4797,6 +4813,102 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
                   showTimeInHeader: false,
                 ),
                 const SizedBox(height: 12),
+                // Top / View activity bar, matching X-style replies header
+                Builder(
+                  builder: (context) {
+                    final ThemeData theme = Theme.of(context);
+                    // Make the separators around the Top / View activity bar
+                    // more prominent so they clearly match the reference UI.
+                    final Color divider =
+                        theme.colorScheme.onSurface.withValues(
+                      // Slightly softer than before so the lines
+                      // are visible but not overpowering.
+                      alpha: theme.brightness == Brightness.dark ? 0.28 : 0.12,
+                    );
+                    final Color subtle = theme.colorScheme.onSurface
+                        .withValues(alpha: 0.6);
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Divider(height: 1, thickness: 0.8, color: divider),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 10,
+                          ),
+                          child: Row(
+                            children: [
+                              // Left: Top ▼
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Top',
+                                    style:
+                                        theme.textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      color: theme.colorScheme.onSurface,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    Icons.keyboard_arrow_down_rounded,
+                                    size: 18,
+                                    color: subtle,
+                                  ),
+                                ],
+                              ),
+                              const Spacer(),
+                              // Right: View activity >
+                              InkWell(
+                                borderRadius: BorderRadius.circular(999),
+                                onTap: () {
+                                  final post = PostModel(
+                                    id: widget.message.id,
+                                    author: widget.message.author,
+                                    handle: widget.message.handle,
+                                    timeAgo: widget.message.timeAgo,
+                                    body: widget.message.body,
+                                    tags: const <String>[],
+                                    replies: widget.message.replies,
+                                    reposts: 0, // Not tracked in message model
+                                    likes: widget.message.likes,
+                                    views: 0,
+                                    bookmarks: 0,
+                                  );
+                                  Navigator.of(context).push(
+                                    PostActivityScreen.route(post: post),
+                                  );
+                                },
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'View activity',
+                                      style: theme.textTheme.bodyMedium
+                                          ?.copyWith(
+                                        color: subtle,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Icon(
+                                      Icons.chevron_right_rounded,
+                                      size: 18,
+                                      color: subtle,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Divider(height: 1, thickness: 0.8, color: divider),
+                      ],
+                    );
+                  },
+                ),
+                const SizedBox(height: 4),
                 _ThreadCommentsView(
                   nodes: _threads,
                   currentUserHandle: widget.currentUserHandle,
@@ -4880,6 +4992,330 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
                 onSend: _sendReply,
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Simple "Post activity" surface shown from the Replies screen when
+/// the user taps "View activity".
+class _PostActivityPage extends StatelessWidget {
+  const _PostActivityPage({required this.message});
+
+  final _ClassMessage message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final Color divider =
+        theme.dividerColor.withValues(alpha: isDark ? 0.35 : 0.2);
+    final Color subtle =
+        theme.colorScheme.onSurface.withValues(alpha: isDark ? 0.7 : 0.6);
+
+    // Derive simple demo counts from the message.
+    final int likes = message.likes > 0 ? message.likes : 3261;
+    final int reposts = message.replies > 0 ? message.replies : 801;
+    const int quotes = 54;
+
+    String _format(int value) {
+      if (value >= 1000000) {
+        final formatted = value / 1000000;
+        return '${formatted.toStringAsFixed(formatted.truncateToDouble() == formatted ? 0 : 1)}M';
+      }
+      if (value >= 1000) {
+        final formatted = value / 1000;
+        return '${formatted.toStringAsFixed(formatted.truncateToDouble() == formatted ? 0 : 1)}K';
+      }
+      return value.toString();
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Post activity'),
+        actions: [
+          TextButton(
+            onPressed: () {},
+            child: Text(
+              'Sort',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        children: [
+          // Compact preview of the original message
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: divider),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.06),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      message.author.isNotEmpty
+                          ? message.author.substring(0, 1).toUpperCase()
+                          : 'Y',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        message.author,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        message.body,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.8,
+                          ),
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Likes / Reposts / Quotes summary
+          _ActivitySummaryRow(
+            icon: Icons.favorite_border_rounded,
+            label: 'Likes',
+            value: _format(likes),
+            dividerColor: divider,
+          ),
+          _ActivitySummaryRow(
+            icon: Icons.repeat_rounded,
+            label: 'Reposts',
+            value: _format(reposts),
+            dividerColor: divider,
+          ),
+          _ActivitySummaryRow(
+            icon: Icons.mode_comment_outlined,
+            label: 'Quotes',
+            value: _format(quotes),
+            dividerColor: divider,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Recent activity',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Simple mocked list of users who interacted
+          for (final user in _demoActivityUsers)
+            _ActivityUserTile(
+              name: user.name,
+              subtitle: user.subtitle,
+              isFollowing: user.isFollowing,
+            ),
+          if (_demoActivityUsers.isEmpty)
+            Text(
+              'No activity yet',
+              style: theme.textTheme.bodyMedium?.copyWith(color: subtle),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActivitySummaryRow extends StatelessWidget {
+  const _ActivitySummaryRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.dividerColor,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color dividerColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      children: [
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Icon(icon, size: 22, color: theme.colorScheme.onSurface),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                label,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            Text(
+              value,
+              style: theme.textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Divider(height: 1, color: dividerColor),
+      ],
+    );
+  }
+}
+
+class _ActivityUser {
+  const _ActivityUser({
+    required this.name,
+    required this.subtitle,
+    required this.isFollowing,
+  });
+
+  final String name;
+  final String subtitle;
+  final bool isFollowing;
+}
+
+const List<_ActivityUser> _demoActivityUsers = <_ActivityUser>[
+  _ActivityUser(
+    name: 'aanya_naznin',
+    subtitle: '24h • Reacted with ✅📩📌',
+    isFollowing: true,
+  ),
+  _ActivityUser(
+    name: 'urfav_jecel14',
+    subtitle: '5h • Real',
+    isFollowing: false,
+  ),
+  _ActivityUser(
+    name: 'sa__mrtnz',
+    subtitle: '40m • 36 followers',
+    isFollowing: false,
+  ),
+];
+
+class _ActivityUserTile extends StatelessWidget {
+  const _ActivityUserTile({
+    required this.name,
+    required this.subtitle,
+    required this.isFollowing,
+  });
+
+  final String name;
+  final String subtitle;
+  final bool isFollowing;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final Color avatarBg = isDark
+        ? theme.colorScheme.onSurface.withValues(alpha: 0.08)
+        : theme.colorScheme.primary.withValues(alpha: 0.08);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: avatarBg,
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                name.isNotEmpty ? name.substring(0, 1).toUpperCase() : 'U',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(
+                      alpha: 0.7,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          TextButton(
+            onPressed: () {},
+            style: TextButton.styleFrom(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(999),
+                side: BorderSide(
+                  color: theme.colorScheme.onSurface.withValues(
+                    alpha: 0.2,
+                  ),
+                ),
+              ),
+            ),
+            child: Text(
+              isFollowing ? 'Following' : 'Follow',
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
         ],
       ),
     );

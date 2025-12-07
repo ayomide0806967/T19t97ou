@@ -293,7 +293,7 @@ class DataService extends ChangeNotifier {
         timeAgo: '5h',
         body:
             'Clinical skills reminder: practise aseptic wound dressing, medication reconciliation, and neonatal resuscitation steps ahead of next week’s OSCE review.',
-        tags: const ['NMCN Key Points', 'Skills Lab'],
+        tags: const ['NMCN Key Points', 'Skills Lab', 'gallery'],
         replies: 112,
         reposts: 58,
         likes: 1042,
