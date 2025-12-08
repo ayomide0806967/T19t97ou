@@ -126,6 +126,7 @@ class NoteRailStep extends StatelessWidget {
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: subtle,
                           fontSize: 14,
+                          fontFamily: 'Roboto',
                         ),
                       ),
                     ],
@@ -191,6 +192,7 @@ class NoteRailStep extends StatelessWidget {
                                           color: onSurface,
                                           height: 1.4,
                                           fontSize: 15,
+                                          fontFamily: 'Roboto',
                                         ),
                                       ),
                                     ),

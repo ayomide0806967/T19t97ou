@@ -974,7 +974,10 @@ class _NoteEditingStepState extends State<_NoteEditingStep> {
                                   )
                                 : null,
                           ),
-                          style: const TextStyle(color: Colors.black),
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontFamily: 'Roboto',
+                          ),
                           onChanged: (_) => setState(() {}),
                         ),
                   const SizedBox(height: 16),
