@@ -3060,6 +3060,39 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
     });
   }
 
+  Future<void> _confirmDeleteNote(ClassNoteSummary note) async {
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete lecture note?'),
+        content: const Text(
+          'This will permanently remove the note from this class.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    setState(() {
+      _classNotes.remove(note);
+    });
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Lecture note deleted')),
+    );
+  }
+
   @override
   void dispose() {
     _notifyClassNotesChanged = null;
@@ -3158,11 +3191,14 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
                             _classNotes.remove(note);
                           });
                           _libraryNotes.insert(0, note);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Moved to Library'),
+                            ),
+                          );
                         },
                         onDelete: () {
-                          setState(() {
-                            _classNotes.remove(note);
-                          });
+                          _confirmDeleteNote(note);
                         },
                       ),
                       const SizedBox(height: 8),
@@ -5654,8 +5690,8 @@ class _ClassNotesCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
                         visualDensity: VisualDensity.compact,
@@ -5669,7 +5705,7 @@ class _ClassNotesCard extends StatelessWidget {
                         ),
                         onPressed: onDelete,
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(width: 4),
                       FilledButton(
                         onPressed: () async {
                           final updated = await Navigator.of(context)
@@ -8234,6 +8270,11 @@ class _ClassLibraryTabState extends State<_ClassLibraryTab> {
                     });
                     _classNotes.insert(0, note);
                     _notifyClassNotesChanged?.call();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Moved back to Class'),
+                      ),
+                    );
                   },
                 ),
                 const SizedBox(height: 8),
