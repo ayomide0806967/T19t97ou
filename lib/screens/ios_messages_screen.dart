@@ -238,6 +238,38 @@ class _FullPageClassesScreen extends StatelessWidget {
   }
 }
 
+class _ClassHeaderChip extends StatelessWidget {
+  const _ClassHeaderChip({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: theme.colorScheme.primary),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _MessagesHeader extends StatelessWidget {
   const _MessagesHeader({required this.theme});
 
@@ -2486,14 +2518,7 @@ Mock exam briefing extended update: please review chapters one through five, pra
         appBar: AppBar(
           backgroundColor: Colors.white,
           foregroundColor: Colors.black,
-          elevation: 0.4,
-          title: Text(
-            college.name,
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: Colors.black,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
+          elevation: 0,
           actions: [
             if (_isCurrentUserAdmin)
               IconButton(
@@ -2504,17 +2529,121 @@ Mock exam briefing extended update: please review chapters one through five, pra
                 },
               ),
           ],
-          bottom: TabBar(
-            labelStyle: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
-            labelColor: Colors.black,
-            unselectedLabelColor: Colors.black54,
-            indicatorColor: Colors.black,
-            indicatorWeight: 3,
-            tabs: const [
-              Tab(text: 'Class'),
-              Tab(text: 'Library'),
-              Tab(text: 'Students'),
-            ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(140),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        college.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        college.facilitator,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color:
+                              theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          _ClassHeaderChip(
+                            icon: Icons.people_alt_outlined,
+                            label: '${college.members} students',
+                          ),
+                          const SizedBox(width: 8),
+                          if (college.upcomingExam.isNotEmpty)
+                            _ClassHeaderChip(
+                              icon: Icons.schedule_rounded,
+                              label: college.upcomingExam,
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                  child: Builder(
+                    builder: (context) {
+                      final TabController controller =
+                          DefaultTabController.of(context)!;
+                      return AnimatedBuilder(
+                        animation: controller.animation ?? controller,
+                        builder: (context, _) {
+                          final int index = controller.index;
+                          Color indicatorColor;
+                          if (index == 1) {
+                            indicatorColor = Colors.red;
+                          } else if (index == 2) {
+                            indicatorColor = Colors.black;
+                          } else {
+                            indicatorColor = _whatsAppDarkGreen;
+                          }
+                          return Container(
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surface
+                                  .withValues(alpha: 0.9),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: TabBar(
+                              labelStyle: theme.textTheme.labelMedium
+                                  ?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                fontFamily: 'Roboto',
+                              ),
+                              unselectedLabelStyle:
+                                  theme.textTheme.labelMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                fontFamily: 'Roboto',
+                              ),
+                              labelColor: Colors.white,
+                              unselectedLabelColor: Colors.black,
+                              indicator: BoxDecoration(
+                                color: indicatorColor,
+                                borderRadius: BorderRadius.circular(999),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: indicatorColor
+                                        .withValues(alpha: 0.25),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              indicatorPadding: const EdgeInsets.symmetric(
+                                  horizontal: 4),
+                              indicatorSize: TabBarIndicatorSize.tab,
+                              dividerColor: Colors.transparent,
+                              tabs: const [
+                                Tab(text: 'Class'),
+                                Tab(text: 'Library'),
+                                Tab(text: 'Students'),
+                              ],
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         body: TabBarView(
