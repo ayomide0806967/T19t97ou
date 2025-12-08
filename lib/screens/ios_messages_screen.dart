@@ -3159,6 +3159,11 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
                           });
                           _libraryNotes.insert(0, note);
                         },
+                        onDelete: () {
+                          setState(() {
+                            _classNotes.remove(note);
+                          });
+                        },
                       ),
                       const SizedBox(height: 8),
                     ],
@@ -5541,12 +5546,14 @@ class _ClassNotesCard extends StatelessWidget {
     this.onUpdated,
     this.onMoveToLibrary,
     this.inLibrary = false,
+    this.onDelete,
   });
 
   final ClassNoteSummary summary;
   final ValueChanged<ClassNoteSummary>? onUpdated;
   final VoidCallback? onMoveToLibrary;
   final bool inLibrary;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -5647,39 +5654,61 @@ class _ClassNotesCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  FilledButton(
-                    onPressed: () async {
-                      final updated = await Navigator.of(context).push<ClassNoteSummary>(
-                        MaterialPageRoute(
-                          builder: (_) => TeacherNoteCreationScreen(
-                            topic: summary.title,
-                            subtitle: summary.subtitle,
-                            initialSections: summary.sections,
-                            initialCreatedAt: summary.createdAt,
-                            initialCommentCount: summary.commentCount,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints:
+                            const BoxConstraints(minWidth: 32, minHeight: 32),
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        onPressed: onDelete,
+                      ),
+                      const SizedBox(height: 4),
+                      FilledButton(
+                        onPressed: () async {
+                          final updated = await Navigator.of(context)
+                              .push<ClassNoteSummary>(
+                            MaterialPageRoute(
+                              builder: (_) => TeacherNoteCreationScreen(
+                                topic: summary.title,
+                                subtitle: summary.subtitle,
+                                initialSections: summary.sections,
+                                initialCreatedAt: summary.createdAt,
+                                initialCommentCount: summary.commentCount,
+                              ),
+                            ),
+                          );
+                          if (updated != null &&
+                              onUpdated != null &&
+                              context.mounted) {
+                            onUpdated!(updated);
+                          }
+                        },
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 6),
+                          minimumSize: const Size(0, 0),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(999),
                           ),
                         ),
-                      );
-                      if (updated != null && onUpdated != null && context.mounted) {
-                        onUpdated!(updated);
-                      }
-                    },
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                      minimumSize: const Size(0, 0),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(999),
+                        child: const Text(
+                          'Edit',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
-                    ),
-                    child: const Text(
-                      'Edit',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    ],
                   ),
                 ],
               ),
