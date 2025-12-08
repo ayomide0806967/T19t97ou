@@ -8585,6 +8585,10 @@ class _ClassStudentsTab extends StatelessWidget {
                 style: FilledButton.styleFrom(
                   backgroundColor: Colors.black,
                   foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  minimumSize: const Size(0, 36),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 onPressed: () => onAdd(context),
                 icon: const Icon(Icons.person_add_alt_1),
@@ -8593,13 +8597,19 @@ class _ClassStudentsTab extends StatelessWidget {
               const SizedBox(width: 12),
               OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.black,
-                  side: const BorderSide(color: Colors.black),
-                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black87,
+                  side: BorderSide(
+                    color: Colors.black.withValues(alpha: 0.25),
+                  ),
+                  backgroundColor: Colors.white70,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  minimumSize: const Size(0, 36),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 onPressed: () => onExit(context),
-                icon: const Icon(Icons.logout),
-                label: const Text('Exit class'),
+                icon: const Icon(Icons.delete_outline),
+                label: const Text('Delete class'),
               ),
             ],
           ),
@@ -8642,9 +8652,9 @@ class _ClassStudentsTab extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 1.25,
+                mainAxisSpacing: 8,
+                crossAxisSpacing: 8,
+                childAspectRatio: 2.8,
               ),
               itemCount: list.length,
               itemBuilder: (context, index) {
@@ -8676,57 +8686,30 @@ class _StudentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    const List<Color> palette = <Color>[
-      Color(0xFF64748B),
-      Color(0xFFEA580C),
-      Color(0xFF1D4ED8),
-      Color(0xFF16A34A),
-      Color(0xFF7C3AED),
-      Color(0xFFDB2777),
-      Color(0xFF0F172A),
-      Color(0xFF059669),
-    ];
-    final Color baseColor = palette[index % palette.length];
+    const Color baseColor = Colors.black;
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         onTap: onTap,
         child: Ink(
           decoration: BoxDecoration(
             color: baseColor,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   handle,
-                  maxLines: 2,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.titleSmall?.copyWith(
+                  style: theme.textTheme.bodyMedium?.copyWith(
                     color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const Spacer(),
-                Align(
-                  alignment: Alignment.bottomRight,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Container(
-                      width: 52,
-                      height: 68,
-                      color: Colors.white.withValues(alpha: 0.9),
-                      child: Icon(
-                        Icons.person,
-                        size: 28,
-                        color: baseColor,
-                      ),
-                    ),
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
