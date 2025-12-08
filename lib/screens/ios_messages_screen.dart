@@ -8652,9 +8652,9 @@ class _ClassStudentsTab extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                mainAxisSpacing: 8,
-                crossAxisSpacing: 8,
-                childAspectRatio: 2.8,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 0.9,
               ),
               itemCount: list.length,
               itemBuilder: (context, index) {
@@ -8686,34 +8686,88 @@ class _StudentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    const Color baseColor = Colors.black;
+    final Color cardColor = theme.colorScheme.surface;
+    final Color nameColor = const Color(0xFF111827);
+    final Color frameColor =
+        theme.colorScheme.surfaceVariant.withValues(alpha: 0.8);
+
+    final String cleanHandle = handle.replaceFirst(RegExp('^@'), '');
+    final List<String> parts = cleanHandle
+        .split(RegExp(r'[_\.]'))
+        .where((p) => p.isNotEmpty)
+        .toList();
+    final String displayName = parts.isEmpty
+        ? cleanHandle
+        : parts
+            .map(
+              (p) => p.length == 1
+                  ? p.toUpperCase()
+                  : '${p[0].toUpperCase()}${p.substring(1)}',
+            )
+            .join(' ');
+    final String initials = cleanHandle.isEmpty
+        ? '--'
+        : cleanHandle
+            .replaceAll(RegExp(r'[^a-zA-Z]'), '')
+            .toUpperCase()
+            .padRight(2, cleanHandle[0].toUpperCase())
+            .substring(0, 2);
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(24),
         onTap: onTap,
         child: Ink(
           decoration: BoxDecoration(
-            color: baseColor,
-            borderRadius: BorderRadius.circular(12),
+            color: cardColor,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  handle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
+          child: Stack(
+            children: [
+              Align(
+                alignment: Alignment.topCenter,
+                child: Container(
+                  margin: const EdgeInsets.only(top: 8),
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    color: frameColor,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    initials,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: nameColor,
+                    ),
                   ),
                 ),
-              ],
-            ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 60, 12, 16),
+                child: Align(
+                  alignment: Alignment.bottomLeft,
+                  child: Text(
+                    displayName.isEmpty ? handle : displayName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: nameColor,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
