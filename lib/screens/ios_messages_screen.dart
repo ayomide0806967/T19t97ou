@@ -3168,33 +3168,15 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
             ],
           ),
         ),
-        if (widget.isAdmin && widget.activeTopic != null) ...[
-          SafeArea(
-            top: false,
-            minimum: const EdgeInsets.fromLTRB(16, 6, 16, 6),
-            child: _ClassComposer(
-              controller: textController,
-              hintText: 'Message',
-              onSend: () {
-                final text = textController.text.trim();
-                if (text.isEmpty) return;
-                widget.onSend(text);
-                textController.clear();
-              },
-            ),
+        SafeArea(
+          top: false,
+          minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: Text(
+            'Lecture notes are shared by admins in real time.',
+            style: theme.textTheme.bodySmall,
+            textAlign: TextAlign.center,
           ),
-        ]
-        else ...[
-          SafeArea(
-            top: false,
-            minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: Text(
-              'Lecture notes are shared by admins in real time.',
-              style: theme.textTheme.bodySmall,
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ],
+        ),
       ],
     );
   }
