@@ -712,13 +712,17 @@ class _TweetPostCardState extends State<TweetPostCard> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 for (final m in groupA)
-                  _EdgeCell(child: _buildMetricButton(m, compact: isCompact)),
+                  _EdgeCell(
+                    child: _buildMetricButton(m, compact: isCompact),
+                  ),
               ],
             ),
           ),
           SizedBox(width: gapBetweenGroups),
           // Share stays pinned at extreme right in a tight cluster
-          _EdgeCell(child: _buildMetricButton(share, compact: isCompact)),
+          _EdgeCell(
+            child: _buildMetricButton(share, compact: isCompact),
+          ),
         ],
       ),
     );

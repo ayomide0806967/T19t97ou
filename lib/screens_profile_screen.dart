@@ -323,50 +323,111 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 720),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _ProfileTabs(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: _ProfileTabs(
                           selectedIndex: _selectedTab,
                           onChanged: (index) {
                             setState(() => _selectedTab = index);
                           },
                         ),
-                        const SizedBox(height: 24),
-                        if (visiblePosts.isEmpty) ...[
-                          Center(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 48),
-                              child: Text(
-                                emptyMessage,
-                                style: theme.textTheme.bodyMedium,
-                              ),
+                      ),
+                      const SizedBox(height: 24),
+                      if (visiblePosts.isEmpty) ...[
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 48,
+                          ),
+                          child: Center(
+                            child: Text(
+                              emptyMessage,
+                              style: theme.textTheme.bodyMedium,
                             ),
                           ),
-                        ] else ...[
-                          ...visiblePosts.map(
-                            (post) => Padding(
-                              padding: const EdgeInsets.only(bottom: 24),
-                              child: TweetPostCard(
-                                post: post,
-                                currentUserHandle: currentUserHandle,
-                                onTap: () {
-                                  final thread = dataService.buildThreadForPost(post.id);
-                                  Navigator.of(context).push(
-                                    ThreadScreen.route(
-                                      entry: thread,
-                                      currentUserHandle: currentUserHandle,
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
+                        ),
+                      ] else ...[
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Column(
+                            children: [
+                              for (final entry
+                                  in visiblePosts.asMap().entries) ...[
+                                Builder(
+                                  builder: (context) {
+                                    final index = entry.key;
+                                    final post = entry.value;
+                                    final localTheme = Theme.of(context);
+                                    final bool isDark =
+                                        localTheme.brightness == Brightness.dark;
+                                    final Color line = localTheme
+                                        .colorScheme.onSurface
+                                        .withValues(
+                                            alpha: isDark ? 0.12 : 0.06);
+
+                                    final Border border = Border(
+                                      top: index == 0
+                                          ? BorderSide(
+                                              color: line,
+                                              width: 0.6,
+                                            )
+                                          : BorderSide.none,
+                                      bottom:
+                                          BorderSide(color: line, width: 0.6),
+                                    );
+
+                                    return RepaintBoundary(
+                                      child: Container(
+                                        padding: EdgeInsets.only(
+                                          top: index == 0 ? 8 : 14,
+                                          bottom: 14,
+                                        ),
+                                        decoration:
+                                            BoxDecoration(border: border),
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                          ),
+                                          child: Center(
+                                            child: ConstrainedBox(
+                                              constraints:
+                                                  const BoxConstraints(
+                                                maxWidth: 720,
+                                              ),
+                                              child: TweetPostCard(
+                                                post: post,
+                                                currentUserHandle:
+                                                    currentUserHandle,
+                                                onTap: () {
+                                                  final thread = dataService
+                                                      .buildThreadForPost(
+                                                    post.id,
+                                                  );
+                                                  Navigator.of(context).push(
+                                                    ThreadScreen.route(
+                                                      entry: thread,
+                                                      currentUserHandle:
+                                                          currentUserHandle,
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ],
                           ),
-                        ],
+                        ),
                       ],
-                    ),
+                    ],
                   ),
                 ),
               ),

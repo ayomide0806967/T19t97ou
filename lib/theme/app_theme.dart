@@ -168,6 +168,16 @@ class AppTheme {
           ),
         ),
       ),
+      // Keep date/time pickers visually white without touching layout.
+      datePickerTheme: base.datePickerTheme.copyWith(
+        backgroundColor: Colors.white,
+        headerBackgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+      ),
+      timePickerTheme: base.timePickerTheme.copyWith(
+        backgroundColor: Colors.white,
+        dialBackgroundColor: Colors.white,
+      ),
       chipTheme: base.chipTheme.copyWith(
         backgroundColor: Colors.black12,
         labelStyle: GoogleFonts.inter(

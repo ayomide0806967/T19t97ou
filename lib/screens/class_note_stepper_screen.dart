@@ -13,13 +13,14 @@ class ClassNoteStepperScreen extends StatefulWidget {
 
 class _ClassNoteStepperScreenState extends State<ClassNoteStepperScreen> {
   int _activeIndex = 0;
+  final List<GlobalKey> _stepKeys = <GlobalKey>[];
 
   // Example data – a single note broken into short rails/sections.
-  final List<ClassNoteSection> _sections = const [
+  final List<ClassNoteSection> _sections = const <ClassNoteSection>[
     ClassNoteSection(
       title: '1 · Overview',
       subtitle: 'Why this topic matters today',
-      bullets: [
+      bullets: <String>[
         'Defines the clinical problem in one or two sentences.',
         'Connects it to a real ward situation students will recognise.',
         'States the outcome: what you should be able to do after this note.',
@@ -28,7 +29,7 @@ class _ClassNoteStepperScreenState extends State<ClassNoteStepperScreen> {
     ClassNoteSection(
       title: '2 · Key facts',
       subtitle: 'Numbers and red‑flag thresholds',
-      bullets: [
+      bullets: <String>[
         '3–5 key facts only – no paragraphs.',
         'Highlight red‑flags in bold in the final copy.',
         'Keep each line readable on one screen without scrolling sideways.',
@@ -37,7 +38,7 @@ class _ClassNoteStepperScreenState extends State<ClassNoteStepperScreen> {
     ClassNoteSection(
       title: '3 · Simple example',
       subtitle: 'Short story from the ward',
-      bullets: [
+      bullets: <String>[
         'One patient story, 3–4 sentences max.',
         'Focus on the decision points, not every detail.',
         'End with: “What would you do next?” to keep them thinking.',
@@ -46,7 +47,7 @@ class _ClassNoteStepperScreenState extends State<ClassNoteStepperScreen> {
     ClassNoteSection(
       title: '4 · Checklist',
       subtitle: 'Steps to follow in practice',
-      bullets: [
+      bullets: <String>[
         'Turn the protocol into 4–6 clear steps.',
         'Use verbs at the start: “Check…”, “Confirm…”, “Document…”.',
         'Highlight any “never” behaviours in a different colour in real notes.',
@@ -55,16 +56,34 @@ class _ClassNoteStepperScreenState extends State<ClassNoteStepperScreen> {
     ClassNoteSection(
       title: '5 · Self‑check',
       subtitle: 'Tiny quiz to close the loop',
-      bullets: [
+      bullets: <String>[
         '2–3 short questions or scenarios.',
         'Ask students to predict, then reveal the answer in class or later.',
       ],
     ),
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    _stepKeys.addAll(List<GlobalKey>.generate(_sections.length, (_) => GlobalKey()));
+  }
+
   void _setActive(int index) {
     if (index < 0 || index >= _sections.length) return;
     setState(() => _activeIndex = index);
+    // After the frame updates, gently scroll the tapped step so that it
+    // sits around the middle of the screen for easier reading.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final BuildContext? stepContext = _stepKeys[index].currentContext;
+      if (stepContext == null) return;
+      Scrollable.ensureVisible(
+        stepContext,
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.easeOutCubic,
+        alignment: 0.5, // aim for vertical center of the viewport
+      );
+    });
   }
 
   @override
@@ -74,7 +93,8 @@ class _ClassNoteStepperScreenState extends State<ClassNoteStepperScreen> {
     final subtle = onSurface.withValues(
       alpha: theme.brightness == Brightness.dark ? 0.6 : 0.55,
     );
-    final progress = (_activeIndex + 1) / _sections.length;
+    final int totalSteps = _sections.isEmpty ? 1 : _sections.length;
+    final progress = (_activeIndex + 1) / totalSteps;
 
     return Scaffold(
       appBar: AppBar(
@@ -82,7 +102,9 @@ class _ClassNoteStepperScreenState extends State<ClassNoteStepperScreen> {
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+          // Let cards extend almost to the right edge so text
+          // can use the full width of the screen.
+          padding: const EdgeInsets.fromLTRB(20, 16, 0, 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -136,7 +158,9 @@ class _ClassNoteStepperScreenState extends State<ClassNoteStepperScreen> {
               const SizedBox(height: 20),
               Expanded(
                 child: ListView.builder(
-                  padding: const EdgeInsets.only(bottom: 16),
+                  // Extra bottom padding so the last item can scroll up
+                  // toward the middle of the screen when focused.
+                  padding: const EdgeInsets.only(bottom: 160),
                   itemCount: _sections.length,
                   itemBuilder: (context, index) {
                     final section = _sections[index];
@@ -144,6 +168,7 @@ class _ClassNoteStepperScreenState extends State<ClassNoteStepperScreen> {
                     // Only the active step is "open" – others stay collapsed.
                     final isRevealed = isActive;
                     return NoteRailStep(
+                      key: _stepKeys[index],
                       index: index,
                       total: _sections.length,
                       section: section,

@@ -26,7 +26,13 @@ import 'student_profile_screen.dart';
 import 'class_note_stepper_screen.dart';
 import '../widgets/equal_width_buttons_row.dart';
 import '../widgets/setting_switch_row.dart';
+import '../models/class_note.dart';
 // Removed unused tweet widgets imports
+
+// In-memory lecture note buckets shared between tabs for this demo.
+final List<ClassNoteSummary> _classNotes = <ClassNoteSummary>[];
+final List<ClassNoteSummary> _libraryNotes = <ClassNoteSummary>[];
+VoidCallback? _notifyClassNotesChanged;
 
 // Lightweight attachment model used by the class composer
 class _Attachment {
@@ -1793,11 +1799,20 @@ Mock exam briefing extended update: please review chapters one through five, pra
       }
     }
     final theme = Theme.of(context);
+    const whatsappGreen = Color(0xFF075E54);
     return DefaultTabController(
       length: 3,
       child: Scaffold(
         appBar: AppBar(
-          title: Text(college.name),
+          backgroundColor: whatsappGreen,
+          foregroundColor: Colors.white,
+          title: Text(
+            college.name,
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           actions: [
             if (_isCurrentUserAdmin)
               IconButton(
@@ -1810,9 +1825,9 @@ Mock exam briefing extended update: please review chapters one through five, pra
           ],
           bottom: TabBar(
             labelStyle: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
-            labelColor: Colors.black,
-            unselectedLabelColor: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-            indicatorColor: Colors.black,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white.withOpacity(0.7),
+            indicatorColor: Colors.white,
             indicatorWeight: 3,
             tabs: const [
               Tab(text: 'Class'),
@@ -2204,6 +2219,9 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
   @override
   void initState() {
     super.initState();
+    _notifyClassNotesChanged = () {
+      if (mounted) setState(() {});
+    };
     _visibleNotes = widget.notes.isEmpty
         ? 0
         : (widget.notes.length < _pageSize ? widget.notes.length : _pageSize);
@@ -2233,8 +2251,18 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
   }
 
   @override
+  void dispose() {
+    _notifyClassNotesChanged = null;
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final onSurface = theme.colorScheme.onSurface;
+    final subtle = onSurface.withValues(
+      alpha: theme.brightness == Brightness.dark ? 0.6 : 0.55,
+    );
     final TextEditingController textController = TextEditingController();
     return Column(
       children: [
@@ -2242,27 +2270,44 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
             children: [
-              _ClassTopInfo(college: widget.college, memberCount: widget.memberCount),
-              const SizedBox(height: 16),
-              if (widget.activeTopic != null)
-                _ActiveTopicCard(topic: widget.activeTopic!, onArchive: widget.onArchiveTopic)
-              else if (widget.isAdmin)
-                _StartLectureCard(
-                  onStart: (c, t, k, s) {
-                    // Start the lecture state first
-                    widget.onStartLecture(c, t, k, s);
-                    // Then seamlessly move to the note creating stepper
-                    Navigator.of(context).push(
+            // Class discussion label sits above the lecture CTA so
+            // both the create button and cards feel grouped under it.
+            Text(
+              S.classDiscussion,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (widget.activeTopic == null && widget.isAdmin) ...[
+                FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF075E54),
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  onPressed: () async {
+                    final summary = await Navigator.of(context).push<ClassNoteSummary>(
                       MaterialPageRoute(
-                        builder: (_) => TeacherNoteCreationScreen(
-                          topic: k,
-                          subtitle: t.isNotEmpty ? t : c,
+                        builder: (_) => _LectureSetupPage(
+                          college: widget.college,
+                          onStartLecture: widget.onStartLecture,
                         ),
                       ),
                     );
+                    if (summary != null && mounted) {
+                      setState(() {
+                        _classNotes.insert(0, summary);
+                      });
+                    }
                   },
-                )
-              else
+                  icon: const Icon(Icons.note_add_outlined),
+                  label: const Text('CREATE LECTURE NOTE'),
+                ),
+              ] else
                 const SizedBox.shrink(),
               const SizedBox(height: 12),
               if (widget.activeTopic != null) ...[
@@ -2276,16 +2321,40 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
                   _TopicFeedList(topic: widget.activeTopic!),
                 const SizedBox(height: 16),
               ],
-              Text(S.classDiscussion, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-              const SizedBox(height: 12),
-              Row(
-                children: const [
-                  Expanded(child: _ClassNotesCard()),
-                  SizedBox(width: 12),
-                  Expanded(child: _ClassNotesCard()),
-                ],
-              ),
-              const SizedBox(height: 4),
+              if (_classNotes.isEmpty) ...[
+                Text(
+                  'Class notes you create will appear here.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: subtle,
+                  ),
+                ),
+                const SizedBox(height: 4),
+              ] else ...[
+                Column(
+                  children: [
+                    for (final note in _classNotes) ...[
+                      _ClassNotesCard(
+                        summary: note,
+                        onUpdated: (updated) {
+                          setState(() {
+                            final int index = _classNotes.indexOf(note);
+                            if (index != -1) {
+                              _classNotes[index] = updated;
+                            }
+                          });
+                        },
+                        onMoveToLibrary: () {
+                          setState(() {
+                            _classNotes.remove(note);
+                          });
+                          _libraryNotes.insert(0, note);
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                  ],
+                ),
+              ],
             ],
           ),
         ),
@@ -2321,63 +2390,585 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
   }
 }
 
-class _ActiveTopicCard extends StatelessWidget {
-  const _ActiveTopicCard({required this.topic, required this.onArchive});
-  final ClassTopic topic;
-  final VoidCallback onArchive;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final bool isDark = theme.brightness == Brightness.dark;
-    final Color border = theme.dividerColor.withValues(alpha: isDark ? 0.35 : 0.2);
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: border),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(topic.courseName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12)),
-                ),
-                const SizedBox(height: 10),
-                Text(topic.topicTitle, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
-                const SizedBox(height: 4),
-                Text('Tutor ${topic.tutorName}', style: theme.textTheme.bodyMedium),
-                const SizedBox(height: 2),
-                Text('Started ${_formatRelative(topic.createdAt)}', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
-              ],
-            ),
-          ),
-          FilledButton.icon(
-            style: FilledButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white),
-            onPressed: onArchive,
-            icon: const Icon(Icons.archive_outlined),
-            label: const Text('Move to Library'),
-          ),
-        ],
-      ),
-    );
-  }
-}
+// Removed legacy _ActiveTopicCard: details are now surfaced in the class header
+// and a compact "Move to Library" pill above the discussion instead of a full card.
 
 class _StartLectureCard extends StatefulWidget {
   const _StartLectureCard({required this.onStart});
   final void Function(String course, String tutor, String topic, _TopicSettings settings) onStart;
   @override
   State<_StartLectureCard> createState() => _StartLectureCardState();
+}
+
+/// Full-page lecture setup experience, opened from the "CREATE LECTURE NOTE"
+/// button on the class feed. Wraps the existing _StartLectureCard in a
+/// dedicated screen with a black aesthetic banner.
+class _LectureSetupPage extends StatelessWidget {
+  const _LectureSetupPage({
+    required this.college,
+    required this.onStartLecture,
+  });
+
+  final College college;
+  final void Function(String course, String tutor, String topic, _TopicSettings settings)
+      onStartLecture;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    // WhatsApp-style header green for the create-lecture page.
+    const Color bannerColor = Color(0xFF075E54);
+    final Color bannerText = Colors.white;
+
+    return Scaffold(
+      backgroundColor: theme.colorScheme.surface,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Top black banner with class context and description
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+              decoration: const BoxDecoration(
+                color: bannerColor,
+                borderRadius: BorderRadius.vertical(
+                  bottom: Radius.circular(28),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.white.withValues(alpha: 0.12),
+                          shape: const CircleBorder(),
+                        ),
+                        icon: const Icon(
+                          Icons.arrow_back_rounded,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              college.name,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: bannerText.withValues(alpha: 0.75),
+                                letterSpacing: 0.2,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Create lecture note',
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                color: bannerText,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    'Set up the course, tutor, topic, and access before you start posting notes in real time.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: bannerText.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Lecture setup form
+            Expanded(
+              child: SingleChildScrollView(
+                // Push the form closer to the vertical middle on
+                // taller screens while remaining scrollable.
+                padding: const EdgeInsets.fromLTRB(16, 40, 16, 40),
+                child: _LectureSetupForm(
+                  onSubmit: (course, tutor, topic, settings) async {
+                    // Notify parent to mark the topic as active
+                    onStartLecture(course, tutor, topic, settings);
+                    // Then take the user straight into the note creation flow
+                    final summary = await Navigator.of(context).push<ClassNoteSummary>(
+                      MaterialPageRoute(
+                        builder: (_) => TeacherNoteCreationScreen(
+                          topic: topic,
+                          subtitle: tutor.isNotEmpty ? tutor : course,
+                        ),
+                      ),
+                    );
+                    if (!context.mounted) return;
+                    Navigator.of(context).pop<ClassNoteSummary>(summary);
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Boxed lecture setup form that mirrors the "Create Lecture" note style.
+class _LectureSetupForm extends StatefulWidget {
+  const _LectureSetupForm({
+    required this.onSubmit,
+  });
+
+  final void Function(
+    String course,
+    String tutor,
+    String topic,
+    _TopicSettings settings,
+  ) onSubmit;
+
+  @override
+  State<_LectureSetupForm> createState() => _LectureSetupFormState();
+}
+
+class _LectureSetupFormState extends State<_LectureSetupForm> {
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _courseController = TextEditingController();
+  final TextEditingController _tutorController = TextEditingController();
+  final TextEditingController _topicController = TextEditingController();
+  final TextEditingController _pinController = TextEditingController();
+
+  int _step = 0; // 0 = details, 1 = privacy
+  bool _privateLecture = false;
+  bool _requirePin = false;
+  DateTime? _autoArchiveAt;
+
+  @override
+  void dispose() {
+    _courseController.dispose();
+    _tutorController.dispose();
+    _topicController.dispose();
+    _pinController.dispose();
+    super.dispose();
+  }
+
+  /// Simple, stable time picker that avoids the Material
+  /// time picker layout bug on some devices by using a
+  /// Cupertino-style wheel in a custom bottom sheet.
+  Future<TimeOfDay?> _pickTimeSheet(
+    BuildContext context,
+    TimeOfDay initial,
+  ) async {
+    TimeOfDay temp = initial;
+    return showModalBottomSheet<TimeOfDay>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        final theme = Theme.of(ctx);
+        String _format(TimeOfDay t) {
+          final int hour = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
+          final String minute = t.minute.toString().padLeft(2, '0');
+          final String period = t.period == DayPeriod.am ? 'AM' : 'PM';
+          return '$hour:$minute $period';
+        }
+
+        return SafeArea(
+          top: false,
+          child: SizedBox(
+            height: 320,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(),
+                        child: const Text('Cancel'),
+                      ),
+                      Text(
+                        'Select time',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(temp),
+                        child: const Text('Done'),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                // Large, centered time preview for better readability.
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Builder(
+                    builder: (_) => StatefulBuilder(
+                      builder: (context, setLocalState) {
+                        // This StatefulBuilder is only used to refresh
+                        // the preview text when the wheel changes.
+                        return Text(
+                          _format(temp),
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.2,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: CupertinoDatePicker(
+                    mode: CupertinoDatePickerMode.time,
+                    initialDateTime: DateTime(
+                      2020,
+                      1,
+                      1,
+                      initial.hour,
+                      initial.minute,
+                    ),
+                    use24hFormat: false,
+                    onDateTimeChanged: (dt) {
+                      final next = TimeOfDay(hour: dt.hour, minute: dt.minute);
+                      if (next == temp) return;
+                      temp = next;
+                      // Rebuild the preview text only.
+                      (ctx as Element).markNeedsBuild();
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickDateTime(BuildContext context) async {
+    final now = DateTime.now();
+    final date = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: now,
+      lastDate: DateTime(now.year + 2),
+    );
+    if (date == null) return;
+    final time = await _pickTimeSheet(
+      context,
+      TimeOfDay.fromDateTime(
+        now.add(const Duration(hours: 1)),
+      ),
+    );
+    if (time == null) return;
+    setState(() {
+      _autoArchiveAt = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time.hour,
+        time.minute,
+      );
+    });
+  }
+
+  void _submit() {
+    if (!_formKey.currentState!.validate()) return;
+    final course = _courseController.text.trim();
+    final tutor = _tutorController.text.trim();
+    final topic = _topicController.text.trim();
+    final settings = _TopicSettings(
+      privateLecture: _privateLecture,
+      requirePin: _requirePin,
+      pinCode: _requirePin ? _pinController.text.trim() : null,
+      autoArchiveAt: _autoArchiveAt,
+    );
+    widget.onSubmit(course, tutor, topic, settings);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    final InputDecorationTheme inputTheme = InputDecorationTheme(
+      isDense: true,
+      filled: true,
+      fillColor: theme.colorScheme.surface,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 14,
+      ),
+      labelStyle: const TextStyle(
+        color: Colors.black,
+        fontWeight: FontWeight.w600,
+      ),
+      floatingLabelStyle: const TextStyle(
+        color: Colors.black,
+        fontWeight: FontWeight.w700,
+      ),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: theme.dividerColor),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: theme.dividerColor),
+      ),
+      focusedBorder: const OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(12)),
+        borderSide: BorderSide(
+          color: Colors.black,
+          width: 1.8,
+        ),
+      ),
+    );
+
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Mini stepper header showing 1 and 2
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Center(
+              child: _StepRailMini(
+                activeIndex: _step,
+                steps: const ['1', '2'],
+              ),
+            ),
+          ),
+          if (_step == 0) ...[
+            // Step 1: Lecture details
+            Text(
+              'Lecture details',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: theme.dividerColor.withValues(alpha: 0.25),
+                ),
+              ),
+              child: Theme(
+                data: theme.copyWith(
+                  inputDecorationTheme: inputTheme,
+                  textSelectionTheme: const TextSelectionThemeData(
+                    cursorColor: Colors.black,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    TextFormField(
+                      controller: _courseController,
+                      textCapitalization: TextCapitalization.sentences,
+                      keyboardType: TextInputType.multiline,
+                      maxLines: null,
+                      decoration: const InputDecoration(
+                        labelText: 'Course name',
+                        hintText: 'e.g., Biology 401 · Genetics',
+                      ),
+                      style: const TextStyle(color: Colors.black),
+                      validator: (v) =>
+                          v == null || v.trim().isEmpty ? 'Enter course name' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _tutorController,
+                      textCapitalization: TextCapitalization.words,
+                      keyboardType: TextInputType.multiline,
+                      maxLines: null,
+                      decoration: const InputDecoration(
+                        labelText: 'Tutor name (optional)',
+                        hintText: 'e.g., Dr. Tayo Ajayi',
+                      ),
+                      style: const TextStyle(color: Colors.black),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _topicController,
+                      textCapitalization: TextCapitalization.sentences,
+                      keyboardType: TextInputType.multiline,
+                      maxLines: null,
+                      decoration: const InputDecoration(
+                        labelText: 'Topic',
+                        hintText: 'e.g., Mendelian inheritance, DNA structure',
+                      ),
+                      style: const TextStyle(color: Colors.black),
+                      validator: (v) =>
+                          v == null || v.trim().isEmpty ? 'Enter topic' : null,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            // Next button (step 1 of 2)
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () {
+                  if (!_formKey.currentState!.validate()) return;
+                  setState(() => _step = 1);
+                },
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: const Color(0xFF075E54),
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Next'),
+              ),
+            ),
+          ] else ...[
+            // Step 2: Access & privacy
+            Text(
+              'Access & privacy',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: theme.dividerColor.withValues(alpha: 0.25),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SettingSwitchRow(
+                    label: 'Private lecture (disable repost)',
+                    value: _privateLecture,
+                    onChanged: (v) => setState(() => _privateLecture = v),
+                    monochrome: true,
+                  ),
+                  SettingSwitchRow(
+                    label: 'Require PIN to access',
+                    value: _requirePin,
+                    onChanged: (v) => setState(() => _requirePin = v),
+                    monochrome: true,
+                  ),
+                  if (_requirePin) ...[
+                    const SizedBox(height: 6),
+                    Theme(
+                      data: theme.copyWith(
+                        inputDecorationTheme: inputTheme,
+                        textSelectionTheme: const TextSelectionThemeData(
+                          cursorColor: Colors.black,
+                        ),
+                      ),
+                      child: TextFormField(
+                        controller: _pinController,
+                        decoration: const InputDecoration(
+                          labelText: 'PIN code',
+                        ),
+                        style: const TextStyle(color: Colors.black),
+                        validator: (v) {
+                          if (!_requirePin) return null;
+                          if (v == null || v.trim().isEmpty) {
+                            return 'Enter a PIN code';
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Text(
+                        'Auto-archive',
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                      const Spacer(),
+                      if (_autoArchiveAt != null)
+                        TextButton(
+                          onPressed: () => setState(() => _autoArchiveAt = null),
+                          child: const Text('Remove'),
+                        ),
+                    ],
+                  ),
+                  if (_autoArchiveAt != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      _autoArchiveAt!.toString(),
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(0, 44),
+                        backgroundColor: const Color(0xFF075E54),
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () => _pickDateTime(context),
+                      child: const Text('Date/time'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            // Back + Start buttons
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => setState(() => _step = 0),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 48),
+                    ),
+                    child: const Text('Back'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: _submit,
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: const Color(0xFF075E54),
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('Start lecture'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }
 
 class _StartLectureCardState extends State<_StartLectureCard> {
@@ -2638,7 +3229,7 @@ class _TopicFeedListState extends State<_TopicFeedList> {
     final data = context.watch<DataService>();
     final posts = data.posts.where((p) => p.tags.contains(widget.topic.topicTag)).toList();
     if (posts.isEmpty) {
-      return const SkeletonList(items: 3);
+      return const SizedBox.shrink();
     }
     final slice = posts.take(_visible == 0 ? posts.length : _visible).toList();
     return Column(
@@ -4153,7 +4744,17 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
 }
 
 class _ClassNotesCard extends StatelessWidget {
-  const _ClassNotesCard();
+  _ClassNotesCard({
+    required this.summary,
+    this.onUpdated,
+    this.onMoveToLibrary,
+    this.inLibrary = false,
+  });
+
+  final ClassNoteSummary summary;
+  final ValueChanged<ClassNoteSummary>? onUpdated;
+  final VoidCallback? onMoveToLibrary;
+  final bool inLibrary;
 
   @override
   Widget build(BuildContext context) {
@@ -4163,6 +4764,10 @@ class _ClassNotesCard extends StatelessWidget {
       alpha: theme.brightness == Brightness.dark ? 0.6 : 0.55,
     );
     final bool isDark = theme.brightness == Brightness.dark;
+    const whatsappGreen = Color(0xFF075E54);
+    final DateTime createdAt = summary.createdAt;
+    final String dateLabel =
+        '${createdAt.day.toString().padLeft(2, '0')}/${createdAt.month.toString().padLeft(2, '0')}/${createdAt.year}';
 
     return Material(
       color: Colors.transparent,
@@ -4175,12 +4780,12 @@ class _ClassNotesCard extends StatelessWidget {
             ),
           );
         },
-        child: Container(
+          child: Container(
           decoration: BoxDecoration(
-            color: Colors.black,
+            color: whatsappGreen,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: Colors.black,
+              color: whatsappGreen,
             ),
             boxShadow: [
               if (!isDark)
@@ -4204,7 +4809,7 @@ class _ClassNotesCard extends StatelessWidget {
                     height: 36,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
-                      color: Colors.white.withValues(alpha: 0.08),
+                      color: Colors.white.withValues(alpha: 0.14),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.4),
@@ -4225,7 +4830,16 @@ class _ClassNotesCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Medication safety in NICU',
+                          'Lecture note',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.6,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Topic: ${summary.title}',
                           style: theme.textTheme.titleMedium?.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.w700,
@@ -4233,12 +4847,46 @@ class _ClassNotesCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Class note · NUR 301 · Week 4',
+                          summary.subtitle,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: Colors.white.withValues(alpha: 0.7),
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                  FilledButton(
+                    onPressed: () async {
+                      final updated = await Navigator.of(context).push<ClassNoteSummary>(
+                        MaterialPageRoute(
+                          builder: (_) => TeacherNoteCreationScreen(
+                            topic: summary.title,
+                            subtitle: summary.subtitle,
+                            initialSections: summary.sections,
+                            initialCreatedAt: summary.createdAt,
+                            initialCommentCount: summary.commentCount,
+                          ),
+                        ),
+                      );
+                      if (updated != null && onUpdated != null && context.mounted) {
+                        onUpdated!(updated);
+                      }
+                    },
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      minimumSize: const Size(0, 0),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                    child: const Text(
+                      'Edit',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],
@@ -4252,6 +4900,17 @@ class _ClassNotesCard extends StatelessWidget {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      Text(
+                        dateLabel,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.8),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                       Icon(
                         Icons.list_alt_outlined,
                         size: 16,
@@ -4259,7 +4918,7 @@ class _ClassNotesCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '5 steps',
+                        '${summary.steps} step${summary.steps == 1 ? '' : 's'}',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: Colors.white.withValues(alpha: 0.8),
                         ),
@@ -4276,36 +4935,71 @@ class _ClassNotesCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '3 min review',
+                        '${summary.estimatedMinutes} min review',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: Colors.white.withValues(alpha: 0.8),
                         ),
                       ),
                     ],
                   ),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const ClassNoteStepperScreen(),
-                        ),
-                      );
-                    },
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      minimumSize: const Size(0, 0),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: const Text(
-                      'Open',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
                 ],
               ),
+              if (onMoveToLibrary != null) ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: inLibrary ? Colors.grey.shade300 : Colors.white,
+                        foregroundColor: inLibrary ? Colors.grey.shade700 : whatsappGreen,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                      onPressed: inLibrary
+                          ? null
+                          : () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const ClassNoteStepperScreen(),
+                                ),
+                              );
+                            },
+                      icon: Icon(
+                        inLibrary ? Icons.block : Icons.play_arrow_rounded,
+                        size: 18,
+                      ),
+                      label: Text(inLibrary ? 'Deactivate' : 'Open'),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: FilledButton.icon(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: whatsappGreen,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                          ),
+                          onPressed: onMoveToLibrary,
+                          icon: const Icon(Icons.archive_outlined, size: 18),
+                          label: Text(inLibrary ? 'Move to Class' : 'Move to Library'),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
@@ -6677,19 +7371,56 @@ class _ClassMessage {
   final int heartbreaks;
 }
 
-class _ClassLibraryTab extends StatelessWidget {
+class _ClassLibraryTab extends StatefulWidget {
   const _ClassLibraryTab({required this.college, required this.topics});
   final College college;
   final List<ClassTopic> topics;
 
   @override
+  State<_ClassLibraryTab> createState() => _ClassLibraryTabState();
+}
+
+class _ClassLibraryTabState extends State<_ClassLibraryTab> {
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final College college = widget.college;
+    final List<ClassTopic> topics = widget.topics;
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       children: [
         Text('Library', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
         const SizedBox(height: 12),
+        if (_libraryNotes.isNotEmpty) ...[
+          Column(
+            children: [
+              for (final note in _libraryNotes) ...[
+                _ClassNotesCard(
+                  summary: note,
+                  inLibrary: true,
+                  onUpdated: (updated) {
+                    setState(() {
+                      final int index = _libraryNotes.indexOf(note);
+                      if (index != -1) {
+                        _libraryNotes[index] = updated;
+                      }
+                    });
+                  },
+                  onMoveToLibrary: () {
+                    setState(() {
+                      _libraryNotes.remove(note);
+                    });
+                    _classNotes.insert(0, note);
+                    _notifyClassNotesChanged?.call();
+                  },
+                ),
+                const SizedBox(height: 8),
+              ],
+            ],
+          ),
+          const SizedBox(height: 16),
+        ],
         if (topics.isEmpty)
           Text('No archived topics yet', style: theme.textTheme.bodyMedium)
         else ...[
@@ -6931,23 +7662,26 @@ class _ClassStudentsTab extends StatelessWidget {
 }
 
 class _ClassTopInfo extends StatelessWidget {
-  const _ClassTopInfo({required this.college, this.memberCount});
+  const _ClassTopInfo({
+    required this.college,
+    this.memberCount,
+    this.activeTopic,
+  });
 
   final College college;
   final int? memberCount;
+  final ClassTopic? activeTopic;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final bool isDark = theme.brightness == Brightness.dark;
-    final Color surface = isDark ? const Color(0xFF0F1114) : Colors.white;
-    final Color border = theme.dividerColor.withValues(alpha: isDark ? 0.28 : 0.18);
+    const Color whatsappGreen = Color(0xFF075E54);
+    final Color onGreen = Colors.white;
 
     return Container(
       decoration: BoxDecoration(
-        color: surface,
+        color: whatsappGreen,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: border),
       ),
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -6958,28 +7692,59 @@ class _ClassTopInfo extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.08),
+                  color: Colors.white.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   college.code,
-                  style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700),
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: onGreen,
+                  ),
                 ),
               ),
               const Spacer(),
-              Text('${memberCount ?? college.members} students', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withValues(alpha: 0.7))),
+              Text(
+                '${memberCount ?? college.members} students',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: onGreen.withValues(alpha: 0.85),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 10),
           Text(
             college.name,
-            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.2),
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.2,
+              color: onGreen,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             college.facilitator,
-            style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurface.withValues(alpha: 0.8)),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: onGreen.withValues(alpha: 0.8),
+            ),
           ),
+          if (activeTopic != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Topic: ${activeTopic!.topicTitle}',
+              style: theme.textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: onGreen,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Tutor ${activeTopic!.tutorName} • Started ${_formatRelative(activeTopic!.createdAt)}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: onGreen.withValues(alpha: 0.9),
+              ),
+            ),
+          ],
         ],
       ),
     );

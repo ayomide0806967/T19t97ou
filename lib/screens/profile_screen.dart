@@ -527,36 +527,67 @@ class _ProfileScreenState extends State<ProfileScreen> {
               )
             else
               SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+                padding: const EdgeInsets.symmetric(horizontal: 0),
                 sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate((context, index) {
-                    final post = visiblePosts[index];
-                    final isLast = index == visiblePosts.length - 1;
-                    return Padding(
-                      padding: EdgeInsets.only(bottom: isLast ? 0 : 24),
-                      child: TweetPostCard(
-                        key: ValueKey(post.id),
-                        post: post,
-                        currentUserHandle: currentUserHandle,
-                        onReply: (_) {
-                          Navigator.of(context).push(
-                            messageRepliesRouteFromPost(
-                              post: post,
-                              currentUserHandle: currentUserHandle,
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final post = visiblePosts[index];
+                      final theme = Theme.of(context);
+                      final bool isDark =
+                          theme.brightness == Brightness.dark;
+                      final Color line = theme.colorScheme.onSurface
+                          .withValues(alpha: isDark ? 0.12 : 0.06);
+
+                      final Border border = Border(
+                        top: index == 0
+                            ? BorderSide(color: line, width: 0.6)
+                            : BorderSide.none,
+                        bottom: BorderSide(color: line, width: 0.6),
+                      );
+
+                      return Container(
+                        padding: EdgeInsets.only(
+                          top: index == 0 ? 8 : 14,
+                          bottom: 14,
+                        ),
+                        decoration: BoxDecoration(border: border),
+                        child: Padding(
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 12),
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints:
+                                  const BoxConstraints(maxWidth: 720),
+                              child: TweetPostCard(
+                                key: ValueKey(post.id),
+                                post: post,
+                                currentUserHandle: currentUserHandle,
+                                onReply: (_) {
+                                  Navigator.of(context).push(
+                                    messageRepliesRouteFromPost(
+                                      post: post,
+                                      currentUserHandle:
+                                          currentUserHandle,
+                                    ),
+                                  );
+                                },
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    messageRepliesRouteFromPost(
+                                      post: post,
+                                      currentUserHandle:
+                                          currentUserHandle,
+                                    ),
+                                  );
+                                },
+                              ),
                             ),
-                          );
-                        },
-                        onTap: () {
-                          Navigator.of(context).push(
-                            messageRepliesRouteFromPost(
-                              post: post,
-                              currentUserHandle: currentUserHandle,
-                            ),
-                          );
-                        },
-                      ),
-                    );
-                  }, childCount: visiblePosts.length),
+                          ),
+                        ),
+                      );
+                    },
+                    childCount: visiblePosts.length,
+                  ),
                 ),
               ),
             const SliverToBoxAdapter(child: SizedBox(height: 24)),

@@ -6,10 +6,16 @@ class TeacherNoteCreationScreen extends StatefulWidget {
     super.key,
     required this.topic,
     required this.subtitle,
+    this.initialSections = const <ClassNoteSection>[],
+    this.initialCreatedAt,
+    this.initialCommentCount = 0,
   });
 
   final String topic;
   final String subtitle;
+  final List<ClassNoteSection> initialSections;
+  final DateTime? initialCreatedAt;
+  final int initialCommentCount;
 
   @override
   State<TeacherNoteCreationScreen> createState() =>
@@ -17,7 +23,7 @@ class TeacherNoteCreationScreen extends StatefulWidget {
 }
 
 class _TeacherNoteCreationScreenState extends State<TeacherNoteCreationScreen> {
-  final List<ClassNoteSection> _sections = [];
+  late List<ClassNoteSection> _sections;
   
   // Which step is currently being edited. 
   // If null, we're adding a new step at the end.
@@ -32,6 +38,14 @@ class _TeacherNoteCreationScreenState extends State<TeacherNoteCreationScreen> {
   final _scrollController = ScrollController();
 
   static const int _maxWordsPerStep = 60;
+  static const int _maxHeadingWords = 10;
+  static const int _maxSubtitleWords = 5;
+
+  @override
+  void initState() {
+    super.initState();
+    _sections = List<ClassNoteSection>.from(widget.initialSections);
+  }
 
   @override
   void dispose() {
@@ -102,6 +116,25 @@ class _TeacherNoteCreationScreenState extends State<TeacherNoteCreationScreen> {
     final title = _titleController.text.trim();
     if (title.isEmpty) return; // Nothing to save
     
+    // Enforce concise headings/subtitles.
+    if (_wordCount(title) > _maxHeadingWords) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Keep section heading under $_maxHeadingWords words'),
+        ),
+      );
+      return;
+    }
+    final subtitle = _subtitleController.text.trim();
+    if (_wordCount(subtitle) > _maxSubtitleWords) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Keep subtitle under $_maxSubtitleWords words'),
+        ),
+      );
+      return;
+    }
+
     final content = _bulletsController.text.trim();
     if (_wordCount(content) > _maxWordsPerStep) return; // Invalid
     
@@ -110,7 +143,7 @@ class _TeacherNoteCreationScreenState extends State<TeacherNoteCreationScreen> {
       final stepNum = _editingIndex! + 1;
       _sections[_editingIndex!] = ClassNoteSection(
         title: '$stepNum · $title',
-        subtitle: _subtitleController.text.trim(),
+        subtitle: subtitle,
         bullets: _parseBullets(content),
       );
     }
@@ -125,27 +158,47 @@ class _TeacherNoteCreationScreenState extends State<TeacherNoteCreationScreen> {
       );
       return;
     }
-    
-    final content = _bulletsController.text.trim();
-    if (_wordCount(content) > _maxWordsPerStep) {
-       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Keep it concise! Limit is ~60 words.')),
+    if (_wordCount(title) > _maxHeadingWords) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Keep section heading under $_maxHeadingWords words'),
+        ),
       );
       return;
     }
 
-    final newSection = ClassNoteSection(
-      title: '${_sections.length + 1} · $title',
-      subtitle: _subtitleController.text.trim(),
-      bullets: _parseBullets(content),
-    );
+    final subtitle = _subtitleController.text.trim();
+    if (_wordCount(subtitle) > _maxSubtitleWords) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Keep subtitle under $_maxSubtitleWords words'),
+        ),
+      );
+      return;
+    }
+    
+    final content = _bulletsController.text.trim();
+    final bullets = _parseBullets(content);
+    
+    // Check if content exceeds word limit
+    if (_wordCount(content) > _maxWordsPerStep) {
+      // Auto-split into multiple sections
+      _autoSplitAndAddSections(title, subtitle, bullets);
+    } else {
+      // Add single section normally
+      final newSection = ClassNoteSection(
+        title: '${_sections.length + 1} · $title',
+        subtitle: subtitle,
+        bullets: bullets,
+      );
 
-    setState(() {
-      _sections.add(newSection);
-      _titleController.clear();
-      _subtitleController.clear();
-      _bulletsController.clear();
-    });
+      setState(() {
+        _sections.add(newSection);
+        _titleController.clear();
+        _subtitleController.clear();
+        _bulletsController.clear();
+      });
+    }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
        _scrollController.animateTo(
@@ -154,6 +207,67 @@ class _TeacherNoteCreationScreenState extends State<TeacherNoteCreationScreen> {
         curve: Curves.easeOut,
       );
     });
+  }
+  
+  /// Auto-split content into multiple sections when exceeding word limit
+  void _autoSplitAndAddSections(String baseTitle, String subtitle, List<String> allBullets) {
+    final List<List<String>> splitBullets = [];
+    List<String> currentChunk = [];
+    int currentWordCount = 0;
+    
+    // Split bullets into chunks that don't exceed word limit
+    for (final bullet in allBullets) {
+      final bulletWords = _wordCount(bullet);
+      
+      if (currentWordCount + bulletWords > _maxWordsPerStep && currentChunk.isNotEmpty) {
+        // Start new chunk
+        splitBullets.add(List.from(currentChunk));
+        currentChunk = [bullet];
+        currentWordCount = bulletWords;
+      } else {
+        currentChunk.add(bullet);
+        currentWordCount += bulletWords;
+      }
+    }
+    
+    // Add remaining bullets
+    if (currentChunk.isNotEmpty) {
+      splitBullets.add(currentChunk);
+    }
+    
+    // Create sections with continuation markers
+    setState(() {
+      for (int i = 0; i < splitBullets.length; i++) {
+        final stepNum = _sections.length + 1;
+        String sectionTitle;
+        
+        if (i == 0) {
+          sectionTitle = '$stepNum · $baseTitle';
+        } else if (i == 1) {
+          sectionTitle = '$stepNum · $baseTitle (cont.)';
+        } else {
+          sectionTitle = '$stepNum · $baseTitle (cont. $i)';
+        }
+        
+        _sections.add(ClassNoteSection(
+          title: sectionTitle,
+          subtitle: i == 0 ? subtitle : '',
+          bullets: splitBullets[i],
+        ));
+      }
+      
+      _titleController.clear();
+      _subtitleController.clear();
+      _bulletsController.clear();
+    });
+    
+    // Show notification
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Content split into ${splitBullets.length} sections (60 word limit)'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
   
   /// Save current edit and move to next step (for editing mode)
@@ -165,21 +279,42 @@ class _TeacherNoteCreationScreenState extends State<TeacherNoteCreationScreen> {
       );
       return;
     }
-    
-    final content = _bulletsController.text.trim();
-    if (_wordCount(content) > _maxWordsPerStep) {
-       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Keep it concise! Limit is ~60 words.')),
+    if (_wordCount(title) > _maxHeadingWords) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Keep section heading under $_maxHeadingWords words'),
+        ),
+      );
+      return;
+    }
+
+    final subtitle = _subtitleController.text.trim();
+    if (_wordCount(subtitle) > _maxSubtitleWords) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Keep subtitle under $_maxSubtitleWords words'),
+        ),
       );
       return;
     }
     
-    // Save current
+    final content = _bulletsController.text.trim();
+    final bullets = _parseBullets(content);
+    
+    // Check if content exceeds word limit
+    if (_wordCount(content) > _maxWordsPerStep) {
+      // Auto-split when editing
+      _autoSplitAndReplaceSection(_editingIndex!, title, subtitle, bullets);
+      _closeEditAndAddNew();
+      return;
+    }
+    
+    // Save current normally
     final stepNum = _editingIndex! + 1;
     _sections[_editingIndex!] = ClassNoteSection(
       title: '$stepNum · $title',
-      subtitle: _subtitleController.text.trim(),
-      bullets: _parseBullets(content),
+      subtitle: subtitle,
+      bullets: bullets,
     );
     
     // Move to next step or new
@@ -188,6 +323,82 @@ class _TeacherNoteCreationScreenState extends State<TeacherNoteCreationScreen> {
     } else {
       _closeEditAndAddNew();
     }
+  }
+  
+  /// Auto-split and replace section when editing
+  void _autoSplitAndReplaceSection(int index, String baseTitle, String subtitle, List<String> allBullets) {
+    final List<List<String>> splitBullets = [];
+    List<String> currentChunk = [];
+    int currentWordCount = 0;
+    
+    // Split bullets into chunks
+    for (final bullet in allBullets) {
+      final bulletWords = _wordCount(bullet);
+      
+      if (currentWordCount + bulletWords > _maxWordsPerStep && currentChunk.isNotEmpty) {
+        splitBullets.add(List.from(currentChunk));
+        currentChunk = [bullet];
+        currentWordCount = bulletWords;
+      } else {
+        currentChunk.add(bullet);
+        currentWordCount += bulletWords;
+      }
+    }
+    
+    if (currentChunk.isNotEmpty) {
+      splitBullets.add(currentChunk);
+    }
+    
+    setState(() {
+      // Replace current section and insert continuations after it
+      for (int i = 0; i < splitBullets.length; i++) {
+        final stepNum = index + i + 1;
+        String sectionTitle;
+        
+        if (i == 0) {
+          sectionTitle = '$stepNum · $baseTitle';
+        } else if (i == 1) {
+          sectionTitle = '$stepNum · $baseTitle (cont.)';
+        } else {
+          sectionTitle = '$stepNum · $baseTitle (cont. $i)';
+        }
+        
+        final newSection = ClassNoteSection(
+          title: sectionTitle,
+          subtitle: i == 0 ? subtitle : '',
+          bullets: splitBullets[i],
+        );
+        
+        if (i == 0) {
+          _sections[index] = newSection;
+        } else {
+          _sections.insert(index + i, newSection);
+        }
+      }
+      
+      // Renumber all subsequent sections
+      for (int j = index + splitBullets.length; j < _sections.length; j++) {
+        final oldSection = _sections[j];
+        final oldTitle = oldSection.title;
+        // Extract title after the "N · " prefix
+        final titleParts = oldTitle.split(' · ');
+        if (titleParts.length > 1) {
+          final titleWithoutNum = titleParts.skip(1).join(' · ');
+          _sections[j] = ClassNoteSection(
+            title: '${j + 1} · $titleWithoutNum',
+            subtitle: oldSection.subtitle,
+            bullets: oldSection.bullets,
+          );
+        }
+      }
+    });
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Content split into ${splitBullets.length} sections (60 word limit)'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
   
   void _scrollToStep(int index) {
@@ -203,10 +414,19 @@ class _TeacherNoteCreationScreenState extends State<TeacherNoteCreationScreen> {
   void _finish() {
     _saveCurrentEdits();
     if (_sections.isEmpty) return;
+    final summary = ClassNoteSummary(
+      title: widget.topic,
+      subtitle: widget.subtitle,
+      steps: _sections.length,
+      estimatedMinutes: (_sections.length * 2).clamp(1, 30),
+      createdAt: widget.initialCreatedAt ?? DateTime.now(),
+      commentCount: widget.initialCommentCount,
+      sections: List<ClassNoteSection>.unmodifiable(_sections),
+    );
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Class note created!')),
     );
-     Navigator.of(context).popUntil((route) => route.isFirst);
+    Navigator.of(context).pop<ClassNoteSummary>(summary);
   }
 
   @override
@@ -268,6 +488,8 @@ class _TeacherNoteCreationScreenState extends State<TeacherNoteCreationScreen> {
                           subtitleController: _subtitleController,
                           bulletsController: _bulletsController,
                           onNext: _saveAndNext,
+                          headingWordLimit: _maxHeadingWords,
+                          subtitleWordLimit: _maxSubtitleWords,
                           onCancel: _closeEditAndAddNew,
                         )
                       else
@@ -290,6 +512,8 @@ class _TeacherNoteCreationScreenState extends State<TeacherNoteCreationScreen> {
                         subtitleController: _subtitleController,
                         bulletsController: _bulletsController,
                         onNext: _addStep,
+                        headingWordLimit: _maxHeadingWords,
+                        subtitleWordLimit: _maxSubtitleWords,
                         onCancel: null,
                       ),
                     
@@ -300,6 +524,14 @@ class _TeacherNoteCreationScreenState extends State<TeacherNoteCreationScreen> {
                       padding: const EdgeInsets.only(left: 36),
                       child: FilledButton(
                         onPressed: _sections.isEmpty ? null : _finish,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFF075E54),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 14,
+                          ),
+                        ),
                         child: const Text('Publish'),
                       ),
                     ),
@@ -436,6 +668,8 @@ class _NoteEditingStep extends StatelessWidget {
     required this.subtitleController,
     required this.bulletsController,
     required this.onNext,
+    required this.headingWordLimit,
+    required this.subtitleWordLimit,
     this.onCancel,
   });
 
@@ -446,6 +680,16 @@ class _NoteEditingStep extends StatelessWidget {
   final TextEditingController bulletsController;
   final VoidCallback onNext;
   final VoidCallback? onCancel;
+  final int headingWordLimit;
+  final int subtitleWordLimit;
+
+  List<String> _words(String text) {
+    return text
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((w) => w.isNotEmpty)
+        .toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -526,23 +770,74 @@ class _NoteEditingStep extends StatelessWidget {
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: titleController,
-                    textInputAction: TextInputAction.next,
+                    textInputAction: TextInputAction.newline,
                     textCapitalization: TextCapitalization.sentences,
-                    decoration: const InputDecoration(labelText: 'Section Heading'),
+                    keyboardType: TextInputType.multiline,
+                    maxLines: null,
+                    decoration:
+                        const InputDecoration(labelText: 'Section Heading'),
                     style: const TextStyle(color: Colors.black),
+                    onChanged: (value) {
+                      final words = _words(value);
+                      if (words.length > headingWordLimit) {
+                        final truncated =
+                            words.take(headingWordLimit).join(' ');
+                        titleController.value = TextEditingValue(
+                          text: truncated,
+                          selection: TextSelection.collapsed(
+                            offset: truncated.length,
+                          ),
+                        );
+                        ScaffoldMessenger.of(context)
+                          ..hideCurrentSnackBar()
+                          ..showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Keep section heading under $headingWordLimit words',
+                              ),
+                            ),
+                          );
+                      }
+                    },
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: subtitleController,
-                    textInputAction: TextInputAction.next,
+                    textInputAction: TextInputAction.newline,
                     textCapitalization: TextCapitalization.sentences,
-                    decoration: const InputDecoration(labelText: 'Subtitle (optional)'),
+                    keyboardType: TextInputType.multiline,
+                    maxLines: null,
+                    decoration:
+                        const InputDecoration(labelText: 'Subtitle (optional)'),
                     style: const TextStyle(color: Colors.black),
+                    onChanged: (value) {
+                      final words = _words(value);
+                      if (words.length > subtitleWordLimit) {
+                        final truncated =
+                            words.take(subtitleWordLimit).join(' ');
+                        subtitleController.value = TextEditingValue(
+                          text: truncated,
+                          selection: TextSelection.collapsed(
+                            offset: truncated.length,
+                          ),
+                        );
+                        ScaffoldMessenger.of(context)
+                          ..hideCurrentSnackBar()
+                          ..showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Keep subtitle under $subtitleWordLimit words',
+                              ),
+                            ),
+                          );
+                      }
+                    },
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: bulletsController,
-                    maxLines: 4,
+                    maxLines: null,
+                    minLines: 4,
                     textInputAction: TextInputAction.newline,
                     textCapitalization: TextCapitalization.sentences,
                     decoration: const InputDecoration(
@@ -557,7 +852,14 @@ class _NoteEditingStep extends StatelessWidget {
                     children: [
                       FilledButton.icon(
                         onPressed: onNext,
-                        icon: Icon(isNewStep ? Icons.arrow_downward : Icons.check, size: 16),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFF075E54),
+                          foregroundColor: Colors.white,
+                        ),
+                        icon: Icon(
+                          isNewStep ? Icons.arrow_downward : Icons.check,
+                          size: 16,
+                        ),
                         label: Text(isNewStep ? 'Next Step' : 'Save'),
                       ),
                       if (onCancel != null) ...[

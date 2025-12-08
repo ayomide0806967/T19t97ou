@@ -28,6 +28,10 @@ class NoteRailStep extends StatelessWidget {
     final subtle = onSurface.withValues(
       alpha: theme.brightness == Brightness.dark ? 0.6 : 0.55,
     );
+    // WhatsApp-inspired light green bubble for the active/open step.
+    const Color whatsappBubble = Color(0xFFDCF8C6);
+    final Color panelColor =
+        isActive ? whatsappBubble : theme.colorScheme.surface;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -90,12 +94,11 @@ class NoteRailStep extends StatelessWidget {
             // Content panel
             Expanded(
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 12,
-                  horizontal: 16,
-                ),
+                // Keep comfortable left padding near the rail, but make the
+                // right padding tighter so text can run closer to the edge.
+                padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.surface,
+                  color: panelColor,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: theme.dividerColor.withValues(alpha: 0.25),
@@ -109,6 +112,7 @@ class NoteRailStep extends StatelessWidget {
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
                         color: onSurface,
+                        fontSize: 15,
                       ),
                     ),
                     if (section.subtitle.isNotEmpty) ...[
@@ -117,6 +121,7 @@ class NoteRailStep extends StatelessWidget {
                         section.subtitle,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: subtle,
+                          fontSize: 14,
                         ),
                       ),
                     ],
@@ -138,6 +143,7 @@ class NoteRailStep extends StatelessWidget {
                                         style: theme.textTheme.bodyMedium?.copyWith(
                                           color: onSurface,
                                           height: 1.4,
+                                          fontSize: 15,
                                         ),
                                       ),
                                     ),
