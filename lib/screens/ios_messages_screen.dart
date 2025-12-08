@@ -31,6 +31,12 @@ final List<ClassNoteSummary> _classNotes = <ClassNoteSummary>[];
 final List<ClassNoteSummary> _libraryNotes = <ClassNoteSummary>[];
 VoidCallback? _notifyClassNotesChanged;
 
+// WhatsApp color palette for Classes screen
+const Color _whatsAppGreen = Color(0xFF25D366);
+const Color _whatsAppDarkGreen = Color(0xFF128C7E);
+const Color _whatsAppLightGreen = Color(0xFFDCF8C6);
+const Color _whatsAppTeal = Color(0xFF075E54);
+
 // Lightweight attachment model used by the class composer
 class _Attachment {
   _Attachment({required this.bytes, this.name, this.mimeType});
@@ -79,11 +85,34 @@ class IosMinimalistMessagePage extends StatefulWidget {
 
 class _IosMinimalistMessagePageState extends State<IosMinimalistMessagePage> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _classesScrollController = ScrollController();
+  bool _showFullPageButton = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _classesScrollController.addListener(_handleClassesScroll);
+  }
 
   @override
   void dispose() {
+    _classesScrollController.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _handleClassesScroll() {
+    const double showThreshold = 80.0;
+    final offset = _classesScrollController.offset;
+    if (!_showFullPageButton && offset > showThreshold) {
+      setState(() {
+        _showFullPageButton = true;
+      });
+    } else if (_showFullPageButton && offset < 20.0) {
+      setState(() {
+        _showFullPageButton = false;
+      });
+    }
   }
 
   @override
@@ -92,35 +121,85 @@ class _IosMinimalistMessagePageState extends State<IosMinimalistMessagePage> {
     final Color background = Colors.white;
     final List<_Conversation> filtered = _filteredConversations();
 
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        backgroundColor: background,
-        body: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 12),
-              _MessagesHeader(theme: theme),
-              const SizedBox(height: 8),
-              const _SchoolTabBar(),
-              const SizedBox(height: 12),
-              Expanded(
-                child: TabBarView(
-                  physics: const BouncingScrollPhysics(),
-                  children: [
-                    _MessagesList(conversations: filtered),
-                    const _ClassesExperience(),
-                  ],
+    return Scaffold(
+      backgroundColor: background,
+      body: SafeArea(
+        top: false,
+        child: Stack(
+          children: [
+            // Main column with hero + scrollable classes
+            Column(
+              children: [
+                Builder(
+                  builder: (context) {
+                    final mediaQuery = MediaQuery.of(context);
+                    return _SpotifyStyleHero(
+                      topPadding: mediaQuery.padding.top,
+                      onInboxTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                _InboxPage(conversations: filtered),
+                          ),
+                        );
+                      },
+                      onCreateClassTap: () {
+                        _handleCreateClass(context);
+                      },
+                      onJoinClassTap: () {
+                        _handleJoinClass(context);
+                      },
+                    );
+                  },
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: _classesScrollController,
+                    physics: const BouncingScrollPhysics(),
+                    child: const _ClassesExperience(),
+                  ),
+                ),
+              ],
+            ),
+            // Floating "open in full page" button that appears after scrolling
+            if (_showFullPageButton)
+              Positioned(
+                bottom: 24,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      foregroundColor: Colors.white,
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      elevation: 6,
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const _FullPageClassesScreen(),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      'Open in full page',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
                 ),
               ),
-            ],
-          ),
+          ],
         ),
       ),
     );
   }
-
+  
   List<_Conversation> _filteredConversations() {
     final query = _searchController.text.trim().toLowerCase();
     if (query.isEmpty) return _demoConversations;
@@ -132,6 +211,31 @@ class _IosMinimalistMessagePageState extends State<IosMinimalistMessagePage> {
         )
         .toList();
   }
+
+}
+
+class _FullPageClassesScreen extends StatelessWidget {
+  const _FullPageClassesScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('Classes'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0.4,
+      ),
+      body: const SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          physics: BouncingScrollPhysics(),
+          child: _ClassesExperience(),
+        ),
+      ),
+    );
+  }
 }
 
 class _MessagesHeader extends StatelessWidget {
@@ -141,41 +245,148 @@ class _MessagesHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color iconColor = Theme.of(context).colorScheme.onSurface;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [_whatsAppTeal, _whatsAppDarkGreen, _whatsAppGreen],
+        ),
+      ),
+      child: Stack(
         children: [
-          _HeaderIcon(
-            icon: Icons.quiz_outlined,
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const QuizHubScreen()),
-              );
-            },
-            color: iconColor.withValues(alpha: 0.85),
-          ),
-          const Spacer(),
-          Text(
-            'Messages',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-              fontSize: 18,
-              color: iconColor,
-              letterSpacing: -0.2,
+          // Wave artwork background
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _WaveArtworkPainter(),
             ),
           ),
-          const Spacer(),
-          _HeaderIcon(
-            icon: CupertinoIcons.add,
-            onTap: () {},
-            color: iconColor.withValues(alpha: 0.85),
+          // Decorative circles
+          Positioned(
+            top: -20,
+            right: -30,
+            child: Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.1),
+              ),
+            ),
           ),
-      ],
-    ),
-  );
+          Positioned(
+            top: 30,
+            right: 40,
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.08),
+              ),
+            ),
+          ),
+          // Content
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+            child: Row(
+              children: [
+                _HeaderIcon(
+                  icon: Icons.quiz_outlined,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const QuizHubScreen()),
+                    );
+                  },
+                  color: Colors.white.withValues(alpha: 0.95),
+                ),
+                const Spacer(),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Messages',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 22,
+                        color: Colors.white,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Container(
+                      width: 40,
+                      height: 3,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                _HeaderIcon(
+                  icon: CupertinoIcons.add,
+                  onTap: () {},
+                  color: Colors.white.withValues(alpha: 0.95),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
+}
+
+// Custom painter for wave artwork in header
+class _WaveArtworkPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.06)
+      ..style = PaintingStyle.fill;
+
+    // First wave
+    final path1 = Path();
+    path1.moveTo(0, size.height * 0.7);
+    path1.quadraticBezierTo(
+      size.width * 0.25, size.height * 0.5,
+      size.width * 0.5, size.height * 0.65,
+    );
+    path1.quadraticBezierTo(
+      size.width * 0.75, size.height * 0.8,
+      size.width, size.height * 0.6,
+    );
+    path1.lineTo(size.width, size.height);
+    path1.lineTo(0, size.height);
+    path1.close();
+    canvas.drawPath(path1, paint);
+
+    // Second wave
+    final paint2 = Paint()
+      ..color = Colors.white.withValues(alpha: 0.04)
+      ..style = PaintingStyle.fill;
+    
+    final path2 = Path();
+    path2.moveTo(0, size.height * 0.85);
+    path2.quadraticBezierTo(
+      size.width * 0.35, size.height * 0.6,
+      size.width * 0.6, size.height * 0.75,
+    );
+    path2.quadraticBezierTo(
+      size.width * 0.85, size.height * 0.9,
+      size.width, size.height * 0.7,
+    );
+    path2.lineTo(size.width, size.height);
+    path2.lineTo(0, size.height);
+    path2.close();
+    canvas.drawPath(path2, paint2);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _HeaderIcon extends StatelessWidget {
@@ -194,7 +405,14 @@ class _HeaderIcon extends StatelessWidget {
     return CupertinoButton(
       padding: EdgeInsets.zero,
       onPressed: onTap,
-      child: Icon(icon, size: 24, color: color),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(icon, size: 22, color: color),
+      ),
     );
   }
 }
@@ -206,21 +424,33 @@ class _SchoolTabBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final Color label = theme.colorScheme.onSurface;
-    final Color indicator = theme.colorScheme.primary;
-    final Color unselected = label.withValues(alpha: 0.6);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: TabBar(
-        isScrollable: false,
-        labelStyle: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
-        labelColor: label,
-        unselectedLabelColor: unselected,
-        indicatorColor: indicator,
-        indicatorWeight: 3,
-        tabs: const [
-          Tab(text: 'Inbox'),
-          Tab(text: 'Classes'),
+    final Color unselected = label.withValues(alpha: 0.5);
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
         ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: TabBar(
+          isScrollable: false,
+          labelStyle: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+          labelColor: _whatsAppDarkGreen,
+          unselectedLabelColor: unselected,
+          indicatorColor: _whatsAppGreen,
+          indicatorWeight: 3,
+          indicatorSize: TabBarIndicatorSize.label,
+          tabs: const [
+            Tab(text: 'Inbox'),
+            Tab(text: 'Classes'),
+          ],
+        ),
       ),
     );
   }
@@ -404,70 +634,363 @@ class _ClassesExperience extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      physics: const BouncingScrollPhysics(),
-      children: [
-        _CreateClassTile(onCreate: () async {
-          final result = await Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const _CreateClassPage()),
-          );
-          if (result is College) {
-            // Open the newly created class immediately
-            // Ignore persistence for now; this is a demo flow
-            // and mirrors the seeded college behavior.
-            // Members/admin role will be derived in the class screen.
-            // Navigate to the class detail screen.
-            if (context.mounted) {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => _CollegeScreen(college: result)),
-              );
-            }
-          }
-        }),
-        const SizedBox(height: 12),
-        _JoinClassTile(onJoin: () async {
-          final handle = _deriveHandle(SimpleAuthService());
-          final code = await _promptForInviteCode(context);
-          if (code == null) return;
-          final resolved = await InvitesService.resolve(code);
-          if (resolved == null) {
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(S.invalidInviteCode)),
-              );
-            }
-            return;
-          }
-          // Find the college in the demo list by code
-          final match = _demoColleges.firstWhere(
-            (c) => c.code.toUpperCase() == resolved.toUpperCase(),
-            orElse: () => _demoColleges.first,
-          );
-          // Persist member add so header counts reflect it
-          final members = await MembersService.getMembersFor(match.code);
-          members.add(handle);
-          await MembersService.saveMembersFor(match.code, members);
-          if (context.mounted) {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => _CollegeScreen(college: match)),
-            );
-          }
-        }),
-        const SizedBox(height: 12),
-        Text(
-          'Your classes',
-          style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(28),
+          topRight: Radius.circular(28),
         ),
-        const SizedBox(height: 8),
-        for (final college in _demoColleges) ...[
-          _CollegeCard(college: college),
-          const SizedBox(height: 12),
-        ],
-        const SizedBox(height: 8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Your classes',
+              style:
+                  theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 16),
+            // Grid layout for class cards
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final cardWidth =
+                    (constraints.maxWidth - 12) / 2; // 12 = gap between cards
+                return Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    for (int i = 0; i < _demoColleges.length; i++)
+                      SizedBox(
+                        width: cardWidth,
+                        child: _ModernCollegeCard(
+                          college: _demoColleges[i],
+                          isDark: i % 2 == 0, // Alternate dark/light
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 80),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+Future<void> _handleCreateClass(BuildContext context) async {
+  final result = await Navigator.of(context).push(
+    MaterialPageRoute(builder: (_) => const _CreateClassPage()),
+  );
+  if (result is College) {
+    if (context.mounted) {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => _CollegeScreen(college: result)),
+      );
+    }
+  }
+}
+
+Future<void> _handleJoinClass(BuildContext context) async {
+  final handle = _deriveHandle(SimpleAuthService());
+  final code = await _promptForInviteCode(context);
+  if (code == null) return;
+  final resolved = await InvitesService.resolve(code);
+  if (resolved == null) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(S.invalidInviteCode)),
+      );
+    }
+    return;
+  }
+  final match = _demoColleges.firstWhere(
+    (c) => c.code.toUpperCase() == resolved.toUpperCase(),
+    orElse: () => _demoColleges.first,
+  );
+  final members = await MembersService.getMembersFor(match.code);
+  members.add(handle);
+  await MembersService.saveMembersFor(match.code, members);
+  if (context.mounted) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => _CollegeScreen(college: match)),
+    );
+  }
+}
+
+class _InboxPage extends StatelessWidget {
+  const _InboxPage({required this.conversations});
+
+  final List<_Conversation> conversations;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Inbox'),
+      ),
+      body: _MessagesList(conversations: conversations),
+      backgroundColor: Colors.white,
+    );
+  }
+}
+
+// Spotify-style full-bleed hero that extends to the top of the screen
+class _SpotifyStyleHero extends StatelessWidget {
+  const _SpotifyStyleHero({
+    required this.topPadding,
+    required this.onInboxTap,
+    required this.onCreateClassTap,
+    required this.onJoinClassTap,
+  });
+  
+  final double topPadding;
+  final VoidCallback onInboxTap;
+  final VoidCallback onCreateClassTap;
+  final VoidCallback onJoinClassTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        // Main hero content with curved bottom
+        ClipPath(
+          clipper: _CurvedBottomClipper(),
+          child: Container(
+            width: double.infinity,
+            padding: EdgeInsets.only(bottom: 50), // Extra padding for wave
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFF000000), // Pure black at the top
+                  Color(0xFF111111), // Dark grey mid
+                  Color(0xFF181818), // Dark grey at the bottom
+                ],
+                stops: [0.0, 0.45, 1.0],
+              ),
+            ),
+            child: Stack(
+              children: [
+                // Background artwork/pattern
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _HeroArtworkPainter(),
+                  ),
+                ),
+                // Decorative elements
+                Positioned(
+                  top: topPadding + 40,
+                  right: -20,
+                  child: Container(
+                    width: 150,
+                    height: 150,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          _whatsAppGreen.withValues(alpha: 0.3),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: topPadding + 100,
+                  left: -30,
+                  child: Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withValues(alpha: 0.05),
+                    ),
+                  ),
+                ),
+                // Main content
+                Padding(
+                  padding: EdgeInsets.fromLTRB(24, topPadding + 20, 24, 60),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header row with small Inbox button
+                      Row(
+                        children: [
+                          Text(
+                            'Classes',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.85),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const Spacer(),
+                          TextButton(
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              foregroundColor: Colors.white,
+                              backgroundColor: Colors.white.withValues(alpha: 0.16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
+                            onPressed: onInboxTap,
+                            child: const Text(
+                              'Inbox',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 28),
+                      // Main heading
+                      const Text(
+                        'Learn Together,\nGrow Together',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 32,
+                          fontWeight: FontWeight.w800,
+                          height: 1.1,
+                          letterSpacing: -1,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Create or join a class to collaborate with your peers and share knowledge.',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.8),
+                          fontSize: 15,
+                          height: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      // Small secondary button for joining a class
+                      Row(
+                        children: [
+                          TextButton.icon(
+                            onPressed: onJoinClassTap,
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 8,
+                              ),
+                              foregroundColor: Colors.white,
+                              backgroundColor: Colors.white.withValues(alpha: 0.18),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(22),
+                                side: BorderSide(
+                                  color: Colors.white.withValues(alpha: 0.25),
+                                ),
+                              ),
+                            ),
+                            icon: const Icon(Icons.qr_code_2_rounded, size: 18),
+                            label: const Text(
+                              'Join a class',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      // Primary pill button for creating a class
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: onCreateClassTap,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: _whatsAppDarkGreen,
+                            elevation: 6,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(32),
+                            ),
+                          ),
+                          child: const Text(
+                            'Create a class group',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }
+}
+
+// Custom clipper for curved bottom edge
+class _CurvedBottomClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.lineTo(0, size.height - 50);
+    
+    // Create a smooth curve at the bottom
+    path.quadraticBezierTo(
+      size.width / 2, // Control point X (center)
+      size.height + 20, // Control point Y (creates the curve depth)
+      size.width, // End point X
+      size.height - 50, // End point Y
+    );
+    
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+}
+
+// Custom painter for hero artwork
+class _HeroArtworkPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Abstract curved lines
+    final paint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.03)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+
+    for (int i = 0; i < 5; i++) {
+      final path = Path();
+      path.moveTo(0, size.height * (0.3 + i * 0.15));
+      path.quadraticBezierTo(
+        size.width * 0.4,
+        size.height * (0.2 + i * 0.1),
+        size.width,
+        size.height * (0.4 + i * 0.12),
+      );
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 // Derive a normalized @handle from current user email
@@ -522,9 +1045,9 @@ class _CreateClassTile extends StatelessWidget {
                 height: 56,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
+                  color: _whatsAppGreen.withValues(alpha: 0.12),
                 ),
-                child: const Icon(Icons.group_add_outlined, size: 28),
+                child: const Icon(Icons.group_add_outlined, size: 28, color: _whatsAppDarkGreen),
               ),
               const SizedBox(width: 20),
               Expanded(
@@ -545,7 +1068,7 @@ class _CreateClassTile extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, size: 32),
+              Icon(Icons.chevron_right, size: 32, color: _whatsAppDarkGreen.withValues(alpha: 0.7)),
             ],
           ),
         ),
@@ -592,9 +1115,9 @@ class _JoinClassTile extends StatelessWidget {
                 height: 56,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
+                  color: _whatsAppGreen.withValues(alpha: 0.12),
                 ),
-                child: const Icon(Icons.qr_code_2_rounded, size: 28),
+                child: const Icon(Icons.qr_code_2_rounded, size: 28, color: _whatsAppDarkGreen),
               ),
               const SizedBox(width: 20),
               Expanded(
@@ -607,7 +1130,7 @@ class _JoinClassTile extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, size: 32),
+              Icon(Icons.chevron_right, size: 32, color: _whatsAppDarkGreen.withValues(alpha: 0.7)),
             ],
           ),
         ),
@@ -635,6 +1158,126 @@ Future<String?> _promptForInviteCode(BuildContext context) async {
   return result == null || result.isEmpty ? null : result;
 }
 
+// Modern card design matching the reference - alternating dark/light
+class _ModernCollegeCard extends StatelessWidget {
+  const _ModernCollegeCard({required this.college, required this.isDark});
+
+  final College college;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    // Colors based on dark/light variant
+    final backgroundColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black;
+    final subtleTextColor = isDark 
+        ? Colors.white.withValues(alpha: 0.6) 
+        : Colors.black.withValues(alpha: 0.5);
+    final pillBgColor = isDark 
+        ? Colors.white.withValues(alpha: 0.12) 
+        : const Color(0xFFF0F0F0);
+    final accentColor = const Color(0xFF7DD3E8); // Light cyan/teal for play button
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => _CollegeScreen(college: college)),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(20),
+          border: isDark ? null : Border.all(
+            color: Colors.grey.withValues(alpha: 0.2),
+          ),
+          boxShadow: [
+            if (!isDark)
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Title (class name - truncated to 2 lines)
+            Text(
+              college.name.split(':').first.trim(), // Get short name
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: textColor,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                height: 1.2,
+              ),
+            ),
+            const SizedBox(height: 8),
+            // Facilitator name
+            Text(
+              college.facilitator.split('•').first.trim(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: subtleTextColor,
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 24),
+            // Bottom row with schedule and play button
+            Row(
+              children: [
+                // Schedule pill
+                Expanded(
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: pillBgColor,
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Text(
+                      college.upcomingExam.isEmpty
+                          ? 'Schedule'
+                          : college.upcomingExam,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: subtleTextColor,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Play/Go button
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: accentColor,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.play_arrow_rounded,
+                    color: Colors.black87,
+                    size: 24,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 class _CollegeCard extends StatelessWidget {
   const _CollegeCard({required this.college});
 
@@ -1362,6 +2005,46 @@ const List<College> _demoColleges = <College>[
       LectureNote(title: 'Policy lifecycle', subtitle: 'Framework + examples', size: '5 pages'),
     ],
   ),
+  College(
+    name: 'Chemistry 202: Organic Basics',
+    code: 'CHM202',
+    facilitator: 'Dr. Musa Bello • Wednesdays',
+    members: 38,
+    deliveryMode: 'On‑campus',
+    upcomingExam: 'Quiz • 4 Nov',
+    resources: <CollegeResource>[
+      CollegeResource(title: 'Intro to Organic Reactions', fileType: 'pdf', size: '2.1 MB'),
+      CollegeResource(title: 'Lab Safety Checklist', fileType: 'pdf', size: '940 KB'),
+    ],
+    memberHandles: <String>{
+      '@lab_group_a',
+      '@study_circle',
+    },
+    lectureNotes: <LectureNote>[
+      LectureNote(title: 'Hydrocarbons overview', subtitle: 'Week 1 notes', size: '7 pages'),
+      LectureNote(title: 'Functional groups', subtitle: 'Week 2 notes', size: '6 pages'),
+    ],
+  ),
+  College(
+    name: 'Mathematics 101: Calculus I',
+    code: 'MTH101',
+    facilitator: 'Prof. Kemi Adesina • Fridays',
+    members: 120,
+    deliveryMode: 'Lecture theatre',
+    upcomingExam: 'Revision test • 12 Nov',
+    resources: <CollegeResource>[
+      CollegeResource(title: 'Limits & Continuity slides', fileType: 'pdf', size: '1.8 MB'),
+      CollegeResource(title: 'Problem set – Derivatives', fileType: 'pdf', size: '600 KB'),
+    ],
+    memberHandles: <String>{
+      '@calc_club',
+      '@math_helpers',
+    },
+    lectureNotes: <LectureNote>[
+      LectureNote(title: 'Introduction to limits', subtitle: 'Lecture 1', size: '5 pages'),
+      LectureNote(title: 'Derivative rules', subtitle: 'Lecture 3', size: '9 pages'),
+    ],
+  ),
 ];
 
 // Quiz screens exist separately; access via header quiz icon.
@@ -1801,12 +2484,13 @@ Mock exam briefing extended update: please review chapters one through five, pra
       length: 3,
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: whatsappGreen,
-          foregroundColor: Colors.white,
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+          elevation: 0.4,
           title: Text(
             college.name,
             style: theme.textTheme.titleMedium?.copyWith(
-              color: Colors.white,
+              color: Colors.black,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -1822,9 +2506,9 @@ Mock exam briefing extended update: please review chapters one through five, pra
           ],
           bottom: TabBar(
             labelStyle: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.white.withOpacity(0.7),
-            indicatorColor: Colors.white,
+            labelColor: Colors.black,
+            unselectedLabelColor: Colors.black54,
+            indicatorColor: Colors.black,
             indicatorWeight: 3,
             tabs: const [
               Tab(text: 'Class'),
