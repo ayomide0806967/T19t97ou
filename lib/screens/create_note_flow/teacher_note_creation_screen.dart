@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../models/class_note.dart';
 
 class TeacherNoteCreationScreen extends StatefulWidget {
@@ -40,11 +42,59 @@ class _TeacherNoteCreationScreenState extends State<TeacherNoteCreationScreen> {
   static const int _maxWordsPerStep = 60;
   static const int _maxHeadingWords = 10;
   static const int _maxSubtitleWords = 5;
+  final Map<int, List<String>> _imagePathsByStep = <int, List<String>>{};
+
+  Future<void> _handleAddImageForStep(int stepIndex) async {
+    final existing = List<String>.from(
+      _imagePathsByStep[stepIndex] ??
+          (stepIndex < _sections.length ? _sections[stepIndex].imagePaths : const <String>[]),
+    );
+    if (existing.length >= 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You can add up to 3 images per step.')),
+      );
+      return;
+    }
+    final picker = ImagePicker();
+    final int remaining = 3 - existing.length;
+    try {
+      final List<XFile> picked = await picker.pickMultiImage();
+      if (picked.isEmpty) return;
+      final Iterable<XFile> limited = picked.take(remaining);
+
+      setState(() {
+        final updated = existing..addAll(limited.map((x) => x.path));
+        _imagePathsByStep[stepIndex] = updated;
+        if (stepIndex < _sections.length) {
+          final s = _sections[stepIndex];
+          _sections[stepIndex] = ClassNoteSection(
+            title: s.title,
+            subtitle: s.subtitle,
+            bullets: const <String>[],
+            imagePaths: updated,
+          );
+        }
+        if (_editingIndex == stepIndex) {
+          _bulletsController.clear();
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open gallery. Please try again.')),
+      );
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     _sections = List<ClassNoteSection>.from(widget.initialSections);
+    for (int i = 0; i < _sections.length; i++) {
+      if (_sections[i].imagePaths.isNotEmpty) {
+        _imagePathsByStep[i] = List<String>.from(_sections[i].imagePaths);
+      }
+    }
   }
 
   @override
@@ -136,15 +186,23 @@ class _TeacherNoteCreationScreenState extends State<TeacherNoteCreationScreen> {
     }
 
     final content = _bulletsController.text.trim();
-    if (_wordCount(content) > _maxWordsPerStep) return; // Invalid
-    
     if (_editingIndex != null) {
+      final int stepIndex = _editingIndex!;
+      final List<String> imagePaths =
+          _imagePathsByStep[stepIndex] ?? _sections[stepIndex].imagePaths;
+      if (imagePaths.isEmpty && _wordCount(content) > _maxWordsPerStep) {
+        return; // Invalid – leave as-is
+      }
+      final List<String> bullets =
+          imagePaths.isNotEmpty ? <String>[] : _parseBullets(content);
+
       // Update existing step
       final stepNum = _editingIndex! + 1;
       _sections[_editingIndex!] = ClassNoteSection(
         title: '$stepNum · $title',
         subtitle: subtitle,
-        bullets: _parseBullets(content),
+        bullets: bullets,
+        imagePaths: imagePaths,
       );
     }
   }
@@ -177,11 +235,13 @@ class _TeacherNoteCreationScreenState extends State<TeacherNoteCreationScreen> {
       return;
     }
     
+    final int stepIndex = _sections.length;
+    final List<String> imagePaths = _imagePathsByStep[stepIndex] ?? const <String>[];
     final content = _bulletsController.text.trim();
-    final bullets = _parseBullets(content);
+    final bullets = imagePaths.isNotEmpty ? <String>[] : _parseBullets(content);
     
     // Check if content exceeds word limit
-    if (_wordCount(content) > _maxWordsPerStep) {
+    if (imagePaths.isEmpty && _wordCount(content) > _maxWordsPerStep) {
       // Auto-split into multiple sections
       _autoSplitAndAddSections(title, subtitle, bullets);
     } else {
@@ -190,6 +250,7 @@ class _TeacherNoteCreationScreenState extends State<TeacherNoteCreationScreen> {
         title: '${_sections.length + 1} · $title',
         subtitle: subtitle,
         bullets: bullets,
+        imagePaths: imagePaths,
       );
 
       setState(() {
@@ -197,6 +258,7 @@ class _TeacherNoteCreationScreenState extends State<TeacherNoteCreationScreen> {
         _titleController.clear();
         _subtitleController.clear();
         _bulletsController.clear();
+        _imagePathsByStep.remove(stepIndex);
       });
     }
 
@@ -249,11 +311,13 @@ class _TeacherNoteCreationScreenState extends State<TeacherNoteCreationScreen> {
           sectionTitle = '$stepNum · $baseTitle (cont. $i)';
         }
         
-        _sections.add(ClassNoteSection(
-          title: sectionTitle,
-          subtitle: i == 0 ? subtitle : '',
-          bullets: splitBullets[i],
-        ));
+        _sections.add(
+          ClassNoteSection(
+            title: sectionTitle,
+            subtitle: i == 0 ? subtitle : '',
+            bullets: splitBullets[i],
+          ),
+        );
       }
       
       _titleController.clear();
@@ -298,11 +362,13 @@ class _TeacherNoteCreationScreenState extends State<TeacherNoteCreationScreen> {
       return;
     }
     
+    final int stepIndex = _editingIndex!;
+    final List<String> imagePaths = _imagePathsByStep[stepIndex] ?? _sections[stepIndex].imagePaths;
     final content = _bulletsController.text.trim();
-    final bullets = _parseBullets(content);
+    final bullets = imagePaths.isNotEmpty ? <String>[] : _parseBullets(content);
     
     // Check if content exceeds word limit
-    if (_wordCount(content) > _maxWordsPerStep) {
+    if (imagePaths.isEmpty && _wordCount(content) > _maxWordsPerStep) {
       // Auto-split when editing
       _autoSplitAndReplaceSection(_editingIndex!, title, subtitle, bullets);
       _closeEditAndAddNew();
@@ -315,6 +381,7 @@ class _TeacherNoteCreationScreenState extends State<TeacherNoteCreationScreen> {
       title: '$stepNum · $title',
       subtitle: subtitle,
       bullets: bullets,
+      imagePaths: imagePaths,
     );
     
     // Move to next step or new
@@ -388,6 +455,7 @@ class _TeacherNoteCreationScreenState extends State<TeacherNoteCreationScreen> {
             title: '${j + 1} · $titleWithoutNum',
             subtitle: oldSection.subtitle,
             bullets: oldSection.bullets,
+            imagePaths: oldSection.imagePaths,
           );
         }
       }
@@ -491,6 +559,8 @@ class _TeacherNoteCreationScreenState extends State<TeacherNoteCreationScreen> {
                           headingWordLimit: _maxHeadingWords,
                           subtitleWordLimit: _maxSubtitleWords,
                           onCancel: _closeEditAndAddNew,
+                          imagePaths: _imagePathsByStep[i] ?? _sections[i].imagePaths,
+                          onAddImage: () => _handleAddImageForStep(i),
                         )
                       else
                         // Show as completed/collapsed
@@ -515,6 +585,8 @@ class _TeacherNoteCreationScreenState extends State<TeacherNoteCreationScreen> {
                         headingWordLimit: _maxHeadingWords,
                         subtitleWordLimit: _maxSubtitleWords,
                         onCancel: null,
+                        imagePaths: _imagePathsByStep[_sections.length] ?? const <String>[],
+                        onAddImage: () => _handleAddImageForStep(_sections.length),
                       ),
                     
                     const SizedBox(height: 24),
@@ -660,7 +732,7 @@ class _CompletedNoteStep extends StatelessWidget {
 }
 
 /// Active editing step
-class _NoteEditingStep extends StatelessWidget {
+class _NoteEditingStep extends StatefulWidget {
   const _NoteEditingStep({
     required this.index,
     required this.isNewStep,
@@ -671,6 +743,8 @@ class _NoteEditingStep extends StatelessWidget {
     required this.headingWordLimit,
     required this.subtitleWordLimit,
     this.onCancel,
+    required this.imagePaths,
+    required this.onAddImage,
   });
 
   final int index;
@@ -682,7 +756,14 @@ class _NoteEditingStep extends StatelessWidget {
   final VoidCallback? onCancel;
   final int headingWordLimit;
   final int subtitleWordLimit;
+  final List<String> imagePaths;
+  final VoidCallback onAddImage;
 
+  @override
+  State<_NoteEditingStep> createState() => _NoteEditingStepState();
+}
+
+class _NoteEditingStepState extends State<_NoteEditingStep> {
   List<String> _words(String text) {
     return text
         .trim()
@@ -694,6 +775,7 @@ class _NoteEditingStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final List<String> imagePaths = widget.imagePaths;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -703,7 +785,7 @@ class _NoteEditingStep extends StatelessWidget {
           width: 24,
           child: Column(
             children: [
-              if (index != 0)
+              if (widget.index != 0)
                 Container(width: 2, height: 8, color: Colors.black),
               Container(
                 width: 24,
@@ -714,7 +796,7 @@ class _NoteEditingStep extends StatelessWidget {
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  '${index + 1}',
+                  '${widget.index + 1}',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 12,
@@ -762,14 +844,16 @@ class _NoteEditingStep extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    isNewStep ? 'Step ${index + 1}' : 'Edit Step ${index + 1}',
+                    widget.isNewStep
+                        ? 'Step ${widget.index + 1}'
+                        : 'Edit Step ${widget.index + 1}',
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
-                    controller: titleController,
+                    controller: widget.titleController,
                     textInputAction: TextInputAction.newline,
                     textCapitalization: TextCapitalization.sentences,
                     keyboardType: TextInputType.multiline,
@@ -779,10 +863,10 @@ class _NoteEditingStep extends StatelessWidget {
                     style: const TextStyle(color: Colors.black),
                     onChanged: (value) {
                       final words = _words(value);
-                      if (words.length > headingWordLimit) {
+                      if (words.length > widget.headingWordLimit) {
                         final truncated =
-                            words.take(headingWordLimit).join(' ');
-                        titleController.value = TextEditingValue(
+                            words.take(widget.headingWordLimit).join(' ');
+                        widget.titleController.value = TextEditingValue(
                           text: truncated,
                           selection: TextSelection.collapsed(
                             offset: truncated.length,
@@ -793,7 +877,7 @@ class _NoteEditingStep extends StatelessWidget {
                           ..showSnackBar(
                             SnackBar(
                               content: Text(
-                                'Keep section heading under $headingWordLimit words',
+                                'Keep section heading under ${widget.headingWordLimit} words',
                               ),
                             ),
                           );
@@ -802,7 +886,7 @@ class _NoteEditingStep extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
-                    controller: subtitleController,
+                    controller: widget.subtitleController,
                     textInputAction: TextInputAction.newline,
                     textCapitalization: TextCapitalization.sentences,
                     keyboardType: TextInputType.multiline,
@@ -812,10 +896,10 @@ class _NoteEditingStep extends StatelessWidget {
                     style: const TextStyle(color: Colors.black),
                     onChanged: (value) {
                       final words = _words(value);
-                      if (words.length > subtitleWordLimit) {
+                      if (words.length > widget.subtitleWordLimit) {
                         final truncated =
-                            words.take(subtitleWordLimit).join(' ');
-                        subtitleController.value = TextEditingValue(
+                            words.take(widget.subtitleWordLimit).join(' ');
+                        widget.subtitleController.value = TextEditingValue(
                           text: truncated,
                           selection: TextSelection.collapsed(
                             offset: truncated.length,
@@ -826,7 +910,7 @@ class _NoteEditingStep extends StatelessWidget {
                           ..showSnackBar(
                             SnackBar(
                               content: Text(
-                                'Keep subtitle under $subtitleWordLimit words',
+                                'Keep subtitle under ${widget.subtitleWordLimit} words',
                               ),
                             ),
                           );
@@ -834,38 +918,85 @@ class _NoteEditingStep extends StatelessWidget {
                     },
                   ),
                   const SizedBox(height: 12),
-                  TextFormField(
-                    controller: bulletsController,
-                    maxLines: null,
-                    minLines: 4,
-                    textInputAction: TextInputAction.newline,
-                    textCapitalization: TextCapitalization.sentences,
-                    decoration: const InputDecoration(
-                      labelText: 'Content',
-                      hintText: 'Write brief points here...\nEach line becomes a bullet.\nKeep it short (max ~60 words).',
-                      alignLabelWithHint: true,
-                    ),
-                    style: const TextStyle(color: Colors.black),
-                  ),
+                  imagePaths.isNotEmpty
+                      ? SizedBox(
+                          height: 160,
+                          child: PageView.builder(
+                            itemCount: imagePaths.length,
+                            controller:
+                                PageController(viewportFraction: 0.9),
+                            itemBuilder: (context, index) {
+                              final String path = imagePaths[index];
+                              return Container(
+                                margin: const EdgeInsets.only(right: 8),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Image.file(
+                                    File(path),
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (context, error, stackTrace) {
+                                      return Container(
+                                        color: Colors.black12,
+                                        alignment: Alignment.center,
+                                        child: Text(
+                                          'Image ${index + 1}',
+                                          style: const TextStyle(
+                                            color: Colors.black54,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        )
+                      : TextFormField(
+                          controller: widget.bulletsController,
+                          maxLines: null,
+                          minLines: 4,
+                          textInputAction: TextInputAction.newline,
+                          textCapitalization: TextCapitalization.sentences,
+                          decoration: InputDecoration(
+                            labelText: 'Content',
+                            hintText:
+                                'Write brief points here...\nEach line becomes a bullet.\nKeep it short (max ~60 words).',
+                            alignLabelWithHint: true,
+                            suffixIcon: widget.bulletsController.text
+                                        .trim()
+                                        .isEmpty &&
+                                    widget.imagePaths.isEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.image_outlined),
+                                    onPressed: widget.onAddImage,
+                                  )
+                                : null,
+                          ),
+                          style: const TextStyle(color: Colors.black),
+                          onChanged: (_) => setState(() {}),
+                        ),
                   const SizedBox(height: 16),
                   Row(
                     children: [
                       FilledButton.icon(
-                        onPressed: onNext,
+                        onPressed: widget.onNext,
                         style: FilledButton.styleFrom(
                           backgroundColor: const Color(0xFF075E54),
                           foregroundColor: Colors.white,
                         ),
                         icon: Icon(
-                          isNewStep ? Icons.arrow_downward : Icons.check,
+                          widget.isNewStep ? Icons.arrow_downward : Icons.check,
                           size: 16,
                         ),
-                        label: Text(isNewStep ? 'Next Step' : 'Save'),
+                        label: Text(
+                            widget.isNewStep ? 'Next Step' : 'Save'),
                       ),
-                      if (onCancel != null) ...[
+                      if (widget.onCancel != null) ...[
                         const SizedBox(width: 8),
                         OutlinedButton(
-                          onPressed: onCancel,
+                          onPressed: widget.onCancel,
                           child: const Text('Cancel'),
                         ),
                       ],

@@ -3,11 +3,13 @@ class ClassNoteSection {
     required this.title,
     required this.subtitle,
     required this.bullets,
+    this.imagePaths = const <String>[],
   });
 
   final String title;
   final String subtitle;
   final List<String> bullets;
+  final List<String> imagePaths;
 }
 
 /// Lightweight summary used for class note cards.

@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
 import 'ios_messages_screen.dart' show ClassDiscussionThreadPage;
 import '../models/class_note.dart';
 import '../widgets/note_rail_step.dart';
 
 class ClassNoteStepperScreen extends StatefulWidget {
-  const ClassNoteStepperScreen({super.key});
+  const ClassNoteStepperScreen({super.key, this.summary});
+
+  final ClassNoteSummary? summary;
 
   @override
   State<ClassNoteStepperScreen> createState() => _ClassNoteStepperScreenState();
@@ -16,7 +17,9 @@ class _ClassNoteStepperScreenState extends State<ClassNoteStepperScreen> {
   final List<GlobalKey> _stepKeys = <GlobalKey>[];
 
   // Example data – a single note broken into short rails/sections.
-  final List<ClassNoteSection> _sections = const <ClassNoteSection>[
+  late final List<ClassNoteSection> _sections = widget.summary?.sections.isNotEmpty == true
+      ? List<ClassNoteSection>.from(widget.summary!.sections)
+      : const <ClassNoteSection>[
     ClassNoteSection(
       title: '1 · Overview',
       subtitle: 'Why this topic matters today',
@@ -61,7 +64,7 @@ class _ClassNoteStepperScreenState extends State<ClassNoteStepperScreen> {
         'Ask students to predict, then reveal the answer in class or later.',
       ],
     ),
-  ];
+      ];
 
   @override
   void initState() {
@@ -109,16 +112,17 @@ class _ClassNoteStepperScreenState extends State<ClassNoteStepperScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Medication safety in NICU',
+                widget.summary?.title ?? 'Medication safety in NICU',
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
-                'NUR 301 · Week 4',
-                style: theme.textTheme.bodySmall?.copyWith(color: subtle),
-              ),
+              if ((widget.summary?.subtitle ?? '').isNotEmpty)
+                Text(
+                  widget.summary!.subtitle,
+                  style: theme.textTheme.bodySmall?.copyWith(color: subtle),
+                ),
               const SizedBox(height: 16),
               // Overall note progress using the same 3‑colour logic
               Row(

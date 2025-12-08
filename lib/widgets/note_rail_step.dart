@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../models/class_note.dart';
 
@@ -28,10 +29,13 @@ class NoteRailStep extends StatelessWidget {
     final subtle = onSurface.withValues(
       alpha: theme.brightness == Brightness.dark ? 0.6 : 0.55,
     );
-    // WhatsApp-inspired light green bubble for the active/open step.
+    // Use the WhatsApp-style bubble for text steps, but keep image-only
+    // steps on a neutral surface so the images stand out without tint.
     const Color whatsappBubble = Color(0xFFDCF8C6);
-    final Color panelColor =
-        isActive ? whatsappBubble : theme.colorScheme.surface;
+    final bool hasImages = section.imagePaths.isNotEmpty;
+    final Color panelColor = hasImages
+        ? theme.colorScheme.surface
+        : (isActive ? whatsappBubble : theme.colorScheme.surface);
 
     return Padding(
       padding: EdgeInsets.only(
@@ -125,7 +129,50 @@ class NoteRailStep extends StatelessWidget {
                         ),
                       ),
                     ],
-                    if (isRevealed && section.bullets.isNotEmpty) ...[
+                    if (isRevealed && section.imagePaths.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        height: 180,
+                        child: PageView.builder(
+                          itemCount: section.imagePaths.length,
+                          controller: PageController(viewportFraction: 0.9),
+                          itemBuilder: (context, index) {
+                            final String path = section.imagePaths[index];
+                            return Container(
+                              margin: const EdgeInsets.only(right: 8),
+                              child: GestureDetector(
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => _FullScreenImageViewer(imagePath: path),
+                                    ),
+                                  );
+                                },
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Image.file(
+                                    File(path),
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Container(
+                                        color: Colors.black12,
+                                        alignment: Alignment.center,
+                                        child: Text(
+                                          'Image ${index + 1}',
+                                          style: theme.textTheme.bodyMedium?.copyWith(
+                                            color: subtle,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ] else if (isRevealed && section.bullets.isNotEmpty) ...[
                       const SizedBox(height: 10),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -159,6 +206,33 @@ class NoteRailStep extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FullScreenImageViewer extends StatelessWidget {
+  const _FullScreenImageViewer({required this.imagePath});
+
+  final String imagePath;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+      ),
+      body: Center(
+        child: InteractiveViewer(
+          minScale: 1,
+          maxScale: 4,
+          child: Image.file(
+            File(imagePath),
+            fit: BoxFit.contain,
+          ),
         ),
       ),
     );

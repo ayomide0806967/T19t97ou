@@ -50,11 +50,7 @@ class LectureTopicScreen extends StatelessWidget {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => const CreateNoteWelcomeScreen(),
-            ),
-          );
+          showCreateLectureModal(context);
         },
         label: const Text('Start Lecture'),
         icon: const Icon(Icons.add),

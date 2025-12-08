@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
@@ -12,11 +11,9 @@ import 'package:image_picker/image_picker.dart';
 import 'quiz_hub_screen.dart';
 import 'package:provider/provider.dart';
 import '../l10n/strings.dart';
-import '../widgets/skeleton.dart';
 import '../services/data_service.dart';
 import '../widgets/tweet_post_card.dart';
 import '../services/simple_auth_service.dart';
-import '../widgets/hexagon_avatar.dart';
 import '../services/roles_service.dart';
 import '../screens/post_activity_screen.dart';
 import '../screens/create_note_flow/teacher_note_creation_screen.dart';
@@ -4776,7 +4773,7 @@ class _ClassNotesCard extends StatelessWidget {
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => const ClassNoteStepperScreen(),
+              builder: (_) => ClassNoteStepperScreen(summary: summary),
             ),
           );
         },
@@ -4965,7 +4962,7 @@ class _ClassNotesCard extends StatelessWidget {
                           : () {
                               Navigator.of(context).push(
                                 MaterialPageRoute(
-                                  builder: (_) => const ClassNoteStepperScreen(),
+                                  builder: (_) => ClassNoteStepperScreen(summary: summary),
                                 ),
                               );
                             },

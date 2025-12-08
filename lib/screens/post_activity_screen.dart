@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../models/activity_user.dart';
 import '../services/data_service.dart';
-import '../theme/app_theme.dart';
 
 /// Post Activity Screen - Shows engagement stats and list of users who interacted
 class PostActivityScreen extends StatefulWidget {
