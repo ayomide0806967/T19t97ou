@@ -8522,111 +8522,218 @@ class _ClassStudentsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final list = members.toList()..sort();
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-      children: [
-        Row(
-          children: [
-            FilledButton.icon(
-              style: FilledButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white),
-              onPressed: () => onAdd(context),
-              icon: const Icon(Icons.person_add_alt_1),
-              label: const Text('Add student'),
-            ),
-            const SizedBox(width: 12),
-            OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.black,
-                side: const BorderSide(color: Colors.black),
-                backgroundColor: Colors.white,
-              ),
-              onPressed: () => onExit(context),
-              icon: const Icon(Icons.logout),
-              label: const Text('Exit class'),
-            ),
-          ],
+    final List<String> list = members.toList()..sort();
+
+    void _showStudentActions(String handle) {
+      showModalBottomSheet<void>(
+        context: context,
+        backgroundColor: Colors.white,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        const SizedBox(height: 16),
-        if (list.isEmpty)
-          Center(
-            child: Text('No students listed yet', style: theme.textTheme.bodyMedium),
-          )
-        else
-          ...[
-            for (final h in list)
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(14),
+        builder: (ctx) => SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.person_search_outlined),
+                  title: const Text('View full profile'),
                   onTap: () {
-                    showModalBottomSheet<void>(
-                      context: context,
-                      backgroundColor: Colors.white,
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                      ),
-                      builder: (ctx) => SafeArea(
-                        top: false,
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              ListTile(
-                                leading: const Icon(Icons.person_search_outlined),
-                                title: const Text('View full profile'),
-                                onTap: () {
-                                  Navigator.of(ctx).pop();
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(builder: (_) => StudentProfileScreen(handle: h)),
-                                  );
-                                },
-                              ),
-                              ListTile(
-                                leading: const Icon(Icons.message_outlined),
-                                title: const Text('Message'),
-                                onTap: () {
-                                  Navigator.of(ctx).pop();
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Messaging $h…')),
-                                  );
-                                },
-                              ),
-                              ListTile(
-                                leading: const Icon(Icons.block_outlined),
-                                title: const Text('Suspend student'),
-                                onTap: () {
-                                  Navigator.of(ctx).pop();
-                                  onSuspend(h);
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
+                    Navigator.of(ctx).pop();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => StudentProfileScreen(handle: handle),
                       ),
                     );
                   },
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: theme.dividerColor.withValues(alpha: 0.2)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.person_outline),
-                        const SizedBox(width: 8),
-                        Expanded(child: Text(h, style: theme.textTheme.bodyMedium)),
-                        const Icon(Icons.more_horiz),
-                      ],
+                ),
+                ListTile(
+                  leading: const Icon(Icons.message_outlined),
+                  title: const Text('Message'),
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Messaging $handle…')),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.block_outlined),
+                  title: const Text('Suspend student'),
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    onSuspend(handle);
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: Row(
+            children: [
+              FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () => onAdd(context),
+                icon: const Icon(Icons.person_add_alt_1),
+                label: const Text('Add student'),
+              ),
+              const SizedBox(width: 12),
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.black,
+                  side: const BorderSide(color: Colors.black),
+                  backgroundColor: Colors.white,
+                ),
+                onPressed: () => onExit(context),
+                icon: const Icon(Icons.logout),
+                label: const Text('Exit class'),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: TextField(
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.search),
+              hintText: 'Search students',
+              filled: true,
+              fillColor: theme.colorScheme.surface,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(999),
+                borderSide: BorderSide.none,
+              ),
+            ),
+            readOnly: true,
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Search coming soon')),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 16),
+        if (list.isEmpty)
+          Expanded(
+            child: Center(
+              child: Text(
+                'No students listed yet',
+                style: theme.textTheme.bodyMedium,
+              ),
+            ),
+          )
+        else
+          Expanded(
+            child: GridView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 1.25,
+              ),
+              itemCount: list.length,
+              itemBuilder: (context, index) {
+                final String handle = list[index];
+                return _StudentCard(
+                  handle: handle,
+                  index: index,
+                  onTap: () => _showStudentActions(handle),
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _StudentCard extends StatelessWidget {
+  const _StudentCard({
+    required this.handle,
+    required this.index,
+    required this.onTap,
+  });
+
+  final String handle;
+  final int index;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    const List<Color> palette = <Color>[
+      Color(0xFF64748B),
+      Color(0xFFEA580C),
+      Color(0xFF1D4ED8),
+      Color(0xFF16A34A),
+      Color(0xFF7C3AED),
+      Color(0xFFDB2777),
+      Color(0xFF0F172A),
+      Color(0xFF059669),
+    ];
+    final Color baseColor = palette[index % palette.length];
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Ink(
+          decoration: BoxDecoration(
+            color: baseColor,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  handle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const Spacer(),
+                Align(
+                  alignment: Alignment.bottomRight,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      width: 52,
+                      height: 68,
+                      color: Colors.white.withValues(alpha: 0.9),
+                      child: Icon(
+                        Icons.person,
+                        size: 28,
+                        color: baseColor,
+                      ),
                     ),
                   ),
                 ),
-              ),
-          ],
-      ],
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
