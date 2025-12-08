@@ -8652,9 +8652,9 @@ class _ClassStudentsTab extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                mainAxisSpacing: 8,
-                crossAxisSpacing: 8,
-                childAspectRatio: 2.8,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 0.9,
               ),
               itemCount: list.length,
               itemBuilder: (context, index) {
@@ -8686,7 +8686,8 @@ class _StudentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    const Color baseColor = Colors.black;
+    final Color baseColor = theme.colorScheme.surface;
+    final Color textColor = const Color(0xFF111827);
 
     return Material(
       color: Colors.transparent,
@@ -8697,22 +8698,27 @@ class _StudentCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: baseColor,
             borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  handle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
+            padding: const EdgeInsets.all(12),
+            child: Center(
+              child: Text(
+                handle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: textColor,
                 ),
-              ],
+              ),
             ),
           ),
         ),
