@@ -2827,6 +2827,12 @@ Mock exam briefing extended update: please review chapters one through five, pra
 
   void _openSettingsSheet(BuildContext context) {
     final theme = Theme.of(context);
+    // Local snapshot so the bottom sheet can rebuild independently.
+    var adminOnlyPosting = _adminOnlyPosting;
+    var allowReplies = _allowReplies;
+    var allowMedia = _allowMedia;
+    var isPrivate = _isPrivate;
+
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.white,
@@ -2835,158 +2841,218 @@ Mock exam briefing extended update: please review chapters one through five, pra
       ),
       builder: (ctx) {
         final maxHeight = MediaQuery.of(ctx).size.height * 0.8;
-        return SafeArea(
-          top: false,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: maxHeight),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+        return StatefulBuilder(
+          builder: (sheetContext, setSheetState) {
+            return SafeArea(
+              top: false,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: maxHeight),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(S.classSettings, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-                      const Spacer(),
-                      IconButton(
-                        icon: const Icon(Icons.close_rounded),
-                        onPressed: () => Navigator.of(ctx).pop(),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  SettingSwitchRow(
-                    label: 'Admin-only posting',
-                    value: _adminOnlyPosting,
-                    onChanged: (v) => setState(() => _adminOnlyPosting = v),
-                  ),
-                  SettingSwitchRow(
-                    label: 'Allow replies',
-                    value: _allowReplies,
-                    onChanged: (v) => setState(() => _allowReplies = v),
-                  ),
-                  SettingSwitchRow(
-                    label: 'Allow media attachments',
-                    value: _allowMedia,
-                    onChanged: (v) => setState(() => _allowMedia = v),
-                  ),
-                  SettingSwitchRow(
-                    label: 'Private class',
-                    value: _isPrivate,
-                    onChanged: (v) => setState(() => _isPrivate = v),
-                  ),
-                  SettingSwitchRow(
-                    label: 'Auto-archive when ending topic',
-                    value: _autoArchiveOnEnd,
-                    onChanged: (v) => setState(() => _autoArchiveOnEnd = v),
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      OutlinedButton.icon(
-                        icon: const Icon(Icons.link_outlined),
-                        label: const Text('Invite by code'),
-                        onPressed: () async {
-                          Navigator.of(ctx).pop();
-                          final code = await InvitesService.getOrCreateCode(widget.college.code);
-                          if (!context.mounted) return;
-                          showModalBottomSheet<void>(
-                            context: context,
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                      Row(
+                        children: [
+                          Text(
+                            S.classSettings,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                          const SizedBox(width: 8),
+                          FilledButton.tonalIcon(
+                            style: FilledButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 8,
+                              ),
+                              minimumSize: const Size(0, 0),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
-                            builder: (sheet) => SafeArea(
-                              top: false,
-                              child: Padding(
-                                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
+                            icon: const Icon(Icons.link_outlined, size: 18),
+                            label: const Text('Invite by code'),
+                            onPressed: () async {
+                              Navigator.of(ctx).pop();
+                              final code =
+                                  await InvitesService.getOrCreateCode(widget.college.code);
+                              if (!context.mounted) return;
+                              showModalBottomSheet<void>(
+                                context: context,
+                                shape: const RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.vertical(
+                                    top: Radius.circular(20),
+                                  ),
+                                ),
+                                builder: (sheet) => SafeArea(
+                                  top: false,
+                                  child: Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      16,
+                                      12,
+                                      16,
+                                      16,
+                                    ),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text(S.inviteByCode, style: Theme.of(sheet).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-                                        const Spacer(),
-                                        IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.of(sheet).pop()),
+                                        Row(
+                                          children: [
+                                            Text(
+                                              S.inviteByCode,
+                                              style: Theme.of(sheet)
+                                                  .textTheme
+                                                  .titleMedium
+                                                  ?.copyWith(
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                            ),
+                                            const Spacer(),
+                                            IconButton(
+                                              icon: const Icon(Icons.close),
+                                              onPressed: () =>
+                                                  Navigator.of(sheet).pop(),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Center(
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 16,
+                                              vertical: 12,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(14),
+                                              border: Border.all(
+                                                color: Theme.of(sheet)
+                                                    .dividerColor
+                                                    .withValues(alpha: 0.25),
+                                              ),
+                                            ),
+                                            child: Text(
+                                              code,
+                                              style: Theme.of(sheet)
+                                                  .textTheme
+                                                  .headlineSmall
+                                                  ?.copyWith(
+                                                    fontWeight: FontWeight.w800,
+                                                  ),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Align(
+                                          alignment: Alignment.centerRight,
+                                          child: FilledButton.icon(
+                                            icon: const Icon(Icons.copy),
+                                            onPressed: () async {
+                                              await Clipboard.setData(
+                                                ClipboardData(text: code),
+                                              );
+                                              if (context.mounted) {
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      S.inviteCodeCopied,
+                                                    ),
+                                                  ),
+                                                );
+                                              }
+                                            },
+                                            label: Text(S.copyCode),
+                                          ),
+                                        ),
                                       ],
                                     ),
-                                    const SizedBox(height: 12),
-                                    Center(
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(14),
-                                          border: Border.all(color: Theme.of(sheet).dividerColor.withValues(alpha: 0.25)),
-                                        ),
-                                        child: Text(code, style: Theme.of(sheet).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Align(
-                                      alignment: Alignment.centerRight,
-                                      child: FilledButton.icon(
-                                        icon: const Icon(Icons.copy),
-                                        onPressed: () async {
-                                          await Clipboard.setData(ClipboardData(text: code));
-                                          if (context.mounted) {
-                                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(S.inviteCodeCopied)));
-                                          }
-                                        },
-                                        label: Text(S.copyCode),
-                                      ),
-                                    ),
-                                  ],
+                                  ),
                                 ),
+                              );
+                            },
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded),
+                            onPressed: () => Navigator.of(ctx).pop(),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      SettingSwitchRow(
+                        label: 'Admin-only posting',
+                        value: adminOnlyPosting,
+                        onChanged: (v) {
+                          setSheetState(() {
+                            adminOnlyPosting = v;
+                          });
+                          setState(() {
+                            _adminOnlyPosting = v;
+                          });
+                        },
+                      ),
+                      SettingSwitchRow(
+                        label: 'Allow replies',
+                        value: allowReplies,
+                        onChanged: (v) {
+                          setSheetState(() {
+                            allowReplies = v;
+                          });
+                          setState(() {
+                            _allowReplies = v;
+                          });
+                        },
+                      ),
+                      SettingSwitchRow(
+                        label: 'Allow media attachments',
+                        value: allowMedia,
+                        onChanged: (v) {
+                          setSheetState(() {
+                            allowMedia = v;
+                          });
+                          setState(() {
+                            _allowMedia = v;
+                          });
+                        },
+                      ),
+                      SettingSwitchRow(
+                        label: 'Private class',
+                        value: isPrivate,
+                        onChanged: (v) {
+                          setSheetState(() {
+                            isPrivate = v;
+                          });
+                          setState(() {
+                            _isPrivate = v;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          icon: const Icon(Icons.tune),
+                          label: const Text('Open full settings'),
+                          onPressed: () async {
+                            Navigator.of(ctx).pop();
+                            await Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    const _CreateClassPage(initialStep: 1),
                               ),
-                            ),
-                          );
-                        },
-                      ),
-                      OutlinedButton.icon(
-                        icon: const Icon(Icons.tune),
-                        label: const Text('Setting detail'),
-                        onPressed: () async {
-                          Navigator.of(ctx).pop();
-                          await Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const _CreateClassPage(initialStep: 1),
-                            ),
-                          );
-                        },
-                      ),
-                      OutlinedButton.icon(
-                        icon: const Icon(Icons.group_outlined),
-                        label: Text(S.manageAdmins),
-                        onPressed: () {
-                          Navigator.of(ctx).pop();
-                          _openManageAdminsSheet(context);
-                        },
-                      ),
-                      OutlinedButton.icon(
-                        icon: const Icon(Icons.person_add_alt_1_outlined),
-                        label: Text(S.inviteMember),
-                        onPressed: () {
-                          Navigator.of(ctx).pop();
-                          _addMember(context);
-                        },
-                      ),
-                      OutlinedButton.icon(
-                        icon: const Icon(Icons.person_remove_alt_1_outlined),
-                        label: Text(S.suspendMembers),
-                        onPressed: () {
-                          Navigator.of(ctx).pop();
-                          _openSuspendMembersSheet(context);
-                        },
+                            );
+                          },
+                        ),
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
@@ -3227,37 +3293,54 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
             ),
             const SizedBox(height: 12),
             if (widget.activeTopic == null && widget.isAdmin) ...[
-                FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF075E54),
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size.fromHeight(48),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+              Row(
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: _ClassActionCard(
+                      title: 'Create lecture note',
+                      backgroundColor: _whatsAppGreen.withValues(alpha: 0.15),
+                      playIconColor: _whatsAppTeal,
+                      onTap: () async {
+                        final summary =
+                            await Navigator.of(context).push<ClassNoteSummary>(
+                          MaterialPageRoute(
+                            builder: (_) => _LectureSetupPage(
+                              college: widget.college,
+                              onStartLecture: widget.onStartLecture,
+                            ),
+                          ),
+                        );
+                        if (summary != null && mounted) {
+                          setState(() {
+                            _classNotes.insert(0, summary);
+                          });
+                          await _saveNotesForCollege(widget.college.code);
+                        }
+                      },
                     ),
                   ),
-                  onPressed: () async {
-                    final summary = await Navigator.of(context).push<ClassNoteSummary>(
-                      MaterialPageRoute(
-                        builder: (_) => _LectureSetupPage(
-                          college: widget.college,
-                          onStartLecture: widget.onStartLecture,
-                        ),
-                      ),
-                    );
-                    if (summary != null && mounted) {
-                      setState(() {
-                        _classNotes.insert(0, summary);
-                      });
-                      await _saveNotesForCollege(widget.college.code);
-                    }
-                  },
-                  icon: const Icon(Icons.note_add_outlined),
-                  label: const Text('CREATE LECTURE NOTE'),
-                ),
-              ] else
-                const SizedBox.shrink(),
-              const SizedBox(height: 12),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: _ClassActionCard(
+                      title: 'Quiz',
+                      backgroundColor: _whatsAppGreen.withValues(alpha: 0.15),
+                      playIconColor: _whatsAppTeal,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const QuizHubScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ] else
+              const SizedBox.shrink(),
+            const SizedBox(height: 12),
               if (widget.activeTopic != null) ...[
                 if (widget.requiresPin && !widget.unlocked)
                   _PinGateCard(
@@ -3326,6 +3409,105 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ClassActionCard extends StatelessWidget {
+  const _ClassActionCard({
+    required this.title,
+    required this.onTap,
+    required this.backgroundColor,
+    this.chips = const <String>[],
+    this.playIconColor = Colors.black,
+  });
+
+  final String title;
+  final VoidCallback onTap;
+  final Color backgroundColor;
+  final List<String> chips;
+  final Color playIconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(24),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black,
+                        fontFamily: 'Roboto',
+                        fontSize: 15,
+                      ),
+                    ),
+                    if (chips.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          for (final chip in chips)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.85),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
+                                chip,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black,
+                                  fontFamily: 'Roboto',
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                width: 36,
+                height: 36,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.play_arrow_rounded,
+                  color: playIconColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -8348,82 +8530,68 @@ class _ClassLibraryTabState extends State<_ClassLibraryTab> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final College college = widget.college;
-    final List<ClassTopic> topics = widget.topics;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       children: [
-        Text('Library', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-        const SizedBox(height: 12),
-        if (_libraryNotes.isNotEmpty) ...[
-          Column(
+        Text(
+          'Library',
+          style:
+              theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 16),
+        Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              for (final note in _libraryNotes) ...[
-                _ClassNotesCard(
-                  summary: note,
-                  inLibrary: true,
-                  onUpdated: (updated) {
-                    setState(() {
-                      final int index = _libraryNotes.indexOf(note);
-                      if (index != -1) {
-                        _libraryNotes[index] = updated;
-                      }
-                    });
-                  },
-                  onMoveToLibrary: () {
-                    setState(() {
-                      _libraryNotes.remove(note);
-                    });
-                    _classNotes.insert(0, note);
-                    _notifyClassNotesChanged?.call();
-                    _saveNotesForCollege(college.code);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Moved back to Class'),
-                      ),
-                    );
-                  },
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 24,
                 ),
-                const SizedBox(height: 8),
-              ],
-            ],
-          ),
-          const SizedBox(height: 16),
-        ],
-        if (topics.isEmpty)
-          Text('No archived topics yet', style: theme.textTheme.bodyMedium)
-        else ...[
-          for (final t in topics)
-            Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: theme.dividerColor.withValues(alpha: 0.2)),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 18,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  'No note yet',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
-              child: ListTile(
-                title: Text(t.topicTitle, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-                subtitle: Text('${t.courseName} • Tutor ${t.tutorName}'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => _TopicDetailPage(topic: t, classCode: college.code)),
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('PDF upload coming soon'),
+                    ),
                   );
                 },
+                icon: const Icon(Icons.picture_as_pdf_outlined),
+                label: const Text('Add PDF to library'),
               ),
-            ),
-        ],
-        const SizedBox(height: 16),
-        Text('Resources', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final r in college.resources)
-              _LibraryChip(resource: r),
-          ],
+            ],
+          ),
         ),
       ],
     );
@@ -8506,7 +8674,7 @@ class _LectureNoteTile extends StatelessWidget {
   }
 }
 
-class _ClassStudentsTab extends StatelessWidget {
+class _ClassStudentsTab extends StatefulWidget {
   const _ClassStudentsTab({
     required this.members,
     required this.onAdd,
@@ -8520,9 +8688,32 @@ class _ClassStudentsTab extends StatelessWidget {
   final void Function(String handle) onSuspend;
 
   @override
+  State<_ClassStudentsTab> createState() => _ClassStudentsTabState();
+}
+
+class _ClassStudentsTabState extends State<_ClassStudentsTab> {
+  final TextEditingController _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final List<String> list = members.toList()..sort();
+    final List<String> list = widget.members.toList()..sort();
+
+    final List<String> filteredList = _query.isEmpty
+        ? list
+        : list
+            .where(
+              (handle) =>
+                  handle.toLowerCase().contains(_query.toLowerCase()),
+            )
+            .toList();
 
     void _showStudentActions(String handle) {
       showModalBottomSheet<void>(
@@ -8565,7 +8756,7 @@ class _ClassStudentsTab extends StatelessWidget {
                   title: const Text('Suspend student'),
                   onTap: () {
                     Navigator.of(ctx).pop();
-                    onSuspend(handle);
+                    widget.onSuspend(handle);
                   },
                 ),
               ],
@@ -8590,7 +8781,7 @@ class _ClassStudentsTab extends StatelessWidget {
                   minimumSize: const Size(0, 36),
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-                onPressed: () => onAdd(context),
+                onPressed: () => widget.onAdd(context),
                 icon: const Icon(Icons.person_add_alt_1),
                 label: const Text('Add student'),
               ),
@@ -8598,16 +8789,14 @@ class _ClassStudentsTab extends StatelessWidget {
               OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.black87,
-                  side: BorderSide(
-                    color: Colors.black.withValues(alpha: 0.25),
-                  ),
-                  backgroundColor: Colors.white70,
+                  side: BorderSide.none,
+                  backgroundColor: Colors.transparent,
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   minimumSize: const Size(0, 36),
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-                onPressed: () => onExit(context),
+                onPressed: () => widget.onExit(context),
                 icon: const Icon(Icons.delete_outline),
                 label: const Text('Delete class'),
               ),
@@ -8617,23 +8806,40 @@ class _ClassStudentsTab extends StatelessWidget {
         const SizedBox(height: 12),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: TextField(
-            decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.search),
-              hintText: 'Search students',
-              filled: true,
-              fillColor: theme.colorScheme.surface,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(999),
-                borderSide: BorderSide.none,
-              ),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceVariant.withValues(alpha: 0.85),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.06),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
-            readOnly: true,
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Search coming soon')),
-              );
-            },
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search),
+                prefixIconColor: Colors.black.withValues(alpha: 0.55),
+                hintText: 'Search students',
+                hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                  color: Colors.black.withValues(alpha: 0.45),
+                ),
+                border: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+              ),
+              textInputAction: TextInputAction.search,
+              onChanged: (value) {
+                setState(() {
+                  _query = value.trim();
+                });
+              },
+            ),
           ),
         ),
         const SizedBox(height: 16),
@@ -8646,19 +8852,28 @@ class _ClassStudentsTab extends StatelessWidget {
               ),
             ),
           )
+        else if (filteredList.isEmpty)
+          Expanded(
+            child: Center(
+              child: Text(
+                'No students found',
+                style: theme.textTheme.bodyMedium,
+              ),
+            ),
+          )
         else
           Expanded(
             child: GridView.builder(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
+                crossAxisCount: 3,
+                mainAxisSpacing: 0,
+                crossAxisSpacing: 8,
                 childAspectRatio: 0.9,
               ),
-              itemCount: list.length,
+              itemCount: filteredList.length,
               itemBuilder: (context, index) {
-                final String handle = list[index];
+                final String handle = filteredList[index];
                 return _StudentCard(
                   handle: handle,
                   index: index,
@@ -8716,31 +8931,32 @@ class _StudentCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         onTap: onTap,
         child: Ink(
           decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
+            color: Colors.transparent,
           ),
-          child: Stack(
-            children: [
-              Align(
-                alignment: Alignment.topCenter,
-                child: Container(
-                  margin: const EdgeInsets.only(top: 8),
-                  width: 72,
-                  height: 72,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 68,
+                  height: 68,
                   decoration: BoxDecoration(
                     color: frameColor,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.14),
+                        blurRadius: 22,
+                        spreadRadius: 1,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
                   ),
                   alignment: Alignment.center,
                   child: Text(
@@ -8751,23 +8967,19 @@ class _StudentCard extends StatelessWidget {
                     ),
                   ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 60, 12, 16),
-                child: Align(
-                  alignment: Alignment.bottomLeft,
-                  child: Text(
-                    displayName.isEmpty ? handle : displayName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: nameColor,
-                    ),
+                const SizedBox(height: 4),
+                Text(
+                  displayName.isEmpty ? handle : displayName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: nameColor,
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

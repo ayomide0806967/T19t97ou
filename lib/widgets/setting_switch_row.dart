@@ -47,10 +47,26 @@ class SettingSwitchRow extends StatelessWidget {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: monochrome ? Colors.white : null,
-            activeTrackColor: monochrome ? Colors.black : null,
-            inactiveThumbColor: monochrome ? Colors.black : null,
-            inactiveTrackColor: monochrome ? Colors.white : null,
+            thumbColor: WidgetStateProperty.resolveWith<Color?>(
+              (states) {
+                final bool selected = states.contains(WidgetState.selected);
+                if (monochrome) {
+                  return selected ? Colors.white : Colors.black;
+                }
+                return selected ? const Color(0xFF075E54) : Colors.black;
+              },
+            ),
+            trackColor: WidgetStateProperty.resolveWith<Color?>(
+              (states) {
+                final bool selected = states.contains(WidgetState.selected);
+                if (monochrome) {
+                  return selected ? Colors.black : Colors.white;
+                }
+                return selected
+                    ? const Color(0xFF075E54).withValues(alpha: 0.25)
+                    : Colors.black.withValues(alpha: 0.08);
+              },
+            ),
           ),
         ],
       ),
