@@ -5,6 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:docx_to_text/docx_to_text.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:share_plus/share_plus.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'dart:typed_data';
@@ -14,6 +15,7 @@ import 'quiz_drafts_screen.dart';
 import 'quiz_results_screen.dart';
 import 'quiz_take_screen.dart';
 import 'aiken_import_review_screen.dart';
+import 'quiz_dashboard_screen.dart';
 
 // WhatsApp-inspired palette for quiz steps
 const Color _quizWhatsAppGreen = Color(0xFF25D366);
@@ -298,7 +300,7 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
     _scrollToCenter(_firstQuestionStepKey);
   }
 
-  Future<void> _importQuestionsFromAiken() async {
+  Future<void> _importQuestionsFromAiken({List<ImportedQuestion>? accumulated}) async {
     if (!_settingsCompleted) return;
     try {
       String normalizePrompt(String text) {
@@ -313,6 +315,7 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
         return withoutNumber.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
       }
 
+      // Prompts that already exist in the quiz builder
       final Set<String> existingPrompts = _questions
           .map((q) => normalizePrompt(q.prompt.text))
           .where((t) => t.isNotEmpty)
@@ -357,42 +360,73 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
       
       final List<ImportedQuestion> parsed = parseAikenQuestions(content);
       
-      if (parsed.isEmpty) {
+      if (parsed.isEmpty && (accumulated == null || accumulated.isEmpty)) {
         _showSnack('No valid questions found in the Aiken file.');
+        return;
+      }
+
+      // Combine any previously imported (but not yet applied) questions
+      // with the newly parsed ones, while removing duplicates across
+      // all sources (existing quiz + accumulated + this file).
+      final List<ImportedQuestion> combined = [
+        if (accumulated != null) ...accumulated,
+      ];
+      final Set<String> seenCombined = {
+        for (final iq in combined) normalizePrompt(iq.prompt.text),
+        ...existingPrompts,
+      };
+      for (final iq in parsed) {
+        final normalized = normalizePrompt(iq.prompt.text);
+        if (normalized.isEmpty || seenCombined.contains(normalized)) {
+          iq.dispose();
+          continue;
+        }
+        seenCombined.add(normalized);
+        combined.add(iq);
+      }
+
+      if (combined.isEmpty) {
+        _showSnack('All imported questions were duplicates of existing ones.');
         return;
       }
 
       // Navigate to review screen
       if (!mounted) return;
-      final reviewed = await Navigator.of(context).push<List<ImportedQuestion>>(
+      final AikenImportResult? reviewResult =
+          await Navigator.of(context).push<AikenImportResult>(
         MaterialPageRoute(
-          builder: (_) => AikenImportReviewScreen(questions: parsed),
+          builder: (_) => AikenImportReviewScreen(questions: combined),
         ),
       );
 
-      // Parsed questions are only used to seed the review screen; dispose now.
-      for (final q in parsed) {
-        q.dispose();
-      }
-
-      // If user cancelled, just return
-      if (reviewed == null) {
+      // If user cancelled, dispose any combined questions and return
+      if (reviewResult == null) {
+        for (final iq in combined) {
+          iq.dispose();
+        }
         return;
       }
 
-      // If user chose "Import more Aiken file", re-open the picker
-      if (reviewed.isEmpty) {
-        await _importQuestionsFromAiken();
+      // If user chose "Import more Aiken file", recurse with the
+      // edited questions so far (they stay visible on the next review).
+      if (reviewResult.importMore) {
+        await _importQuestionsFromAiken(accumulated: reviewResult.questions);
         return;
       }
 
-      // Filter out duplicates (within this import and vs existing questions)
+      // Filter out duplicates again against the quiz questions at the
+      // moment of final confirmation, and de-duplicate inside the
+      // reviewed list itself.
       final List<ImportedQuestion> uniqueReviewed = [];
       final Set<String> seenInImport = {};
-      for (final iq in reviewed) {
+      final Set<String> finalExistingPrompts = _questions
+          .map((q) => normalizePrompt(q.prompt.text))
+          .where((t) => t.isNotEmpty)
+          .toSet();
+      for (final iq in reviewResult.questions) {
         final normalized = normalizePrompt(iq.prompt.text);
         if (normalized.isEmpty ||
-            existingPrompts.contains(normalized) ||
+            finalExistingPrompts.contains(normalized) ||
             seenInImport.contains(normalized)) {
           iq.dispose();
           continue;
@@ -402,9 +436,7 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
       }
 
       if (uniqueReviewed.isEmpty) {
-        _showSnack(
-          'All imported questions were duplicates of existing ones.',
-        );
+        _showSnack('All imported questions were duplicates of existing ones.');
         return;
       }
 
@@ -434,7 +466,21 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
       }
 
       setState(() {
-        final int startIndex = _questions.length;
+        // If we still only have the initial empty placeholder question
+        // (no prompt text and default options), clear it so imported
+        // questions become the only ones shown.
+        if (_questions.length == 1 &&
+            _questions.first.prompt.text.trim().isEmpty &&
+            _questions.first.options.every(
+              (c) => c.text.trim().isEmpty,
+            ) &&
+            _questions.first.promptImage == null &&
+            _questions.first.optionImages.every((img) => img == null)) {
+          _questions.first.dispose();
+          _questions.clear();
+          _questionStepKeys.clear();
+        }
+
         _questions.addAll(imported);
         // Ensure we have keys for all questions (existing + newly imported).
         while (_questionStepKeys.length < _questions.length) {
@@ -442,18 +488,17 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
         }
         _buildMode = _QuizBuildMode.aiken;
         _questionSetupCompleted = true;
-        // Focus on the first newly imported question if appending.
-        _activeStep = 3 + (startIndex == 0 ? 0 : startIndex);
+        // Keep all question cards collapsed after import.
+        _activeStep = 0;
       });
       
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_questionStepKeys.isNotEmpty) {
           final int targetIndex =
-              _activeStep >= 3 ? _activeStep - 3 : 0;
-          final GlobalKey key =
-              targetIndex < _questionStepKeys.length
-                  ? _questionStepKeys[targetIndex]
-                  : _questionStepKeys.first;
+              _questions.isNotEmpty ? _questions.length - 1 : 0;
+          final GlobalKey key = targetIndex < _questionStepKeys.length
+              ? _questionStepKeys[targetIndex]
+              : _questionStepKeys.last;
           _scrollToCenter(key);
         } else {
           _scrollToCenter(_firstQuestionStepKey);
@@ -527,7 +572,7 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
     return true;
   }
 
-  void _publishQuiz() {
+  void _publishQuiz() async {
     if (!_detailsCompleted) {
       _showSnack('Complete the details step first.');
       return;
@@ -542,8 +587,32 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
         ? 'Untitled quiz'
         : _titleController.text.trim();
     QuizRepository.recordPublishedQuiz(title: title, questions: _questions.length);
-    _showSnack('Quiz saved! Share it with your learners.', success: true);
-    Navigator.of(context).maybePop();
+
+    final shareMessage = 'I just created a new quiz: "$title". '
+        'Tap to try it and test your knowledge.';
+    bool shareSupported = true;
+    try {
+      await Share.share(shareMessage, subject: 'New quiz: $title');
+    } catch (e) {
+      shareSupported = false;
+    }
+
+    if (!mounted) return;
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => QuizDashboardScreen(
+          recentlyPublishedTitle: title,
+        ),
+      ),
+    );
+
+    _showSnack(
+      shareSupported
+          ? 'Quiz published and ready to share.'
+          : 'Quiz published, but sharing isn\'t available on this device.',
+      success: true,
+    );
   }
 
   void _showSnack(String message, {bool success = false}) {
@@ -769,6 +838,7 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
                         onRemovePromptImage: (idx) => _removePromptImage(idx),
                         onPickOptionImage: (qIdx, optIdx) => _pickOptionImage(qIdx, optIdx),
                         onRemoveOptionImage: (qIdx, optIdx) => _removeOptionImage(qIdx, optIdx),
+                        onOptionChanged: () => setState(() {}),
                         onDone: () {
                           // Move to next question or stay
                           if (i < _questions.length - 1) {
@@ -2001,6 +2071,7 @@ class _QuestionEditingStep extends StatelessWidget {
     required this.onPickOptionImage,
     required this.onRemoveOptionImage,
     required this.onDone,
+    required this.onOptionChanged,
   });
 
   final int index;
@@ -2015,6 +2086,7 @@ class _QuestionEditingStep extends StatelessWidget {
   final void Function(int) onRemovePromptImage;
   final void Function(int, int) onPickOptionImage;
   final void Function(int, int) onRemoveOptionImage;
+  final VoidCallback onOptionChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -2098,41 +2170,19 @@ class _QuestionEditingStep extends StatelessWidget {
                     if (canRemove)
                       IconButton(
                         tooltip: 'Remove question',
-                        icon: const Icon(Icons.delete_outline_rounded, size: 20),
+                        icon: const Icon(
+                          Icons.delete_outline_rounded,
+                          size: 20,
+                          color: Colors.red,
+                        ),
                         onPressed: onRemove,
                       ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                
-                // Prompt (no label, icon inside field)
-                _LabeledField(
-                  label: '',
-                  hintText: 'What parameter best reflects cardiac output?',
-                  controller: question.prompt,
-                  maxLines: 2,
-                  autoExpand: true,
-                  backgroundColor: theme.colorScheme.surface,
-                  suffixIcon: InkWell(
-                    onTap: () => onPickPromptImage(index),
-                    borderRadius: BorderRadius.circular(999),
-                    child: Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: Icon(
-                        question.promptImage != null
-                            ? Icons.image
-                            : Icons.image_outlined,
-                        size: 20,
-                        color: question.promptImage != null
-                            ? _quizWhatsAppTeal
-                            : theme.colorScheme.onSurface
-                                .withValues(alpha: 0.5),
-                      ),
-                    ),
-                  ),
-                ),
+
+                // Prompt image preview (shown above the prompt box)
                 if (question.promptImage != null) ...[
-                  const SizedBox(height: 8),
                   Stack(
                     children: [
                       ClipRRect(
@@ -2167,37 +2217,114 @@ class _QuestionEditingStep extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                 ],
+                
+                // Prompt (no label, icon inside field)
+                _LabeledField(
+                  label: '',
+                  hintText: 'What parameter best reflects cardiac output?',
+                  controller: question.prompt,
+                  maxLines: 2,
+                  autoExpand: true,
+                  backgroundColor: theme.colorScheme.surface,
+                  suffixIcon: InkWell(
+                    onTap: () => onPickPromptImage(index),
+                    borderRadius: BorderRadius.circular(999),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Icon(
+                        question.promptImage != null
+                            ? Icons.image
+                            : Icons.image_outlined,
+                        size: 20,
+                        color: question.promptImage != null
+                            ? _quizWhatsAppTeal
+                            : theme.colorScheme.onSurface
+                                .withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 12),
                 
                 // Options
                 ...List.generate(question.options.length, (optionIndex) {
                   final optionController = question.options[optionIndex];
                   final bool canRemoveOption = question.options.length > 2;
+                  final bool hasOptionText =
+                      optionController.text.trim().isNotEmpty;
 
                   return Column(
                     children: [
+                      // Option image preview (shown above the option row)
+                      if (optionIndex < question.optionImages.length &&
+                          question.optionImages[optionIndex] != null)
+                        Padding(
+                          padding:
+                              const EdgeInsets.only(left: 32, top: 4, right: 8),
+                          child: Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.file(
+                                  File(question.optionImages[optionIndex]!),
+                                  height: 60,
+                                  width: 100,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              Positioned(
+                                top: 2,
+                                right: 2,
+                                child: InkWell(
+                                  onTap: () =>
+                                      onRemoveOptionImage(index, optionIndex),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withValues(alpha: 0.6),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.close,
+                                      color: Colors.white,
+                                      size: 12,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 4),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            // Option letter pill
+                            // Option letter pill (A, B, C, D) that highlights
+                            // when this option is marked as correct.
                             Container(
                               width: 24,
                               height: 24,
                               decoration: BoxDecoration(
-                                color: theme.colorScheme.surface,
+                                color: question.correctIndex == optionIndex
+                                    ? _quizWhatsAppTeal
+                                    : theme.colorScheme.surface,
                                 borderRadius: BorderRadius.circular(999),
                                 border: Border.all(
-                                  color: theme.colorScheme.onSurface
-                                      .withValues(alpha: 0.25),
+                                  color: question.correctIndex == optionIndex
+                                      ? _quizWhatsAppTeal
+                                      : theme.colorScheme.onSurface
+                                          .withValues(alpha: 0.25),
                                 ),
                               ),
                               alignment: Alignment.center,
                               child: Text(
                                 String.fromCharCode(65 + optionIndex),
                                 style: theme.textTheme.labelSmall?.copyWith(
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: FontWeight.w700,
+                                  color: question.correctIndex == optionIndex
+                                      ? Colors.white
+                                      : theme.colorScheme.onSurface,
                                 ),
                               ),
                             ),
@@ -2208,15 +2335,38 @@ class _QuestionEditingStep extends StatelessWidget {
                                 minLines: 1,
                                 maxLines: null, // auto-grow
                                 textInputAction: TextInputAction.newline,
-                                style: theme.textTheme.bodyMedium,
+                                onChanged: (_) => onOptionChanged(),
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontFamily: 'Roboto',
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w400,
+                                ),
                                 decoration: InputDecoration(
                                   hintText: question.correctIndex == optionIndex
                                       ? 'Correct answer'
                                       : 'Add option',
                                   isDense: true,
-                                  border: InputBorder.none,
-                                  enabledBorder: InputBorder.none,
-                                  focusedBorder: InputBorder.none,
+                                  border: UnderlineInputBorder(
+                                    borderSide: BorderSide(
+                                      color: theme.colorScheme.onSurface
+                                          .withValues(alpha: 0.12),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  enabledBorder: UnderlineInputBorder(
+                                    borderSide: BorderSide(
+                                      color: theme.colorScheme.onSurface
+                                          .withValues(alpha: 0.12),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  focusedBorder: const UnderlineInputBorder(
+                                    borderSide: BorderSide(
+                                      color: _quizWhatsAppTeal,
+                                      width: 2,
+                                    ),
+                                  ),
                                   contentPadding: const EdgeInsets.symmetric(
                                     vertical: 4,
                                   ),
@@ -2226,25 +2376,36 @@ class _QuestionEditingStep extends StatelessWidget {
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                InkWell(
-                                  onTap: () => onPickOptionImage(index, optionIndex),
-                                  borderRadius: BorderRadius.circular(999),
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(left: 2, top: 4, bottom: 4),
-                                    child: Icon(
-                                      (optionIndex < question.optionImages.length &&
-                                              question.optionImages[optionIndex] != null)
-                                          ? Icons.image
-                                          : Icons.image_outlined,
-                                      size: 22,
-                                      color: (optionIndex < question.optionImages.length &&
-                                              question.optionImages[optionIndex] != null)
-                                          ? _quizWhatsAppTeal
-                                          : theme.colorScheme.onSurface
-                                              .withValues(alpha: 0.4),
+                                if (!hasOptionText)
+                                  InkWell(
+                                    onTap: () =>
+                                        onPickOptionImage(index, optionIndex),
+                                    borderRadius: BorderRadius.circular(999),
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(
+                                          left: 2, top: 4, bottom: 4),
+                                      child: Icon(
+                                        (optionIndex <
+                                                    question.optionImages
+                                                        .length &&
+                                                question.optionImages[
+                                                        optionIndex] !=
+                                                    null)
+                                            ? Icons.image
+                                            : Icons.image_outlined,
+                                        size: 22,
+                                        color: (optionIndex <
+                                                    question.optionImages
+                                                        .length &&
+                                                question.optionImages[
+                                                        optionIndex] !=
+                                                    null)
+                                            ? _quizWhatsAppTeal
+                                            : theme.colorScheme.onSurface
+                                                .withValues(alpha: 0.4),
+                                      ),
                                     ),
                                   ),
-                                ),
                                 InkWell(
                                   onTap: () => onSetCorrect(optionIndex),
                                   borderRadius: BorderRadius.circular(999),
@@ -2277,44 +2438,6 @@ class _QuestionEditingStep extends StatelessWidget {
                           ],
                         ),
                       ),
-                      // Option image preview
-                      if (optionIndex < question.optionImages.length &&
-                          question.optionImages[optionIndex] != null)
-                        Padding(
-                          padding: const EdgeInsets.only(left: 32, top: 4, right: 8),
-                          child: Stack(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.file(
-                                  File(question.optionImages[optionIndex]!),
-                                  height: 60,
-                                  width: 100,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                              Positioned(
-                                top: 2,
-                                right: 2,
-                                child: InkWell(
-                                  onTap: () => onRemoveOptionImage(index, optionIndex),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(2),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withValues(alpha: 0.6),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(
-                                      Icons.close,
-                                      color: Colors.white,
-                                      size: 12,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                       if (optionIndex != question.options.length - 1)
                         Divider(
                           height: 1,
@@ -2519,8 +2642,14 @@ class _LabeledField extends StatelessWidget {
           maxLines: autoExpand ? null : maxLines,
           minLines: autoExpand ? maxLines : null,
           textInputAction: textInputAction,
-          inputFormatters: maxLines == 1 ? [FilteringTextInputFormatter.singleLineFormatter] : null,
-          style: const TextStyle(color: Colors.black),
+          inputFormatters:
+              maxLines == 1 ? [FilteringTextInputFormatter.singleLineFormatter] : null,
+          style: const TextStyle(
+            color: Colors.black,
+            fontFamily: 'Roboto',
+            fontSize: 16,
+            fontWeight: FontWeight.w400,
+          ),
           cursorColor: Colors.black,
           decoration: InputDecoration(
             hintText: hintText,

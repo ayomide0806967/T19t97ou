@@ -29,6 +29,115 @@ class _AikenImportReviewScreenState extends State<AikenImportReviewScreen> {
     _questions = widget.questions.map((q) => q.copy()).toList();
   }
 
+  bool _hasAnyQuestionContent() {
+    if (_questions.isEmpty) return false;
+    for (final q in _questions) {
+      if (q.prompt.text.trim().isNotEmpty) return true;
+      if (q.promptImage != null) return true;
+      for (final opt in q.options) {
+        if (opt.text.trim().isNotEmpty) return true;
+      }
+      if (q.optionImages.any((img) => img != null)) return true;
+    }
+    return false;
+  }
+
+  Future<bool> _showLeaveDialog() async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) {
+        final theme = Theme.of(ctx);
+        return Dialog(
+          backgroundColor: Colors.white,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Leave without saving?',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'You\'ve uploaded questions from your Aiken file. '
+                  'If you close now, all of these questions and any edits on this page will be lost.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: Colors.black.withValues(alpha: 0.75),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                FilledButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop(true); // discard
+                  },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                  child: const Text(
+                    'Discard questions',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop(false); // keep editing
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.black,
+                    side: const BorderSide(color: Colors.black),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                  child: const Text(
+                    'Keep editing',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    return result ?? false;
+  }
+
+  Future<void> _handleClosePressed() async {
+    if (!_hasAnyQuestionContent()) {
+      Navigator.of(context).pop(null);
+      return;
+    }
+
+    final shouldLeave = await _showLeaveDialog();
+    if (shouldLeave && mounted) {
+      Navigator.of(context).pop(null);
+    }
+  }
+
+  Future<bool> _onWillPop() async {
+    if (!_hasAnyQuestionContent()) {
+      return true;
+    }
+    final shouldLeave = await _showLeaveDialog();
+    return shouldLeave;
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -179,9 +288,14 @@ class _AikenImportReviewScreenState extends State<AikenImportReviewScreen> {
     return true;
   }
 
-  void _confirmImport() {
+  void _confirmImport({bool importMore = false}) {
     if (!_validate()) return;
-    Navigator.of(context).pop(_questions);
+    Navigator.of(context).pop(
+      AikenImportResult(
+        questions: _questions,
+        importMore: importMore,
+      ),
+    );
   }
 
   void _showActionsSheet() {
@@ -254,7 +368,7 @@ class _AikenImportReviewScreenState extends State<AikenImportReviewScreen> {
                 InkWell(
                   onTap: () {
                     Navigator.of(ctx).pop();
-                    Navigator.of(context).pop(<ImportedQuestion>[]);
+                    _confirmImport(importMore: true);
                   },
                   borderRadius: BorderRadius.circular(14),
                   child: Container(
@@ -295,26 +409,28 @@ class _AikenImportReviewScreenState extends State<AikenImportReviewScreen> {
     final bool isDark = theme.brightness == Brightness.dark;
     final Color background = isDark ? const Color(0xFF0B0D11) : Colors.white;
 
-    return Scaffold(
-      backgroundColor: background,
-      appBar: AppBar(
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
         backgroundColor: background,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.close, color: theme.colorScheme.onSurface),
-          onPressed: () => Navigator.of(context).pop(null),
-          tooltip: 'Cancel',
-        ),
+        appBar: AppBar(
+          backgroundColor: background,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: theme.colorScheme.onSurface),
+            onPressed: _handleClosePressed,
+            tooltip: 'Back',
+          ),
         title: Text(
           'Review Imported Questions',
           style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
         ),
-        centerTitle: false,
-        actions: const [
-          SizedBox(width: 8),
-        ],
-      ),
-      body: Column(
+          centerTitle: false,
+          actions: const [
+            SizedBox(width: 8),
+          ],
+        ),
+        body: Column(
         children: [
           // Summary header + search
           Container(
@@ -501,9 +617,7 @@ class _AikenImportReviewScreenState extends State<AikenImportReviewScreen> {
                   return Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: TextButton.icon(
-                      onPressed: () {
-                        Navigator.of(context).pop(<ImportedQuestion>[]);
-                      },
+                      onPressed: () => _confirmImport(importMore: true),
                       icon: const Icon(Icons.upload_file_rounded),
                       label: const Text('Import more Aiken file'),
                       style: TextButton.styleFrom(
@@ -550,6 +664,7 @@ class _AikenImportReviewScreenState extends State<AikenImportReviewScreen> {
           Icons.add,
           color: Colors.white,
         ),
+      ),
       ),
     );
   }
@@ -976,6 +1091,17 @@ class _QuestionCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Result returned from the Aiken import review screen.
+class AikenImportResult {
+  AikenImportResult({
+    required this.questions,
+    this.importMore = false,
+  });
+
+  final List<ImportedQuestion> questions;
+  final bool importMore;
 }
 
 /// Represents an imported question with editable controllers
