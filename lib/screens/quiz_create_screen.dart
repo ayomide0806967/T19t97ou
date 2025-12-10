@@ -1,12 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:docx_to_text/docx_to_text.dart';
+import 'package:syncfusion_flutter_pdf/pdf.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'dart:convert';
+import 'dart:typed_data';
 
 import '../services/quiz_repository.dart';
 import 'quiz_drafts_screen.dart';
 import 'quiz_results_screen.dart';
 import 'quiz_take_screen.dart';
+import 'aiken_import_review_screen.dart';
+
+// WhatsApp-inspired palette for quiz steps
+const Color _quizWhatsAppGreen = Color(0xFF25D366);
+const Color _quizWhatsAppTeal = Color(0xFF075E54);
 
 enum QuizVisibility { everyone, followers }
+enum _QuizBuildMode { manual, aiken }
 
 /// Revamped Quiz Creation Screen with rail-based vertical stepper
 /// Design inspired by the note creation flow
@@ -20,7 +34,8 @@ class QuizCreateScreen extends StatefulWidget {
 class _QuizCreateScreenState extends State<QuizCreateScreen> {
   final ScrollController _scrollController = ScrollController();
   
-  // Which step is currently being edited (0 = Details, 1 = Settings, 2+ = Questions)
+  // Which step is currently being edited
+  // 0 = Details, 1 = Settings, 2 = Question setup, 3+ = Questions
   int _activeStep = 0;
   
   // Controllers for Details step
@@ -37,6 +52,7 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
   final TextEditingController _timeLimitController = TextEditingController(text: '20');
   final TextEditingController _pinController = TextEditingController();
   QuizVisibility _visibility = QuizVisibility.everyone;
+  _QuizBuildMode _buildMode = _QuizBuildMode.manual;
   
   // Questions
   final List<_QuizQuestionFields> _questions = <_QuizQuestionFields>[];
@@ -44,11 +60,21 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
   // Track which steps have been completed
   bool _detailsCompleted = false;
   bool _settingsCompleted = false;
+  bool _questionSetupCompleted = false;
+
+  // Keys for scrolling/focusing specific steps
+  final GlobalKey _detailsStepKey = GlobalKey();
+  final GlobalKey _settingsStepKey = GlobalKey();
+  final GlobalKey _setupStepKey = GlobalKey();
+  final GlobalKey _firstQuestionStepKey = GlobalKey();
+  final List<GlobalKey> _questionStepKeys = [];
+  final ImagePicker _imagePicker = ImagePicker();
 
   @override
   void initState() {
     super.initState();
     _questions.add(_QuizQuestionFields());
+    _questionStepKeys.add(GlobalKey());
   }
 
   @override
@@ -74,6 +100,19 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
       );
     });
   }
+
+  void _scrollToCenter(GlobalKey key) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final BuildContext? ctx = key.currentContext;
+      if (ctx == null) return;
+      Scrollable.ensureVisible(
+        ctx,
+        alignment: 0.4, // roughly center of the screen
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    });
+  }
   
   void _completeDetailsAndNext() {
     if (_titleController.text.trim().isEmpty) {
@@ -84,7 +123,7 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
       _detailsCompleted = true;
       _activeStep = 1;
     });
-    _scrollToStep(1);
+    _scrollToCenter(_settingsStepKey);
   }
   
   void _completeSettingsAndNext() {
@@ -110,30 +149,45 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
       _settingsCompleted = true;
       _activeStep = 2;
     });
-    _scrollToStep(2);
+    _scrollToCenter(_setupStepKey);
   }
   
   void _editDetailsStep() {
     setState(() => _activeStep = 0);
-    _scrollToStep(0);
+    _scrollToCenter(_detailsStepKey);
   }
   
   void _editSettingsStep() {
     setState(() => _activeStep = 1);
-    _scrollToStep(1);
+    _scrollToCenter(_settingsStepKey);
+  }
+
+  void _editSetupStep() {
+    if (!_settingsCompleted) return;
+    setState(() => _activeStep = 2);
+    _scrollToCenter(_setupStepKey);
   }
   
   void _editQuestion(int index) {
-    setState(() => _activeStep = 2 + index);
-    _scrollToStep(2 + index);
+    setState(() => _activeStep = 3 + index);
+    if (index < _questionStepKeys.length) {
+      _scrollToCenter(_questionStepKeys[index]);
+    }
   }
 
   void _addQuestion() {
+    final newKey = GlobalKey();
     setState(() {
       _questions.add(_QuizQuestionFields());
-      _activeStep = 2 + _questions.length - 1;
+      _questionStepKeys.add(newKey);
+      _activeStep = 3 + _questions.length - 1;
     });
-    _scrollToStep(_activeStep);
+    // Wait for the next frame to ensure the widget is built with the new key
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Then scroll to center
+      _scrollToCenter(newKey);
+    });
+    _showSnack('Question ${_questions.length} added', success: true);
   }
 
   void _removeQuestion(int index) {
@@ -141,8 +195,8 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
     setState(() {
       final removed = _questions.removeAt(index);
       removed.dispose();
-      if (_activeStep > 2 + _questions.length - 1) {
-        _activeStep = 2 + _questions.length - 1;
+      if (_activeStep > 3 + _questions.length - 1) {
+        _activeStep = 3 + _questions.length - 1;
       }
     });
   }
@@ -151,6 +205,7 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
     final question = _questions[questionIndex];
     setState(() {
       question.options.add(TextEditingController());
+      question.optionImages.add(null);
     });
   }
 
@@ -160,6 +215,9 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
     setState(() {
       final controller = question.options.removeAt(optionIndex);
       controller.dispose();
+      if (optionIndex < question.optionImages.length) {
+        question.optionImages.removeAt(optionIndex);
+      }
       if (question.correctIndex >= question.options.length) {
         question.correctIndex = question.options.length - 1;
       }
@@ -170,6 +228,249 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
     setState(() {
       _questions[questionIndex].correctIndex = optionIndex;
     });
+  }
+
+  Future<void> _pickPromptImage(int questionIndex) async {
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+      if (image != null) {
+        setState(() {
+          _questions[questionIndex].promptImage = image.path;
+        });
+      }
+    } catch (e) {
+      _showSnack('Failed to pick image');
+    }
+  }
+
+  void _removePromptImage(int questionIndex) {
+    setState(() {
+      _questions[questionIndex].promptImage = null;
+    });
+  }
+
+  Future<void> _pickOptionImage(int questionIndex, int optionIndex) async {
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+      if (image != null) {
+        setState(() {
+          final question = _questions[questionIndex];
+          while (question.optionImages.length <= optionIndex) {
+            question.optionImages.add(null);
+          }
+          question.optionImages[optionIndex] = image.path;
+        });
+      }
+    } catch (e) {
+      _showSnack('Failed to pick image');
+    }
+  }
+
+  void _removeOptionImage(int questionIndex, int optionIndex) {
+    setState(() {
+      final question = _questions[questionIndex];
+      if (optionIndex < question.optionImages.length) {
+        question.optionImages[optionIndex] = null;
+      }
+    });
+  }
+
+  void _startManualQuestionSetup() {
+    if (!_settingsCompleted) return;
+    setState(() {
+      _buildMode = _QuizBuildMode.manual;
+      _questionSetupCompleted = true;
+      if (_questions.isEmpty) {
+        _questions.add(_QuizQuestionFields());
+      }
+      _activeStep = 3;
+    });
+    _scrollToCenter(_firstQuestionStepKey);
+  }
+
+  Future<void> _importQuestionsFromAiken() async {
+    if (!_settingsCompleted) return;
+    try {
+      String normalizePrompt(String text) {
+        final trimmed = text.trim();
+        final withoutNumber = trimmed.replaceFirst(
+          RegExp(
+            r'^(?:Q(?:uestion)?\s*)?[\(\[]?\s*\d+\s*[\)\.\:\]]?\s*',
+            caseSensitive: false,
+          ),
+          '',
+        );
+        return withoutNumber.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
+      }
+
+      final Set<String> existingPrompts = _questions
+          .map((q) => normalizePrompt(q.prompt.text))
+          .where((t) => t.isNotEmpty)
+          .toSet();
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['txt', 'docx', 'doc', 'pdf'],
+        withData: true,
+      );
+      if (result == null || result.files.isEmpty) return;
+
+      final file = result.files.first;
+      final bytes = file.bytes;
+      if (bytes == null) {
+        _showSnack('Selected file has no readable data.');
+        return;
+      }
+
+      String content;
+      final extension = file.extension?.toLowerCase() ?? '';
+      
+      if (extension == 'docx' || extension == 'doc') {
+        // Extract text from Word document
+        try {
+          content = docxToText(bytes);
+        } catch (e) {
+          _showSnack('Failed to read Word document. Try a .txt file.');
+          return;
+        }
+      } else if (extension == 'pdf') {
+        // Extract text from PDF document
+        try {
+          content = _extractTextFromPdf(bytes);
+        } catch (e) {
+          _showSnack('Failed to read PDF. Try a .txt file.');
+          return;
+        }
+      } else {
+        // Plain text file
+        content = utf8.decode(bytes);
+      }
+      
+      final List<ImportedQuestion> parsed = parseAikenQuestions(content);
+      
+      if (parsed.isEmpty) {
+        _showSnack('No valid questions found in the Aiken file.');
+        return;
+      }
+
+      // Navigate to review screen
+      if (!mounted) return;
+      final reviewed = await Navigator.of(context).push<List<ImportedQuestion>>(
+        MaterialPageRoute(
+          builder: (_) => AikenImportReviewScreen(questions: parsed),
+        ),
+      );
+
+      // Parsed questions are only used to seed the review screen; dispose now.
+      for (final q in parsed) {
+        q.dispose();
+      }
+
+      // If user cancelled, just return
+      if (reviewed == null) {
+        return;
+      }
+
+      // If user chose "Import more Aiken file", re-open the picker
+      if (reviewed.isEmpty) {
+        await _importQuestionsFromAiken();
+        return;
+      }
+
+      // Filter out duplicates (within this import and vs existing questions)
+      final List<ImportedQuestion> uniqueReviewed = [];
+      final Set<String> seenInImport = {};
+      for (final iq in reviewed) {
+        final normalized = normalizePrompt(iq.prompt.text);
+        if (normalized.isEmpty ||
+            existingPrompts.contains(normalized) ||
+            seenInImport.contains(normalized)) {
+          iq.dispose();
+          continue;
+        }
+        seenInImport.add(normalized);
+        uniqueReviewed.add(iq);
+      }
+
+      if (uniqueReviewed.isEmpty) {
+        _showSnack(
+          'All imported questions were duplicates of existing ones.',
+        );
+        return;
+      }
+
+      // Convert ImportedQuestion to _QuizQuestionFields
+      final List<_QuizQuestionFields> imported = [];
+      for (final iq in uniqueReviewed) {
+        final q = _QuizQuestionFields();
+        q.prompt.text = iq.prompt.text;
+        q.promptImage = iq.promptImage;
+        
+        // Clear default options and add imported ones
+        for (final c in q.options) {
+          c.dispose();
+        }
+        q.options.clear();
+        q.optionImages
+          ..clear()
+          ..addAll(iq.optionImages);
+        for (final opt in iq.options) {
+          q.options.add(TextEditingController(text: opt.text));
+        }
+        q.correctIndex = iq.correctIndex;
+        imported.add(q);
+        
+        // Dispose the ImportedQuestion
+        iq.dispose();
+      }
+
+      setState(() {
+        final int startIndex = _questions.length;
+        _questions.addAll(imported);
+        // Ensure we have keys for all questions (existing + newly imported).
+        while (_questionStepKeys.length < _questions.length) {
+          _questionStepKeys.add(GlobalKey());
+        }
+        _buildMode = _QuizBuildMode.aiken;
+        _questionSetupCompleted = true;
+        // Focus on the first newly imported question if appending.
+        _activeStep = 3 + (startIndex == 0 ? 0 : startIndex);
+      });
+      
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_questionStepKeys.isNotEmpty) {
+          final int targetIndex =
+              _activeStep >= 3 ? _activeStep - 3 : 0;
+          final GlobalKey key =
+              targetIndex < _questionStepKeys.length
+                  ? _questionStepKeys[targetIndex]
+                  : _questionStepKeys.first;
+          _scrollToCenter(key);
+        } else {
+          _scrollToCenter(_firstQuestionStepKey);
+        }
+      });
+      _showSnack('Imported ${imported.length} questions from Aiken file.',
+          success: true);
+    } catch (e) {
+      _showSnack('Failed to import Aiken file: ${e.toString()}');
+    }
+  }
+
+  String _extractTextFromPdf(Uint8List bytes) {
+    final PdfDocument document = PdfDocument(inputBytes: bytes);
+    String text = PdfTextExtractor(document).extractText();
+    document.dispose();
+    return text;
   }
 
   Future<void> _pickDeadline() async {
@@ -256,8 +557,13 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        backgroundColor: success ? Colors.black : const Color(0xFFDC2626),
+        backgroundColor: success ? _quizWhatsAppTeal : const Color(0xFFDC2626),
         behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.only(
+          bottom: MediaQuery.of(context).size.height - 150,
+          left: 16,
+          right: 16,
+        ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       ),
     );
@@ -306,7 +612,7 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
-    final Color background = isDark ? const Color(0xFF0B0D11) : const Color(0xFFF5F5F5);
+    final Color background = isDark ? const Color(0xFF0B0D11) : Colors.white;
 
     return Scaffold(
       backgroundColor: background,
@@ -323,24 +629,7 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
           style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
         ),
         centerTitle: false,
-        actions: [
-          IconButton(
-            tooltip: 'Drafts',
-            icon: const Icon(Icons.folder_outlined),
-            onPressed: _openDrafts,
-          ),
-          IconButton(
-            tooltip: 'Results',
-            icon: const Icon(Icons.insights_outlined),
-            onPressed: _openResults,
-          ),
-          IconButton(
-            tooltip: 'Preview as learner',
-            icon: const Icon(Icons.play_circle_outline),
-            onPressed: _openQuizPreview,
-          ),
-          const SizedBox(width: 4),
-        ],
+        actions: const [],
       ),
       body: SafeArea(
         child: Padding(
@@ -360,20 +649,17 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Hero header
-                    const _QuizHeroBanner(),
-                    const SizedBox(height: 24),
-                    
                     // Step 1: Details
                     if (_activeStep == 0)
                       _DetailsEditingStep(
+                        key: _detailsStepKey,
                         titleController: _titleController,
                         descriptionController: _descriptionController,
                         onNext: _completeDetailsAndNext,
-                        onPreview: _openQuizPreview,
                       )
                     else
                       _CompletedStepCard(
+                        key: _detailsStepKey,
                         index: 0,
                         title: 'Details',
                         subtitle: _titleController.text.trim().isNotEmpty 
@@ -387,6 +673,7 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
                     // Step 2: Settings
                     if (_activeStep == 1)
                       _SettingsEditingStep(
+                        key: _settingsStepKey,
                         isTimed: _isTimed,
                         timeLimitController: _timeLimitController,
                         hasDeadline: _hasDeadline,
@@ -394,10 +681,10 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
                         attemptLimit: _attemptLimit,
                         requiresPin: _requiresPin,
                         pinController: _pinController,
-                        visibility: _visibility,
                         onTimedChanged: (v) => setState(() {
                           _isTimed = v;
-                          if (v && _timeLimitController.text.trim().isEmpty) {
+                          if (v &&
+                              _timeLimitController.text.trim().isEmpty) {
                             _timeLimitController.text = '20';
                           }
                         }),
@@ -409,12 +696,12 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
                           if (!v) _closingDate = null;
                         }),
                         onPickDeadline: _pickDeadline,
-                        onAttemptsChanged: (v) => setState(() => _attemptLimit = v),
+                        onAttemptsChanged: (v) =>
+                            setState(() => _attemptLimit = v),
                         onRequirePinChanged: (v) => setState(() {
                           _requiresPin = v;
                           if (!v) _pinController.clear();
                         }),
-                        onVisibilityChanged: (v) => setState(() => _visibility = v),
                         onNext: _completeSettingsAndNext,
                         onBack: _editDetailsStep,
                       )
@@ -435,28 +722,63 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
                         subtitle: 'Complete details first',
                       ),
                     const SizedBox(height: 16),
-                    
-                    // Step 3+: Questions
+
+                    // Step 3: Question setup (Manual vs Aiken)
                     if (_settingsCompleted) ...[
+                      if (_activeStep == 2)
+                        _QuestionSetupStep(
+                          key: _setupStepKey,
+                          mode: _buildMode,
+                          onManualSelected: _startManualQuestionSetup,
+                          onAikenSelected: _importQuestionsFromAiken,
+                          onBack: _editSettingsStep,
+                        )
+                      else if (_questionSetupCompleted)
+                        _CompletedStepCard(
+                          index: 2,
+                          title: 'Question setup',
+                          subtitle: _buildMode == _QuizBuildMode.manual
+                              ? 'Write questions manually'
+                              : 'Imported from Aiken file',
+                          isActive: false,
+                          onTap: _editSetupStep,
+                        )
+                      else
+                        _LockedStepCard(
+                          index: 2,
+                          title: 'Question setup',
+                          subtitle: 'Choose how to add questions',
+                        ),
+                      const SizedBox(height: 16),
+                    ],
+                    
+                    // Step 4+: Questions
+                    if (_questionSetupCompleted) ...[
                       for (int i = 0; i < _questions.length; i++) ...[
-                        if (_activeStep == 2 + i)
-                          _QuestionEditingStep(
-                            index: i,
-                            question: _questions[i],
-                            canRemove: _questions.length > 1,
-                            onAddOption: () => _addOption(i),
-                            onRemoveOption: (optIdx) => _removeOption(i, optIdx),
-                            onSetCorrect: (optIdx) => _setCorrectOption(i, optIdx),
-                            onRemove: () => _removeQuestion(i),
-                            onDone: () {
-                              // Move to next question or stay
-                              if (i < _questions.length - 1) {
-                                _editQuestion(i + 1);
-                              }
+                    if (_activeStep == 3 + i)
+                      _QuestionEditingStep(
+                        key: i < _questionStepKeys.length ? _questionStepKeys[i] : null,
+                        index: i,
+                        question: _questions[i],
+                        canRemove: _questions.length > 1,
+                        onAddOption: () => _addOption(i),
+                        onRemoveOption: (optIdx) => _removeOption(i, optIdx),
+                        onSetCorrect: (optIdx) => _setCorrectOption(i, optIdx),
+                        onRemove: () => _removeQuestion(i),
+                        onPickPromptImage: (idx) => _pickPromptImage(idx),
+                        onRemovePromptImage: (idx) => _removePromptImage(idx),
+                        onPickOptionImage: (qIdx, optIdx) => _pickOptionImage(qIdx, optIdx),
+                        onRemoveOptionImage: (qIdx, optIdx) => _removeOptionImage(qIdx, optIdx),
+                        onDone: () {
+                          // Move to next question or stay
+                          if (i < _questions.length - 1) {
+                            _editQuestion(i + 1);
+                          }
                             },
                           )
                         else
                           _CompletedQuestionCard(
+                            key: i < _questionStepKeys.length ? _questionStepKeys[i] : null,
                             index: i,
                             question: _questions[i],
                             onTap: () => _editQuestion(i),
@@ -478,13 +800,13 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
                       ),
                     ] else if (_detailsCompleted) ...[
                       _LockedStepCard(
-                        index: 2,
+                        index: 3,
                         title: 'Questions',
-                        subtitle: 'Complete settings first',
+                        subtitle: 'Complete setup first',
                       ),
                     ] else ...[
                       _LockedStepCard(
-                        index: 2,
+                        index: 3,
                         title: 'Questions',
                         subtitle: 'Complete previous steps',
                       ),
@@ -495,28 +817,30 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
                     // Bottom action bar
                     Padding(
                       padding: const EdgeInsets.only(left: 36),
-                      child: Row(
-                        children: [
-                          OutlinedButton(
-                            onPressed: _saveDraft,
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                            ),
-                            child: const Text('Save draft'),
-                          ),
-                          const SizedBox(width: 12),
-                          FilledButton.icon(
+          child: Row(
+            children: [
+              OutlinedButton(
+                onPressed: _saveDraft,
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  side: BorderSide(color: _quizWhatsAppTeal),
+                  foregroundColor: _quizWhatsAppTeal,
+                ),
+                child: const Text('Save draft'),
+              ),
+              const SizedBox(width: 12),
+              FilledButton.icon(
                             onPressed: _publishQuiz,
                             icon: const Icon(Icons.send_rounded, size: 18),
-                            label: const Text('Publish'),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: isDark ? Colors.white : Colors.black,
-                              foregroundColor: isDark ? Colors.black : Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                            ),
-                          ),
+                label: const Text('Publish'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: _quizWhatsAppTeal,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+              ),
                         ],
                       ),
                     ),
@@ -597,6 +921,7 @@ class _QuizHeroBanner extends StatelessWidget {
 
 class _CompletedStepCard extends StatelessWidget {
   const _CompletedStepCard({
+    super.key,
     required this.index,
     required this.title,
     required this.subtitle,
@@ -643,19 +968,21 @@ class _CompletedStepCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          // Content panel
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: theme.dividerColor.withValues(alpha: 0.25)),
+        // Content panel
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: _quizWhatsAppGreen.withOpacity(0.10),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: _quizWhatsAppTeal.withOpacity(0.4),
               ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
@@ -748,9 +1075,11 @@ class _LockedStepCard extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surface.withValues(alpha: 0.5),
+              color: _quizWhatsAppGreen.withOpacity(0.06),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: theme.dividerColor.withValues(alpha: 0.15)),
+              border: Border.all(
+                color: _quizWhatsAppTeal.withOpacity(0.25),
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -784,16 +1113,15 @@ class _LockedStepCard extends StatelessWidget {
 
 class _DetailsEditingStep extends StatelessWidget {
   const _DetailsEditingStep({
+    super.key,
     required this.titleController,
     required this.descriptionController,
     required this.onNext,
-    required this.onPreview,
   });
 
   final TextEditingController titleController;
   final TextEditingController descriptionController;
   final VoidCallback onNext;
-  final VoidCallback onPreview;
 
   @override
   Widget build(BuildContext context) {
@@ -835,7 +1163,7 @@ class _DetailsEditingStep extends StatelessWidget {
         // Content panel
         Expanded(
           child: Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: cardColor,
               borderRadius: BorderRadius.circular(16),
@@ -854,7 +1182,9 @@ class _DetailsEditingStep extends StatelessWidget {
                 Text(
                   'Step 1 · Details',
                   style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                    color: _quizWhatsAppTeal,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -864,7 +1194,7 @@ class _DetailsEditingStep extends StatelessWidget {
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
                 _LabeledField(
                   label: 'Title',
                   hintText: 'Cardiology round recap quiz',
@@ -881,15 +1211,6 @@ class _DetailsEditingStep extends StatelessWidget {
                   autoExpand: true,
                   backgroundColor: theme.colorScheme.surface,
                 ),
-                const SizedBox(height: 12),
-                TextButton.icon(
-                  onPressed: onPreview,
-                  icon: const Icon(Icons.play_circle_outline, size: 18),
-                  label: const Text('Preview learner flow'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                  ),
-                ),
                 const SizedBox(height: 16),
                 Align(
                   alignment: Alignment.centerRight,
@@ -898,8 +1219,8 @@ class _DetailsEditingStep extends StatelessWidget {
                     icon: const Icon(Icons.arrow_forward_rounded, size: 18),
                     label: const Text('Next'),
                     style: FilledButton.styleFrom(
-                      backgroundColor: isDark ? Colors.white : Colors.black,
-                      foregroundColor: isDark ? Colors.black : Colors.white,
+                      backgroundColor: _quizWhatsAppTeal,
+                      foregroundColor: Colors.white,
                     ),
                   ),
                 ),
@@ -918,6 +1239,7 @@ class _DetailsEditingStep extends StatelessWidget {
 
 class _SettingsEditingStep extends StatelessWidget {
   const _SettingsEditingStep({
+    super.key,
     required this.isTimed,
     required this.timeLimitController,
     required this.hasDeadline,
@@ -925,14 +1247,12 @@ class _SettingsEditingStep extends StatelessWidget {
     required this.attemptLimit,
     required this.requiresPin,
     required this.pinController,
-    required this.visibility,
     required this.onTimedChanged,
     required this.onTimeLimitChanged,
     required this.onDeadlineChanged,
     required this.onPickDeadline,
     required this.onAttemptsChanged,
     required this.onRequirePinChanged,
-    required this.onVisibilityChanged,
     required this.onNext,
     required this.onBack,
   });
@@ -944,14 +1264,12 @@ class _SettingsEditingStep extends StatelessWidget {
   final int? attemptLimit;
   final bool requiresPin;
   final TextEditingController pinController;
-  final QuizVisibility visibility;
   final ValueChanged<bool> onTimedChanged;
   final ValueChanged<double> onTimeLimitChanged;
   final ValueChanged<bool> onDeadlineChanged;
   final Future<void> Function() onPickDeadline;
   final ValueChanged<int?> onAttemptsChanged;
   final ValueChanged<bool> onRequirePinChanged;
-  final ValueChanged<QuizVisibility> onVisibilityChanged;
   final VoidCallback onNext;
   final VoidCallback onBack;
 
@@ -1053,41 +1371,278 @@ class _SettingsEditingStep extends StatelessWidget {
                   title: const Text('Timed quiz'),
                   subtitle: const Text('Set a time limit'),
                   contentPadding: EdgeInsets.zero,
-                  activeTrackColor: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.3),
+                  activeColor: Colors.black,
+                  activeTrackColor: _quizWhatsAppTeal,
+                  inactiveTrackColor: Colors.black.withValues(alpha: 0.12),
+                  thumbColor: WidgetStateProperty.resolveWith<Color?>(
+                    (states) {
+                      final bool selected = states.contains(WidgetState.selected);
+                      return selected ? Colors.white : Colors.black;
+                    },
+                  ),
                 ),
                 if (isTimed) ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      SizedBox(
-                        width: 100,
-                        child: TextField(
-                          controller: timeLimitController,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                          decoration: InputDecoration(
-                            labelText: 'Minutes',
-                            filled: true,
-                            fillColor: theme.colorScheme.surface,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: outline),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: outline),
-                            ),
+                  const SizedBox(height: 6),
+                  Builder(
+                    builder: (context) {
+                      final int currentMinutes =
+                          int.tryParse(timeLimitController.text) ?? 20;
+                      final int hours = currentMinutes ~/ 60;
+                      final int minutes = currentMinutes % 60;
+                      final String durationLabel = hours > 0
+                          ? '${hours}h ${minutes.toString().padLeft(2, '0')}m'
+                          : '$minutes min';
+
+                      Future<void> openTimerPicker() async {
+                        Duration selected =
+                            Duration(minutes: currentMinutes.clamp(1, 360));
+                        await showModalBottomSheet<void>(
+                          context: context,
+                          useSafeArea: true,
+                          backgroundColor: Colors.white,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.vertical(top: Radius.circular(24)),
                           ),
-                          onChanged: (value) {
-                            final parsed = int.tryParse(value);
-                            onTimeLimitChanged(parsed?.toDouble() ?? 0);
+                          builder: (ctx) {
+                            return StatefulBuilder(
+                              builder: (ctx, setModalState) {
+                                return Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                      16, 12, 16, 24),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 40,
+                                        height: 4,
+                                        decoration: BoxDecoration(
+                                          color: Colors.black26,
+                                          borderRadius:
+                                              BorderRadius.circular(999),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        'Timer duration',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleMedium
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      SizedBox(
+                                        height: 200,
+                                        child: CupertinoTimerPicker(
+                                          mode: CupertinoTimerPickerMode.hm,
+                                          initialTimerDuration: selected,
+                                          onTimerDurationChanged: (duration) {
+                                            setModalState(
+                                                () => selected = duration);
+                                            final int mins = duration
+                                                .inMinutes
+                                                .clamp(1, 360);
+                                            timeLimitController.text =
+                                                mins.toString();
+                                            onTimeLimitChanged(
+                                                mins.toDouble());
+                                          },
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: TextButton(
+                                          onPressed: () async {
+                                            final int initialHours =
+                                                selected.inHours;
+                                            final int initialMinutes =
+                                                selected.inMinutes % 60;
+                                            final TextEditingController
+                                                hoursController =
+                                                TextEditingController(
+                                                    text: initialHours
+                                                        .toString());
+                                            final TextEditingController
+                                                minutesController =
+                                                TextEditingController(
+                                                    text: initialMinutes
+                                                        .toString());
+
+                                            final Duration? manualResult =
+                                                await showDialog<Duration>(
+                                              context: ctx,
+                                              builder: (dialogCtx) {
+                                                return AlertDialog(
+                                                  backgroundColor: Colors.white,
+                                                  title: const Text(
+                                                      'Set duration manually'),
+                                                  content: Row(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      SizedBox(
+                                                        width: 100,
+                                                        child: TextField(
+                                                          controller:
+                                                              hoursController,
+                                                          keyboardType:
+                                                              TextInputType
+                                                                  .number,
+                                                          inputFormatters: [
+                                                            FilteringTextInputFormatter
+                                                                .digitsOnly,
+                                                            LengthLimitingTextInputFormatter(
+                                                                3),
+                                                          ],
+                                                          decoration:
+                                                              InputDecoration(
+                                                            labelText: 'HOUR',
+                                                            border:
+                                                                OutlineInputBorder(
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          8),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 16),
+                                                      SizedBox(
+                                                        width: 100,
+                                                        child: TextField(
+                                                          controller:
+                                                              minutesController,
+                                                          keyboardType:
+                                                              TextInputType
+                                                                  .number,
+                                                          inputFormatters: [
+                                                            FilteringTextInputFormatter
+                                                                .digitsOnly,
+                                                            LengthLimitingTextInputFormatter(
+                                                                2),
+                                                          ],
+                                                          decoration:
+                                                              InputDecoration(
+                                                            labelText:
+                                                                'MINUTE',
+                                                            border:
+                                                                OutlineInputBorder(
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          8),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  actions: [
+                                                    TextButton(
+                                                      onPressed: () =>
+                                                          Navigator.of(
+                                                                  dialogCtx)
+                                                              .pop(),
+                                                      child:
+                                                          const Text('Cancel'),
+                                                    ),
+                                                    TextButton(
+                                                      onPressed: () {
+                                                        final int h =
+                                                            int.tryParse(
+                                                                    hoursController
+                                                                        .text) ??
+                                                                0;
+                                                        final int m =
+                                                            int.tryParse(
+                                                                    minutesController
+                                                                        .text) ??
+                                                                0;
+                                                        int total =
+                                                            h * 60 + m;
+                                                        if (total < 1) {
+                                                          total = 1;
+                                                        }
+                                                        if (total > 360) {
+                                                          total = 360;
+                                                        }
+                                                        Navigator.of(
+                                                                dialogCtx)
+                                                            .pop(Duration(
+                                                                minutes:
+                                                                    total));
+                                                      },
+                                                      child:
+                                                          const Text('Apply'),
+                                                    ),
+                                                  ],
+                                                );
+                                              },
+                                            );
+
+                                            if (manualResult != null) {
+                                              setModalState(() {
+                                                selected = manualResult;
+                                              });
+                                              final int mins = manualResult
+                                                  .inMinutes
+                                                  .clamp(1, 360);
+                                              timeLimitController.text =
+                                                  mins.toString();
+                                              onTimeLimitChanged(
+                                                  mins.toDouble());
+                                            }
+                                          },
+                                          child: const Text('Set manually'),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Align(
+                                        alignment: Alignment.centerRight,
+                                        child: TextButton(
+                                          onPressed: () =>
+                                              Navigator.of(ctx).pop(),
+                                          child: const Text('Done'),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            );
                           },
+                        );
+                      }
+
+                      return OutlinedButton(
+                        onPressed: openTimerPicker,
+                        style: OutlinedButton.styleFrom(
+                          alignment: Alignment.centerLeft,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
-                      ),
-                    ],
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.timer_outlined, size: 18),
+                            const SizedBox(width: 8),
+                            Text(durationLabel),
+                          ],
+                        ),
+                      );
+                    },
                   ),
                 ],
-                const Divider(height: 24),
+                const SizedBox(height: 8),
                 
                 // Deadline
                 SwitchListTile.adaptive(
@@ -1096,10 +1651,18 @@ class _SettingsEditingStep extends StatelessWidget {
                   title: const Text('Close automatically'),
                   subtitle: const Text('Set a deadline'),
                   contentPadding: EdgeInsets.zero,
-                  activeTrackColor: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.3),
+                  activeColor: Colors.black,
+                  activeTrackColor: _quizWhatsAppTeal,
+                  inactiveTrackColor: Colors.black.withValues(alpha: 0.12),
+                  thumbColor: WidgetStateProperty.resolveWith<Color?>(
+                    (states) {
+                      final bool selected = states.contains(WidgetState.selected);
+                      return selected ? Colors.white : Colors.black;
+                    },
+                  ),
                 ),
                 if (hasDeadline) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   OutlinedButton(
                     onPressed: onPickDeadline,
                     style: OutlinedButton.styleFrom(
@@ -1116,43 +1679,48 @@ class _SettingsEditingStep extends StatelessWidget {
                     ),
                   ),
                 ],
-                const Divider(height: 24),
+                const SizedBox(height: 12),
                 
                 // Attempts
                 Text(
                   'Attempts allowed',
                   style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 DropdownButtonFormField<int?>(
                   value: attemptLimit,  // Using 'value' is fine for this use case
                   items: attemptItems,
                   onChanged: onAttemptsChanged,
                   decoration: InputDecoration(
-                    filled: true,
-                    fillColor: theme.colorScheme.surface,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: outline),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: outline),
-                    ),
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    focusedErrorBorder: InputBorder.none,
                   ),
                 ),
-                const Divider(height: 24),
-                
+                const SizedBox(height: 8),
                 // PIN
                 SwitchListTile.adaptive(
                   value: requiresPin,
                   onChanged: onRequirePinChanged,
                   title: const Text('Require PIN'),
                   contentPadding: EdgeInsets.zero,
-                  activeTrackColor: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.3),
+                  activeColor: Colors.black,
+                  activeTrackColor: _quizWhatsAppTeal,
+                  inactiveTrackColor: Colors.black.withValues(alpha: 0.12),
+                  thumbColor: WidgetStateProperty.resolveWith<Color?>(
+                    (states) {
+                      final bool selected = states.contains(WidgetState.selected);
+                      return selected ? Colors.white : Colors.black;
+                    },
+                  ),
                 ),
                 if (requiresPin) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   TextField(
                     controller: pinController,
                     maxLength: 6,
@@ -1161,7 +1729,7 @@ class _SettingsEditingStep extends StatelessWidget {
                       labelText: 'PIN (4-6 digits)',
                       counterText: '',
                       filled: true,
-                      fillColor: theme.colorScheme.surface,
+                      fillColor: Colors.white,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(color: outline),
@@ -1169,33 +1737,16 @@ class _SettingsEditingStep extends StatelessWidget {
                     ),
                   ),
                 ],
-                const Divider(height: 24),
-                
-                // Visibility
-                Text(
-                  'Visibility',
-                  style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
-                ),
                 const SizedBox(height: 8),
-                Wrap(
-                  spacing: 10,
-                  children: QuizVisibility.values.map((option) {
-                    final bool isSelected = option == visibility;
-                    final String label = option == QuizVisibility.everyone ? 'Everyone' : 'Followers only';
-                    return ChoiceChip(
-                      label: Text(label),
-                      selected: isSelected,
-                      onSelected: (_) => onVisibilityChanged(option),
-                    );
-                  }).toList(),
-                ),
-                
-                const SizedBox(height: 20),
+                const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     TextButton(
                       onPressed: onBack,
+                      style: TextButton.styleFrom(
+                        foregroundColor: _quizWhatsAppTeal,
+                      ),
                       child: const Text('Back'),
                     ),
                     FilledButton.icon(
@@ -1203,8 +1754,221 @@ class _SettingsEditingStep extends StatelessWidget {
                       icon: const Icon(Icons.arrow_forward_rounded, size: 18),
                       label: const Text('Next'),
                       style: FilledButton.styleFrom(
-                        backgroundColor: isDark ? Colors.white : Colors.black,
-                        foregroundColor: isDark ? Colors.black : Colors.white,
+                        backgroundColor: _quizWhatsAppTeal,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ============================================================================
+// QUESTION SETUP STEP (Manual vs Aiken)
+// ============================================================================
+
+class _QuestionSetupStep extends StatelessWidget {
+  const _QuestionSetupStep({
+    super.key,
+    required this.mode,
+    required this.onManualSelected,
+    required this.onAikenSelected,
+    required this.onBack,
+  });
+
+  final _QuizBuildMode mode;
+  final VoidCallback onManualSelected;
+  final Future<void> Function() onAikenSelected;
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final Color cardColor = isDark ? theme.colorScheme.surface : Colors.white;
+    final Color outline =
+        theme.dividerColor.withValues(alpha: isDark ? 0.35 : 0.22);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Step indicator
+        SizedBox(
+          width: 24,
+          child: Column(
+            children: [
+              Container(width: 2, height: 8, color: Colors.black),
+              Container(
+                width: 24,
+                height: 24,
+                decoration: const BoxDecoration(
+                  color: Colors.black,
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: const Text(
+                  '3',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              Container(width: 2, height: 20, color: Colors.black),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: outline),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.06),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Step 3 · Question setup',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Choose how you want to add questions.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: onManualSelected,
+                  icon: Icon(
+                    Icons.edit_note_rounded,
+                    color: mode == _QuizBuildMode.manual
+                        ? _quizWhatsAppTeal
+                        : Colors.black,
+                  ),
+                  label: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Manual quiz setup',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Write questions directly in the app.',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface
+                                .withValues(alpha: 0.6),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    alignment: Alignment.centerLeft,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 14),
+                    side: BorderSide(
+                      color: Colors.black,
+                      width: 1.4,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: onAikenSelected,
+                  icon: Icon(
+                    Icons.upload_file_rounded,
+                    color: mode == _QuizBuildMode.aiken
+                        ? _quizWhatsAppTeal
+                        : Colors.black,
+                  ),
+                  label: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Import Aiken file',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Upload a .txt file in Aiken format.',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface
+                                .withValues(alpha: 0.6),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    alignment: Alignment.centerLeft,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 14),
+                    side: BorderSide(
+                      color: Colors.black,
+                      width: 1.4,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton(
+                      onPressed: onBack,
+                      style: TextButton.styleFrom(
+                        foregroundColor: _quizWhatsAppTeal,
+                      ),
+                      child: const Text('Back'),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        mode == _QuizBuildMode.aiken
+                            ? 'Imported questions will appear next.'
+                            : 'You\'ll write questions in the next step.',
+                        textAlign: TextAlign.right,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface
+                              .withValues(alpha: 0.5),
+                        ),
                       ),
                     ),
                   ],
@@ -1224,6 +1988,7 @@ class _SettingsEditingStep extends StatelessWidget {
 
 class _QuestionEditingStep extends StatelessWidget {
   const _QuestionEditingStep({
+    super.key,
     required this.index,
     required this.question,
     required this.canRemove,
@@ -1231,6 +1996,10 @@ class _QuestionEditingStep extends StatelessWidget {
     required this.onRemoveOption,
     required this.onSetCorrect,
     required this.onRemove,
+    required this.onPickPromptImage,
+    required this.onRemovePromptImage,
+    required this.onPickOptionImage,
+    required this.onRemoveOptionImage,
     required this.onDone,
   });
 
@@ -1242,6 +2011,10 @@ class _QuestionEditingStep extends StatelessWidget {
   final void Function(int) onSetCorrect;
   final VoidCallback onRemove;
   final VoidCallback onDone;
+  final void Function(int) onPickPromptImage;
+  final void Function(int) onRemovePromptImage;
+  final void Function(int, int) onPickOptionImage;
+  final void Function(int, int) onRemoveOptionImage;
 
   @override
   Widget build(BuildContext context) {
@@ -1268,7 +2041,7 @@ class _QuestionEditingStep extends StatelessWidget {
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  '${index + 3}',
+                  '${index + 4}',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 12,
@@ -1283,7 +2056,7 @@ class _QuestionEditingStep extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(
           child: Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 16, 0, 16),
             decoration: BoxDecoration(
               color: cardColor,
               borderRadius: BorderRadius.circular(16),
@@ -1330,57 +2103,229 @@ class _QuestionEditingStep extends StatelessWidget {
                       ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 
-                // Prompt
+                // Prompt (no label, icon inside field)
                 _LabeledField(
-                  label: 'Prompt',
+                  label: '',
                   hintText: 'What parameter best reflects cardiac output?',
                   controller: question.prompt,
                   maxLines: 2,
                   autoExpand: true,
                   backgroundColor: theme.colorScheme.surface,
+                  suffixIcon: InkWell(
+                    onTap: () => onPickPromptImage(index),
+                    borderRadius: BorderRadius.circular(999),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Icon(
+                        question.promptImage != null
+                            ? Icons.image
+                            : Icons.image_outlined,
+                        size: 20,
+                        color: question.promptImage != null
+                            ? _quizWhatsAppTeal
+                            : theme.colorScheme.onSurface
+                                .withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 16),
+                if (question.promptImage != null) ...[
+                  const SizedBox(height: 8),
+                  Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.file(
+                          File(question.promptImage!),
+                          height: 120,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: InkWell(
+                          onTap: () => onRemovePromptImage(index),
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.6),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.close,
+                              color: Colors.white,
+                              size: 16,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                const SizedBox(height: 12),
                 
                 // Options
                 ...List.generate(question.options.length, (optionIndex) {
                   final optionController = question.options[optionIndex];
-                  final optionLabel = 'Option ${String.fromCharCode(65 + optionIndex)}';
                   final bool canRemoveOption = question.options.length > 2;
-                  
-                  return Padding(
-                    padding: EdgeInsets.only(bottom: optionIndex == question.options.length - 1 ? 0 : 12),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: _LabeledField(
-                            label: optionLabel,
-                            hintText: optionIndex == 0
-                                ? 'Stroke volume × heart rate'
-                                : 'Add a distractor',
-                            controller: optionController,
-                            backgroundColor: theme.colorScheme.surface,
-                            maxLines: 2,
-                            autoExpand: true,
+
+                  return Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            // Option letter pill
+                            Container(
+                              width: 24,
+                              height: 24,
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.surface,
+                                borderRadius: BorderRadius.circular(999),
+                                border: Border.all(
+                                  color: theme.colorScheme.onSurface
+                                      .withValues(alpha: 0.25),
+                                ),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                String.fromCharCode(65 + optionIndex),
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: TextField(
+                                controller: optionController,
+                                minLines: 1,
+                                maxLines: null, // auto-grow
+                                textInputAction: TextInputAction.newline,
+                                style: theme.textTheme.bodyMedium,
+                                decoration: InputDecoration(
+                                  hintText: question.correctIndex == optionIndex
+                                      ? 'Correct answer'
+                                      : 'Add option',
+                                  isDense: true,
+                                  border: InputBorder.none,
+                                  enabledBorder: InputBorder.none,
+                                  focusedBorder: InputBorder.none,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    vertical: 4,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                InkWell(
+                                  onTap: () => onPickOptionImage(index, optionIndex),
+                                  borderRadius: BorderRadius.circular(999),
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(left: 2, top: 4, bottom: 4),
+                                    child: Icon(
+                                      (optionIndex < question.optionImages.length &&
+                                              question.optionImages[optionIndex] != null)
+                                          ? Icons.image
+                                          : Icons.image_outlined,
+                                      size: 22,
+                                      color: (optionIndex < question.optionImages.length &&
+                                              question.optionImages[optionIndex] != null)
+                                          ? _quizWhatsAppTeal
+                                          : theme.colorScheme.onSurface
+                                              .withValues(alpha: 0.4),
+                                    ),
+                                  ),
+                                ),
+                                InkWell(
+                                  onTap: () => onSetCorrect(optionIndex),
+                                  borderRadius: BorderRadius.circular(999),
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(left: 2, top: 4, bottom: 4),
+                                    child: Icon(
+                                      question.correctIndex == optionIndex
+                                          ? Icons.check_circle_rounded
+                                          : Icons.radio_button_unchecked,
+                                      size: 24,
+                                      color: question.correctIndex == optionIndex
+                                          ? _quizWhatsAppTeal
+                                          : theme.colorScheme.onSurface
+                                              .withValues(alpha: 0.4),
+                                    ),
+                                  ),
+                                ),
+                                if (canRemoveOption) ...[
+                                  InkWell(
+                                    onTap: () => onRemoveOption(optionIndex),
+                                    borderRadius: BorderRadius.circular(999),
+                                    child: const Padding(
+                                      padding: EdgeInsets.only(left: 2, right: 4, top: 4, bottom: 4),
+                                      child: Icon(Icons.close_rounded, size: 22),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Option image preview
+                      if (optionIndex < question.optionImages.length &&
+                          question.optionImages[optionIndex] != null)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 32, top: 4, right: 8),
+                          child: Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.file(
+                                  File(question.optionImages[optionIndex]!),
+                                  height: 60,
+                                  width: 100,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              Positioned(
+                                top: 2,
+                                right: 2,
+                                child: InkWell(
+                                  onTap: () => onRemoveOptionImage(index, optionIndex),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withValues(alpha: 0.6),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.close,
+                                      color: Colors.white,
+                                      size: 12,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        if (canRemoveOption)
-                          Padding(
-                            padding: const EdgeInsets.only(left: 8, top: 20),
-                            child: IconButton(
-                              tooltip: 'Remove option',
-                              icon: const Icon(Icons.close_rounded, size: 18),
-                              onPressed: () => onRemoveOption(optionIndex),
-                            ),
-                          ),
-                      ],
-                    ),
+                      if (optionIndex != question.options.length - 1)
+                        Divider(
+                          height: 1,
+                          thickness: 0.7,
+                          color: theme.dividerColor.withValues(alpha: 0.6),
+                        ),
+                    ],
                   );
                 }),
                 
-                const SizedBox(height: 8),
+                const Divider(height: 16),
                 TextButton.icon(
                   onPressed: onAddOption,
                   icon: const Icon(Icons.add_circle_outline, size: 18),
@@ -1388,34 +2333,6 @@ class _QuestionEditingStep extends StatelessWidget {
                   style: TextButton.styleFrom(
                     foregroundColor: theme.colorScheme.onSurface,
                   ),
-                ),
-                
-                const Divider(height: 24),
-                
-                // Correct answer
-                Text(
-                  'Correct answer',
-                  style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: List.generate(question.options.length, (optionIndex) {
-                    final bool isSelected = question.correctIndex == optionIndex;
-                    return ChoiceChip(
-                      label: Text('Option ${String.fromCharCode(65 + optionIndex)}'),
-                      selected: isSelected,
-                      onSelected: (_) => onSetCorrect(optionIndex),
-                      selectedColor: isDark ? Colors.white : Colors.black,
-                      labelStyle: TextStyle(
-                        color: isSelected
-                            ? (isDark ? Colors.black : Colors.white)
-                            : theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    );
-                  }),
                 ),
               ],
             ),
@@ -1432,6 +2349,7 @@ class _QuestionEditingStep extends StatelessWidget {
 
 class _CompletedQuestionCard extends StatelessWidget {
   const _CompletedQuestionCard({
+    super.key,
     required this.index,
     required this.question,
     required this.onTap,
@@ -1468,7 +2386,7 @@ class _CompletedQuestionCard extends StatelessWidget {
                   ),
                   alignment: Alignment.center,
                   child: Text(
-                    '${index + 3}',
+                    '${index + 4}',
                     style: const TextStyle(
                       color: Colors.black,
                       fontSize: 12,
@@ -1485,9 +2403,8 @@ class _CompletedQuestionCard extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
+                color: Colors.black,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: theme.dividerColor.withValues(alpha: 0.25)),
               ),
               child: Row(
                 children: [
@@ -1499,6 +2416,7 @@ class _CompletedQuestionCard extends StatelessWidget {
                           'Question ${index + 1}',
                           style: theme.textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w600,
+                            color: Colors.white,
                           ),
                         ),
                         if (prompt.isNotEmpty) ...[
@@ -1506,7 +2424,7 @@ class _CompletedQuestionCard extends StatelessWidget {
                           Text(
                             prompt,
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                              color: Colors.white.withValues(alpha: 0.7),
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -1516,7 +2434,7 @@ class _CompletedQuestionCard extends StatelessWidget {
                         Text(
                           '${question.options.length} options',
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
+                            color: Colors.white.withValues(alpha: 0.5),
                           ),
                         ),
                       ],
@@ -1525,7 +2443,7 @@ class _CompletedQuestionCard extends StatelessWidget {
                   Icon(
                     Icons.edit_outlined,
                     size: 18,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                    color: Colors.white.withValues(alpha: 0.6),
                   ),
                 ],
               ),
@@ -1549,7 +2467,9 @@ class _LabeledField extends StatelessWidget {
     this.maxLines = 1,
     this.textInputAction,
     this.backgroundColor,
-    this.autoExpand = false,
+    this.autoExpand = true,
+    this.trailing,
+    this.suffixIcon,
   });
 
   final String label;
@@ -1559,6 +2479,8 @@ class _LabeledField extends StatelessWidget {
   final TextInputAction? textInputAction;
   final Color? backgroundColor;
   final bool autoExpand;
+  final Widget? trailing;
+  final Widget? suffixIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -1566,38 +2488,53 @@ class _LabeledField extends StatelessWidget {
     final subtle = theme.colorScheme.onSurface.withValues(alpha: 0.65);
     final Color fieldBackground = backgroundColor ?? theme.colorScheme.surface;
     final bool isDark = theme.brightness == Brightness.dark;
+    final Color outlineBase = theme.colorScheme.onSurface.withValues(
+      alpha: isDark ? 0.35 : 0.25,
+    );
     final Color focusColor =
-        isDark ? Colors.white.withValues(alpha: 0.55) : Colors.black.withValues(alpha: 0.45);
+        isDark ? Colors.white.withValues(alpha: 0.8) : Colors.black.withValues(alpha: 0.65);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: theme.textTheme.bodySmall?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: subtle,
+        if (label.isNotEmpty || trailing != null) ...[
+          Row(
+            children: [
+              if (label.isNotEmpty)
+                Text(
+                  label,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: _quizWhatsAppTeal,
+                  ),
+                ),
+              const Spacer(),
+              if (trailing != null) trailing!,
+            ],
           ),
-        ),
-        const SizedBox(height: 8),
+          const SizedBox(height: 8),
+        ],
         TextField(
           controller: controller,
           maxLines: autoExpand ? null : maxLines,
           minLines: autoExpand ? maxLines : null,
           textInputAction: textInputAction,
           inputFormatters: maxLines == 1 ? [FilteringTextInputFormatter.singleLineFormatter] : null,
+          style: const TextStyle(color: Colors.black),
+          cursorColor: Colors.black,
           decoration: InputDecoration(
             hintText: hintText,
             filled: true,
             fillColor: fieldBackground,
+            suffixIcon: suffixIcon,
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: theme.dividerColor.withValues(alpha: 0.2)),
+              borderSide: BorderSide(color: outlineBase, width: 1.3),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: theme.dividerColor.withValues(alpha: 0.2)),
+              borderSide: BorderSide(color: outlineBase, width: 1.3),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -1617,11 +2554,15 @@ class _LabeledField extends StatelessWidget {
 class _QuizQuestionFields {
   _QuizQuestionFields()
       : prompt = TextEditingController(),
-        options = List<TextEditingController>.generate(4, (_) => TextEditingController());
+        options = List<TextEditingController>.generate(4, (_) => TextEditingController()),
+        optionImages = List<String?>.filled(4, null, growable: true),
+        promptImage = null;
 
   final TextEditingController prompt;
   final List<TextEditingController> options;
   int correctIndex = 0;
+  final List<String?> optionImages;
+  String? promptImage;
 
   void dispose() {
     prompt.dispose();

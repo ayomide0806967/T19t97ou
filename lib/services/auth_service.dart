@@ -4,7 +4,14 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+  bool _isGoogleSignInInitialized = false;
+
+  Future<void> _ensureGoogleSignInInitialized() async {
+    if (_isGoogleSignInInitialized) return;
+    await _googleSignIn.initialize();
+    _isGoogleSignInInitialized = true;
+  }
 
   // Get current user
   User? get currentUser => _auth.currentUser;
@@ -47,14 +54,19 @@ class AuthService {
   // Sign in with Google
   Future<UserCredential?> signInWithGoogle() async {
     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) return null;
+      await _ensureGoogleSignInInitialized();
+
+      if (!_googleSignIn.supportsAuthenticate()) {
+        throw 'Google Sign-In is not supported on this platform.';
+      }
+
+      final GoogleSignInAccount googleUser =
+          await _googleSignIn.authenticate();
 
       final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
+          googleUser.authentication;
 
       final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
@@ -69,6 +81,7 @@ class AuthService {
   // Sign out
   Future<void> signOut() async {
     try {
+      await _ensureGoogleSignInInitialized();
       await Future.wait([
         _auth.signOut(),
         _googleSignIn.signOut(),
