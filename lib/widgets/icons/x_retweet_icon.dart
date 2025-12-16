@@ -168,7 +168,7 @@ class _TwitterRetweetPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final double s = size.shortestSide;
-    final double sw = s * 0.08;
+    final double sw = s * 0.06; // lighter shaft weight
 
     final Paint stroke = Paint()
       ..color = color
@@ -189,48 +189,84 @@ class _TwitterRetweetPainter extends CustomPainter {
     final double rightX = s - margin;
     final double cornerR = s * 0.14;
     final double arrowSize = s * 0.18;
-    final double headSize = arrowSize * 1.4; // heavier arrowhead
-    final double gapOffset = s * 0.24; // Increased vertical gap between arrows
+    final double headSize = arrowSize * 1.0; // smaller chevron head, still cleanly centered
+    final double gapOffset = s * 0.18; // Reduced vertical gap between arrows
+    // Horizontal shaft geometry so the curve and shaft meet the arrowheads centrally.
+    final double bodyTopStart = leftX + cornerR;
+    // Shaft ends at the center of the head base, leaving equal space above/below.
+    final double bodyTopEnd = rightX - headSize;
+    final double bodyTopCurveStart =
+        bodyTopEnd - (bodyTopEnd - bodyTopStart) * 0.3; // last 30% curved
+    final double bodyBottomStart = rightX - cornerR;
+    // Shaft ends at the center of the left head base.
+    final double bodyBottomEnd = leftX + headSize;
+    final double bodyBottomCurveStart =
+        bodyBottomEnd + (bodyBottomStart - bodyBottomEnd) * 0.3;
 
     // ===== ARROW 1: Top-right pointing arrow =====
-    // Starts from lower-left, goes up, curves right, ends with right arrowhead
+    // Starts from lower-left, goes up, runs mostly straight, then eases into a curve only near the head.
+    final double upShift = s * 0.03; // nudge up arrow slightly to the right
     final Path arrow1 = Path()
       // Start below midpoint on left side
-      ..moveTo(leftX, bottomY - gapOffset)
-      // Go up
-      ..lineTo(leftX, topY + cornerR)
-      // Curve to horizontal, then straight line
-      ..quadraticBezierTo(leftX, topY, leftX + cornerR, topY)
-      ..lineTo(rightX - arrowSize * 0.8, topY);
+      ..moveTo(leftX + upShift, bottomY - gapOffset)
+      // Go straight up close to the head, then ease into the horizontal
+      ..lineTo(leftX + upShift, topY + cornerR * 0.4)
+      ..quadraticBezierTo(leftX + upShift, topY, bodyTopStart, topY)
+      // Straight horizontal segment before the head-side curve
+      ..lineTo(bodyTopCurveStart, topY)
+      // Gentle curve only near the head side
+      ..quadraticBezierTo(
+        bodyTopEnd + s * 0.02,
+        topY - s * 0.04,
+        bodyTopEnd,
+        topY,
+      );
     canvas.drawPath(arrow1, stroke);
 
-    // Right-pointing arrowhead (top arrow)
+    // Right-pointing arrowhead (top arrow) rendered as a stroked chevron "<"
+    final double headHalfHeight = headSize * 0.5;
+    final double shaftEndTop = bodyTopEnd;
+    final double tipLeftTopMain = shaftEndTop - headSize;
     final Path headRight = Path()
-      ..moveTo(rightX, topY)
-      ..lineTo(rightX - headSize, topY - headSize * 0.5)
-      ..lineTo(rightX - headSize, topY + headSize * 0.5)
-      ..close();
-    canvas.drawPath(headRight, fill);
+      // upper arm of "<"
+      ..moveTo(shaftEndTop, topY)
+      ..lineTo(tipLeftTopMain, topY - headHalfHeight)
+      // lower arm of "<"
+      ..moveTo(shaftEndTop, topY)
+      ..lineTo(tipLeftTopMain, topY + headHalfHeight);
+    canvas.drawPath(headRight, stroke);
 
     // ===== ARROW 2: Bottom-left pointing arrow =====
-    // Starts from upper-right, goes down, curves left, ends with left arrowhead
+    // Starts from upper-right, goes down, runs mostly straight, then eases into a curve only near the head.
+    final double downShift = s * 0.03; // nudge down arrow slightly to the left
     final Path arrow2 = Path()
       // Start above midpoint on right side
-      ..moveTo(rightX, topY + gapOffset)
-      // Go down
-      ..lineTo(rightX, bottomY - cornerR)
-      // Curve to horizontal, then straight line
-      ..quadraticBezierTo(rightX, bottomY, rightX - cornerR, bottomY)
-      ..lineTo(leftX + arrowSize * 0.8, bottomY);
+      ..moveTo(rightX - downShift, topY + gapOffset)
+      // Straight down close to the head, then ease into the horizontal
+      ..lineTo(rightX - downShift, bottomY - cornerR * 0.4)
+      ..quadraticBezierTo(rightX - downShift, bottomY, bodyBottomStart, bottomY)
+      // Straight horizontal segment before the head-side curve
+      ..lineTo(bodyBottomCurveStart, bottomY)
+      // Gentle curve only near the head side
+      ..quadraticBezierTo(
+        bodyBottomEnd - s * 0.02,
+        bottomY + s * 0.04,
+        bodyBottomEnd,
+        bottomY,
+      );
     canvas.drawPath(arrow2, stroke);
 
-    // Left-pointing arrowhead (bottom arrow)
+    // Left-pointing arrowhead (bottom arrow) rendered as a stroked chevron ">"
+    final double shaftEndBottom = bodyBottomEnd;
+    final double tipRightBottomMain = shaftEndBottom + headSize;
     final Path headLeft = Path()
-      ..moveTo(leftX, bottomY)
-      ..lineTo(leftX + headSize, bottomY - headSize * 0.5)
-      ..lineTo(leftX + headSize, bottomY + headSize * 0.5)
-      ..close();
-    canvas.drawPath(headLeft, fill);
+      // upper arm of ">"
+      ..moveTo(shaftEndBottom, bottomY)
+      ..lineTo(tipRightBottomMain, bottomY - headHalfHeight)
+      // lower arm of ">"
+      ..moveTo(shaftEndBottom, bottomY)
+      ..lineTo(tipRightBottomMain, bottomY + headHalfHeight);
+    canvas.drawPath(headLeft, stroke);
   }
 
   @override
@@ -258,7 +294,7 @@ class XRetweetIconMinimal extends StatelessWidget {
       child: CustomPaint(
         painter: _MinimalRetweetPainter(
           color: color ?? Theme.of(context).iconTheme.color ?? const Color(0xFF536471),
-          strokeWidth: strokeWidth ?? size * 0.1,
+          strokeWidth: strokeWidth ?? size * 0.07, // lighter default shaft weight
         ),
       ),
     );
@@ -298,40 +334,67 @@ class _MinimalRetweetPainter extends CustomPainter {
     final double rightX = s - margin;
     final double cornerR = s * 0.14;
     final double arrowSize = s * 0.18;
-    final double headSize = arrowSize * 1.4; // heavier arrowhead
-    final double gapOffset = s * 0.24; // Increased vertical gap (match main icon)
+    final double headSize = arrowSize * 1.0; // smaller chevron head, still cleanly centered
+    final double gapOffset = s * 0.18; // Reduced vertical gap (match main icon)
 
-    // Arrow 1: goes up-left, curves right, ends with right arrowhead
+    // Arrow 1: goes up-left, runs mostly straight, then eases into a curve only near the head
+    final double bodyTopStart = leftX + cornerR;
+    final double bodyTopEnd = rightX - headSize;
+    final double bodyTopCurveStart =
+        bodyTopEnd - (bodyTopEnd - bodyTopStart) * 0.3;
+    final double upShift = s * 0.03; // nudge up arrow slightly to the right
     final Path arrow1 = Path()
-      ..moveTo(leftX, bottomY - gapOffset)
-      ..lineTo(leftX, topY + cornerR)
-      ..quadraticBezierTo(leftX, topY, leftX + cornerR, topY)
-      ..lineTo(rightX - arrowSize * 0.8, topY);
+      ..moveTo(leftX + upShift, bottomY - gapOffset)
+      ..lineTo(leftX + upShift, topY + cornerR * 0.4)
+      ..quadraticBezierTo(leftX + upShift, topY, bodyTopStart, topY)
+      ..lineTo(bodyTopCurveStart, topY)
+      ..quadraticBezierTo(
+        bodyTopEnd + s * 0.02,
+        topY - s * 0.04,
+        bodyTopEnd,
+        topY,
+      );
     canvas.drawPath(arrow1, paint);
 
-    // Right arrowhead
+    // Right arrowhead rendered as stroked chevron "<"
+    final double headHalfHeight = headSize * 0.5;
+    final double shaftEndTop = bodyTopEnd;
+    final double tipLeftTop = shaftEndTop - headSize;
     final Path headRight = Path()
-      ..moveTo(rightX, topY)
-      ..lineTo(rightX - headSize, topY - headSize * 0.5)
-      ..lineTo(rightX - headSize, topY + headSize * 0.5)
-      ..close();
-    canvas.drawPath(headRight, fillPaint);
+      ..moveTo(shaftEndTop, topY)
+      ..lineTo(tipLeftTop, topY - headHalfHeight)
+      ..moveTo(shaftEndTop, topY)
+      ..lineTo(tipLeftTop, topY + headHalfHeight);
+    canvas.drawPath(headRight, paint);
 
-    // Arrow 2: goes down-right, curves left, ends with left arrowhead
+    // Arrow 2: goes down-right, runs mostly straight, then eases into a curve only near the head
+    final double bodyBottomStart = rightX - cornerR;
+    final double bodyBottomEnd = leftX + headSize;
+    final double bodyBottomCurveStart =
+        bodyBottomEnd + (bodyBottomStart - bodyBottomEnd) * 0.3;
+    final double downShift = s * 0.03; // nudge down arrow slightly to the left
     final Path arrow2 = Path()
-      ..moveTo(rightX, topY + gapOffset)
-      ..lineTo(rightX, bottomY - cornerR)
-      ..quadraticBezierTo(rightX, bottomY, rightX - cornerR, bottomY)
-      ..lineTo(leftX + arrowSize * 0.8, bottomY);
+      ..moveTo(rightX - downShift, topY + gapOffset)
+      ..lineTo(rightX - downShift, bottomY - cornerR * 0.4)
+      ..quadraticBezierTo(rightX - downShift, bottomY, bodyBottomStart, bottomY)
+      ..lineTo(bodyBottomCurveStart, bottomY)
+      ..quadraticBezierTo(
+        bodyBottomEnd - s * 0.02,
+        bottomY + s * 0.04,
+        bodyBottomEnd,
+        bottomY,
+      );
     canvas.drawPath(arrow2, paint);
 
-    // Left arrowhead
+    // Left arrowhead rendered as stroked chevron ">"
+    final double shaftEndBottom = bodyBottomEnd;
+    final double tipRightBottom = shaftEndBottom + headSize;
     final Path headLeft = Path()
-      ..moveTo(leftX, bottomY)
-      ..lineTo(leftX + headSize, bottomY - headSize * 0.5)
-      ..lineTo(leftX + headSize, bottomY + headSize * 0.5)
-      ..close();
-    canvas.drawPath(headLeft, fillPaint);
+      ..moveTo(shaftEndBottom, bottomY)
+      ..lineTo(tipRightBottom, bottomY - headHalfHeight)
+      ..moveTo(shaftEndBottom, bottomY)
+      ..lineTo(tipRightBottom, bottomY + headHalfHeight);
+    canvas.drawPath(headLeft, paint);
   }
 
   @override
