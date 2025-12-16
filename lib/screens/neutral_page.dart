@@ -75,33 +75,45 @@ class _NeutralArtwork extends StatelessWidget {
         theme.dividerColor.withValues(alpha: isDark ? 0.35 : 0.18);
     final Color cardColor = isDark ? theme.colorScheme.surface : Colors.white;
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(28),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: cardColor,
+    final double screenWidth = MediaQuery.sizeOf(context).width;
+
+    // This page uses horizontal padding for the cards; the artwork below is
+    // meant to go edge-to-edge, so we allow it to overflow the padded width.
+    return OverflowBox(
+      alignment: Alignment.topCenter,
+      minWidth: screenWidth,
+      maxWidth: screenWidth,
+      child: Padding(
+        padding: EdgeInsets.zero,
+        child: ClipRRect(
           borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: border),
-          boxShadow: [
-            if (!isDark)
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-          ],
-        ),
-        child: CustomPaint(
-          painter: _NeutralArtworkPainter(isDark: isDark),
-          child: const SizedBox.expand(),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: border),
+              boxShadow: [
+                if (!isDark)
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+              ],
+            ),
+            child: CustomPaint(
+              painter: _EducationArtworkPainter(isDark: isDark),
+              child: const SizedBox.expand(),
+            ),
+          ),
         ),
       ),
     );
   }
 }
 
-class _NeutralArtworkPainter extends CustomPainter {
-  const _NeutralArtworkPainter({required this.isDark});
+class _EducationArtworkPainter extends CustomPainter {
+  const _EducationArtworkPainter({required this.isDark});
 
   final bool isDark;
 
@@ -109,111 +121,156 @@ class _NeutralArtworkPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final Rect rect = Offset.zero & size;
 
-    final Color base = isDark ? const Color(0xFF0B0D12) : Colors.white;
-    final Paint basePaint = Paint()..color = base;
-    canvas.drawRect(rect, basePaint);
+    // Notebook paper background.
+    final Color paper = isDark ? const Color(0xFF0B0D12) : const Color(0xFFFAFAFA);
+    canvas.drawRect(rect, Paint()..color = paper);
 
-    final Paint glow = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          const Color(0xFF38BDF8).withValues(alpha: isDark ? 0.18 : 0.22),
-          const Color(0xFF34D399).withValues(alpha: isDark ? 0.14 : 0.18),
-          const Color(0xFFA78BFA).withValues(alpha: isDark ? 0.10 : 0.14),
-        ],
-        stops: const [0.0, 0.55, 1.0],
-      ).createShader(rect)
-      ..style = PaintingStyle.fill;
-
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(rect, const Radius.circular(28)),
-      glow,
-    );
-
-    final Paint wave = Paint()
-      ..color = (isDark ? Colors.white : Colors.black).withValues(alpha: 0.06)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.shortestSide * 0.03
-      ..strokeCap = StrokeCap.round;
-
-    final Path p1 = Path()
-      ..moveTo(size.width * -0.1, size.height * 0.72)
-      ..cubicTo(
-        size.width * 0.18,
-        size.height * 0.50,
-        size.width * 0.44,
-        size.height * 0.90,
-        size.width * 0.72,
-        size.height * 0.58,
-      )
-      ..cubicTo(
-        size.width * 0.88,
-        size.height * 0.40,
-        size.width * 1.05,
-        size.height * 0.70,
-        size.width * 1.12,
-        size.height * 0.48,
-      );
-    canvas.drawPath(p1, wave);
-
-    final Paint wave2 = Paint()
-      ..color = (isDark ? Colors.white : Colors.black).withValues(alpha: 0.045)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.shortestSide * 0.018
-      ..strokeCap = StrokeCap.round;
-
-    final Path p2 = Path()
-      ..moveTo(size.width * -0.1, size.height * 0.36)
-      ..cubicTo(
-        size.width * 0.22,
-        size.height * 0.20,
-        size.width * 0.42,
-        size.height * 0.48,
-        size.width * 0.62,
-        size.height * 0.28,
-      )
-      ..cubicTo(
-        size.width * 0.82,
-        size.height * 0.10,
-        size.width * 1.06,
-        size.height * 0.36,
-        size.width * 1.14,
-        size.height * 0.16,
-      );
-    canvas.drawPath(p2, wave2);
-
-    final Paint dot = Paint()
-      ..color = (isDark ? Colors.white : Colors.black).withValues(alpha: 0.10)
-      ..style = PaintingStyle.fill;
-
-    void drawDot(double dx, double dy, double r) {
-      canvas.drawCircle(Offset(dx, dy), r, dot);
+    final Color lineColor =
+        (isDark ? Colors.white : Colors.black).withValues(alpha: isDark ? 0.06 : 0.05);
+    final double lineGap = (size.height / 10).clamp(18.0, 40.0);
+    final Paint lines = Paint()
+      ..color = lineColor
+      ..strokeWidth = 1;
+    for (double y = lineGap; y < size.height; y += lineGap) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), lines);
     }
 
-    final double r1 = (size.shortestSide * 0.020).clamp(2.0, 6.0);
-    final double r2 = (size.shortestSide * 0.012).clamp(1.5, 4.0);
-    drawDot(size.width * 0.18, size.height * 0.22, r2);
-    drawDot(size.width * 0.30, size.height * 0.42, r1);
-    drawDot(size.width * 0.52, size.height * 0.20, r2);
-    drawDot(size.width * 0.70, size.height * 0.34, r1);
-    drawDot(size.width * 0.84, size.height * 0.18, r2);
-
-    final Paint chip = Paint()
-      ..color = (isDark ? Colors.white : Colors.black).withValues(alpha: 0.05);
-    final RRect pill = RRect.fromRectAndRadius(
-      Rect.fromCenter(
-        center: Offset(size.width * 0.50, size.height * 0.70),
-        width: size.width * 0.62,
-        height: size.height * 0.18,
-      ),
-      const Radius.circular(999),
+    // Margin line.
+    final Paint margin = Paint()
+      ..color = const Color(0xFFF87171).withValues(alpha: isDark ? 0.16 : 0.22)
+      ..strokeWidth = 1.2;
+    canvas.drawLine(
+      Offset(size.width * 0.12, 0),
+      Offset(size.width * 0.12, size.height),
+      margin,
     );
-    canvas.drawRRect(pill, chip);
+
+    // Soft chalkboard vignette.
+    final Paint vignette = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(-0.4, -0.2),
+        radius: 1.2,
+        colors: [
+          const Color(0xFF22C55E).withValues(alpha: isDark ? 0.10 : 0.06),
+          const Color(0xFF38BDF8).withValues(alpha: isDark ? 0.10 : 0.06),
+          Colors.transparent,
+        ],
+        stops: const [0.0, 0.55, 1.0],
+      ).createShader(rect);
+    canvas.drawRect(rect, vignette);
+
+    final Color ink =
+        (isDark ? Colors.white : const Color(0xFF111827)).withValues(alpha: 0.55);
+    final Paint stroke = Paint()
+      ..color = ink
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = (size.shortestSide * 0.012).clamp(1.5, 3.0)
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    final Paint fineStroke = Paint()
+      ..color = ink
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = (stroke.strokeWidth * 0.75)
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    final Paint accent = Paint()
+      ..color = (isDark ? Colors.white : const Color(0xFF111827))
+          .withValues(alpha: isDark ? 0.10 : 0.08)
+      ..style = PaintingStyle.fill;
+
+    // Doodle: open book.
+    final Offset bookCenter = Offset(size.width * 0.30, size.height * 0.58);
+    final double bw = size.width * 0.28;
+    final double bh = size.height * 0.22;
+    final Rect left = Rect.fromCenter(
+      center: Offset(bookCenter.dx - bw * 0.18, bookCenter.dy),
+      width: bw * 0.48,
+      height: bh,
+    );
+    final Rect right = Rect.fromCenter(
+      center: Offset(bookCenter.dx + bw * 0.18, bookCenter.dy),
+      width: bw * 0.48,
+      height: bh,
+    );
+    canvas.drawRRect(RRect.fromRectAndRadius(left, const Radius.circular(14)), accent);
+    canvas.drawRRect(RRect.fromRectAndRadius(right, const Radius.circular(14)), accent);
+    canvas.drawRRect(RRect.fromRectAndRadius(left, const Radius.circular(14)), stroke);
+    canvas.drawRRect(RRect.fromRectAndRadius(right, const Radius.circular(14)), stroke);
+    canvas.drawLine(
+      Offset(bookCenter.dx, bookCenter.dy - bh * 0.46),
+      Offset(bookCenter.dx, bookCenter.dy + bh * 0.46),
+      stroke,
+    );
+    for (int i = 0; i < 4; i++) {
+      final dy = (-0.25 + i * 0.16) * bh;
+      canvas.drawLine(
+        Offset(left.left + bw * 0.06, bookCenter.dy + dy),
+        Offset(bookCenter.dx - bw * 0.06, bookCenter.dy + dy),
+        fineStroke,
+      );
+      canvas.drawLine(
+        Offset(bookCenter.dx + bw * 0.06, bookCenter.dy + dy),
+        Offset(right.right - bw * 0.06, bookCenter.dy + dy),
+        fineStroke,
+      );
+    }
+
+    // Doodle: pencil.
+    stroke.strokeWidth = (size.shortestSide * 0.012).clamp(1.5, 3.0);
+    final Offset p1 = Offset(size.width * 0.68, size.height * 0.42);
+    final Offset p2 = Offset(size.width * 0.88, size.height * 0.62);
+    final Offset dir = (p2 - p1);
+    final double len = dir.distance;
+    final Offset u = len == 0 ? const Offset(1, 0) : dir / len;
+    final Offset n = Offset(-u.dy, u.dx);
+    final double pencilW = (size.shortestSide * 0.07).clamp(12.0, 22.0);
+    final Path pencil = Path()
+      ..moveTo(p1.dx + n.dx * pencilW * 0.4, p1.dy + n.dy * pencilW * 0.4)
+      ..lineTo(p2.dx + n.dx * pencilW * 0.4, p2.dy + n.dy * pencilW * 0.4)
+      ..lineTo(p2.dx - n.dx * pencilW * 0.4, p2.dy - n.dy * pencilW * 0.4)
+      ..lineTo(p1.dx - n.dx * pencilW * 0.4, p1.dy - n.dy * pencilW * 0.4)
+      ..close();
+    canvas.drawPath(pencil, accent);
+    canvas.drawPath(pencil, stroke);
+    final Path tip = Path()
+      ..moveTo(p2.dx + n.dx * pencilW * 0.4, p2.dy + n.dy * pencilW * 0.4)
+      ..lineTo(p2.dx - n.dx * pencilW * 0.4, p2.dy - n.dy * pencilW * 0.4)
+      ..lineTo(p2.dx + u.dx * pencilW * 0.55, p2.dy + u.dy * pencilW * 0.55)
+      ..close();
+    canvas.drawPath(tip, stroke);
+
+    // Doodle: atom.
+    final Offset atomCenter = Offset(size.width * 0.72, size.height * 0.78);
+    final double r = (size.shortestSide * 0.12).clamp(22.0, 44.0);
+    for (final angle in <double>[0, 1.05, -1.05]) {
+      canvas.save();
+      canvas.translate(atomCenter.dx, atomCenter.dy);
+      canvas.rotate(angle);
+      final Rect oval = Rect.fromCenter(center: Offset.zero, width: r * 2.4, height: r * 1.2);
+      canvas.drawOval(oval, stroke);
+      canvas.restore();
+    }
+    canvas.drawCircle(atomCenter, r * 0.12, Paint()..color = ink.withValues(alpha: 0.75));
+
+    // Small math doodles.
+    final TextPainter tp = TextPainter(
+      textDirection: TextDirection.ltr,
+      text: TextSpan(
+        text: 'E=mc²   ∑   π',
+        style: TextStyle(
+          color: ink.withValues(alpha: 0.55),
+          fontSize: (size.shortestSide * 0.08).clamp(14.0, 22.0),
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.5,
+        ),
+      ),
+    )..layout(maxWidth: size.width);
+    tp.paint(canvas, Offset(size.width * 0.16, size.height * 0.12));
   }
 
   @override
-  bool shouldRepaint(_NeutralArtworkPainter oldDelegate) =>
+  bool shouldRepaint(_EducationArtworkPainter oldDelegate) =>
       oldDelegate.isDark != isDark;
 }
 
