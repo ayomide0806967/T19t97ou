@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../theme/app_theme.dart';
 import '../services/data_service.dart';
 import '../services/simple_auth_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/floating_nav_bar.dart';
 import '../widgets/tweet_post_card.dart';
-import '../widgets/hexagon_avatar.dart';
+import 'compose_screen.dart';
+import 'neutral_page.dart';
+import 'notifications_screen.dart';
+import 'profile_screen.dart';
 
 class TrendingScreen extends StatefulWidget {
   const TrendingScreen({super.key});
@@ -14,12 +18,29 @@ class TrendingScreen extends StatefulWidget {
 }
 
 class _TrendingScreenState extends State<TrendingScreen> {
-  final List<String> _filters = const [
-    'Trending Topics',
-    'Trending Tweet',
-  ];
-  String _selected = 'Trending Topics';
-  String? _filteredHandle;
+  late final TextEditingController _searchController;
+  late final ScrollController _scrollController;
+  String _query = '';
+  int _selectedBottomNavIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController();
+    _scrollController = ScrollController();
+    _searchController.addListener(() {
+      final next = _searchController.text;
+      if (next == _query) return;
+      setState(() => _query = next);
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   String _deriveHandle(SimpleAuthService auth) {
     final email = auth.currentUserEmail;
@@ -32,39 +53,168 @@ class _TrendingScreenState extends State<TrendingScreen> {
     return normalized.isEmpty ? '@yourprofile' : '@$normalized';
   }
 
+  int _score(PostModel p) => p.likes + (p.reposts * 2) + (p.views ~/ 100);
+
+  String _normalizedQuery() => _query.trim().toLowerCase();
+
+  List<_TopicItem> _topicItemsFor(
+    List<MapEntry<String, int>> sortedTopics, {
+    required String query,
+  }) {
+    final q = query.trim().toLowerCase();
+
+    if (q.isEmpty) {
+      if (sortedTopics.isNotEmpty) {
+        return sortedTopics
+            .take(6)
+            .map((e) => _TopicItem(topic: e.key, count: e.value))
+            .toList();
+      }
+      return List<_TopicItem>.generate(
+        _fallbackTopics.length,
+        (i) => _TopicItem(topic: _fallbackTopics[i], count: _fallbackTopicCounts[i]),
+      );
+    }
+
+    final matched = sortedTopics
+        .where((e) => e.key.toLowerCase().contains(q))
+        .take(8)
+        .map((e) => _TopicItem(topic: e.key, count: e.value))
+        .toList();
+    if (matched.isNotEmpty) return matched;
+
+    final fallbackMatched = <_TopicItem>[];
+    for (int i = 0; i < _fallbackTopics.length; i++) {
+      if (_fallbackTopics[i].toLowerCase().contains(q)) {
+        fallbackMatched.add(
+          _TopicItem(topic: _fallbackTopics[i], count: _fallbackTopicCounts[i]),
+        );
+      }
+    }
+    return fallbackMatched.take(8).toList();
+  }
+
+  Future<void> _showQuickControls() async {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final Color subtle = theme.colorScheme.onSurface.withValues(
+      alpha: isDark ? 0.75 : 0.65,
+    );
+
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: theme.colorScheme.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.arrow_upward_rounded),
+                  title: const Text('Back to top'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _scrollController.animateTo(
+                      0,
+                      duration: const Duration(milliseconds: 280),
+                      curve: Curves.easeOut,
+                    );
+                  },
+                ),
+                if (_query.trim().isNotEmpty)
+                  ListTile(
+                    leading: const Icon(Icons.clear_rounded),
+                    title: const Text('Clear search'),
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      _searchController.clear();
+                    },
+                  ),
+                ListTile(
+                  leading: Icon(Icons.arrow_back_rounded, color: subtle),
+                  title: Text(
+                    'Back',
+                    style: theme.textTheme.bodyLarge?.copyWith(color: subtle),
+                  ),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(this.context).maybePop();
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final onSurface = theme.colorScheme.onSurface;
-    // removed unused `subtle`
-
-    final items = _selected == 'Trending Topics'
-        ? _demoTrending
-        : _demoTrending
-            .where((e) => e.category == _selected)
-            .toList();
 
     final dataService = context.watch<DataService>();
     final timeline = dataService.timelinePosts;
     final allPosts = List.of(timeline);
     allPosts.sort((a, b) {
-      int score(PostModel p) => p.likes + p.reposts * 2 + (p.views ~/ 100);
-      return score(b).compareTo(score(a));
+      return _score(b).compareTo(_score(a));
     });
 
-    final posts = _filteredHandle == null
-        ? List<PostModel>.from(allPosts)
-        : allPosts.where((post) => post.handle == _filteredHandle).toList();
+    final currentUserHandle = _deriveHandle(SimpleAuthService());
 
-    final List<PostModel> trendingProfiles = [];
-    final Set<String> seen = <String>{};
+    final Map<String, int> topicCounts = <String, int>{};
     for (final post in allPosts) {
-      if (seen.add(post.handle)) {
-        trendingProfiles.add(post);
-        if (trendingProfiles.length == 6) break;
+      for (final tag in post.tags) {
+        final cleaned = tag.trim();
+        if (cleaned.isEmpty) continue;
+        topicCounts[cleaned] = (topicCounts[cleaned] ?? 0) + 1;
       }
     }
+    final List<MapEntry<String, int>> topTopics = topicCounts.entries.toList()
+      ..sort((a, b) {
+        final byCount = b.value.compareTo(a.value);
+        if (byCount != 0) return byCount;
+        return a.key.toLowerCase().compareTo(b.key.toLowerCase());
+      });
+
+    final q = _normalizedQuery();
+
+    final visiblePosts = q.isEmpty
+        ? allPosts
+        : allPosts.where((p) {
+            return p.author.toLowerCase().contains(q) ||
+                p.handle.toLowerCase().contains(q) ||
+                p.body.toLowerCase().contains(q) ||
+                p.tags.any((t) => t.toLowerCase().contains(q));
+          }).toList();
+
+    final topPosts =
+        visiblePosts.length > 3 ? visiblePosts.sublist(0, 3) : visiblePosts;
+
+    final List<PostModel> whoToFollow = <PostModel>[];
+    final Set<String> seenHandles = <String>{};
+    for (final post in allPosts) {
+      if (post.handle == currentUserHandle) continue;
+      if (seenHandles.add(post.handle)) {
+        whoToFollow.add(post);
+      }
+      if (whoToFollow.length == 3) break;
+    }
+
+    final visibleWhoToFollow = q.isEmpty
+        ? whoToFollow
+        : whoToFollow.where((p) {
+            return p.author.toLowerCase().contains(q) ||
+                p.handle.toLowerCase().contains(q);
+          }).toList();
+
+    final topicItems = _topicItemsFor(topTopics, query: _query);
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -81,13 +231,13 @@ class _TrendingScreenState extends State<TrendingScreen> {
             ),
           ),
           child: IconButton(
-            tooltip: 'Back',
-            icon: Icon(Icons.arrow_back, color: onSurface, size: 22),
-            onPressed: () => Navigator.of(context).pop(),
+            tooltip: 'Quick controls',
+            icon: _QuickControlIcon(color: onSurface.withValues(alpha: 0.65)),
+            onPressed: _showQuickControls,
           ),
         ),
         title: Text(
-          'Trending',
+          'TRENDS',
           style: theme.textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.w700,
             color: onSurface,
@@ -96,275 +246,709 @@ class _TrendingScreenState extends State<TrendingScreen> {
         centerTitle: false,
       ),
       body: CustomScrollView(
+        controller: _scrollController,
         slivers: [
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              padding: const EdgeInsets.fromLTRB(20, 6, 20, 12),
+              child: _TrendingSearchBar(
+                controller: _searchController,
+                hintText: 'Search IN INSTITUTION',
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _HeaderBanner(
-                    profiles: trendingProfiles,
-                    onOpen: () => setState(() {
-                      _selected = 'Trending Tweet';
-                      _filteredHandle = null;
-                    }),
-                    onProfileTap: (handle) => setState(() {
-                      _selected = 'Trending Tweet';
-                      _filteredHandle = handle;
-                    }),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Top topics',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 16),
-                  _SearchBar(),
-                  const SizedBox(height: 12),
-                  _FilterChips(
-                    filters: _filters,
-                    selected: _selected,
-                    onSelected: (value) => setState(() {
-                      _selected = value;
-                      if (value != 'Trending Tweet') {
-                        _filteredHandle = null;
-                      }
-                    }),
-                  ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 8),
+                  if (topicItems.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Text(
+                        'No topics found.',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
+                        ),
+                      ),
+                    )
+                  else
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        const double gap = 8;
+                        final int itemCount = topicItems.length;
+                        final double itemWidth =
+                            (constraints.maxWidth - (gap * 2)) / 3;
+
+                        final List<Widget> rows = <Widget>[];
+
+                        for (int i = 0; i < itemCount; i += 3) {
+                          rows.add(
+                            Row(
+                              children: [
+                                for (int j = 0; j < 3; j++)
+                                  if (i + j < itemCount)
+                                    Expanded(
+                                      child: Padding(
+                                        padding: EdgeInsets.only(
+                                          right: j < 2 ? gap : 0,
+                                        ),
+                                        child: SizedBox(
+                                          width: itemWidth,
+                                          child: _TopicChip(
+                                            topic: topicItems[i + j].topic,
+                                            count: topicItems[i + j].count,
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                  else
+                                    const Expanded(child: SizedBox()),
+                              ],
+                            ),
+                          );
+
+                          if (i + 3 < itemCount) {
+                            rows.add(
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 6),
+                                child: Divider(
+                                  height: 1,
+                                  thickness: 1.2,
+                                  color: theme.dividerColor.withValues(
+                                    alpha: isDark ? 0.65 : 0.45,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
+                        }
+
+                        return Column(children: rows);
+                      },
+                    ),
                 ],
               ),
             ),
           ),
-          if (_selected == 'Trending Tweet')
-            (posts.isEmpty
-                ? SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 40, 20, 0),
-                      child: _TrendingEmptyState(handle: _filteredHandle),
-                    ),
-                  )
-                : SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final post = posts[index];
-                        final handle = _deriveHandle(SimpleAuthService());
-                        return Padding(
-                          padding: EdgeInsets.fromLTRB(
-                              20, index == 0 ? 0 : 12, 20, 12),
-                          child: TweetPostCard(
-                            post: post,
-                            currentUserHandle: handle,
-                            backgroundColor: Theme.of(context).cardColor,
-                          ),
-                        );
-                      },
-                      childCount: posts.length,
-                    ),
-                  ))
+          SliverToBoxAdapter(
+            child: _SectionDivider(
+              color: theme.dividerColor.withValues(alpha: isDark ? 0.30 : 0.22),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+              child: _SectionHeader(
+                title: 'Top posts',
+                subtitle: 'Most engagement across the app',
+              ),
+            ),
+          ),
+          if (visiblePosts.isEmpty)
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(20, 12, 20, 0),
+                child: _TrendingEmptyState(),
+              ),
+            )
           else
             SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
-                  final item = items[index];
-                  return Padding(
-                    padding: EdgeInsets.fromLTRB(
-                        20, index == 0 ? 0 : 12, 20, 12),
-                    child: _TrendingCard(item: item),
+                  final post = topPosts[index];
+                  final bool isLast = index == topPosts.length - 1;
+                  return Column(
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          20,
+                          index == 0 ? 0 : 12,
+                          20,
+                          12,
+                        ),
+                        child: TweetPostCard(
+                          post: post,
+                          currentUserHandle: currentUserHandle,
+                          backgroundColor: theme.cardColor,
+                        ),
+                      ),
+                      if (!isLast)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Divider(
+                            height: 1,
+                            thickness: 1,
+                            color: theme.dividerColor.withValues(
+                              alpha: isDark ? 0.30 : 0.22,
+                            ),
+                          ),
+                        ),
+                    ],
                   );
                 },
-                childCount: items.length,
+                childCount: topPosts.length,
               ),
             ),
-          const SliverToBoxAdapter(child: SizedBox(height: 32)),
+          SliverToBoxAdapter(
+            child: _SectionDivider(
+              color: theme.dividerColor.withValues(alpha: isDark ? 0.30 : 0.22),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+              child: _SectionHeader(
+                title: 'Who to follow',
+                subtitle: 'Creators with active discussions',
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+              child: _SectionCard(
+                child: Column(
+                  children: [
+                    if (visibleWhoToFollow.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 18,
+                        ),
+                        child: _WhoToFollowEmpty(),
+                      )
+                    else
+                      for (int i = 0; i < visibleWhoToFollow.length; i++)
+                        _FollowRow(
+                          author: visibleWhoToFollow[i].author,
+                          handle: visibleWhoToFollow[i].handle,
+                          showDivider: i != visibleWhoToFollow.length - 1,
+                        ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 24)),
         ],
       ),
+      bottomNavigationBar: _buildBottomNavigationBar(),
+    );
+  }
+
+  Widget _buildBottomNavigationBar() {
+    void resetToHome() {
+      if (_selectedBottomNavIndex != 0 && mounted) {
+        setState(() => _selectedBottomNavIndex = 0);
+      }
+    }
+
+    return FloatingNavBar(
+      currentIndex: _selectedBottomNavIndex,
+      onIndexChange: (index) {
+        if (index == 2) {
+          Navigator.of(context)
+              .push(MaterialPageRoute(builder: (_) => const ComposeScreen()))
+              .then((_) => resetToHome());
+          return;
+        }
+        if (mounted) setState(() => _selectedBottomNavIndex = index);
+      },
+      destinations: [
+        FloatingNavBarDestination(
+          icon: Icons.home_filled,
+          onTap: () {
+            if (!mounted) return;
+            setState(() => _selectedBottomNavIndex = 0);
+            Navigator.of(context).maybePop();
+          },
+        ),
+        FloatingNavBarDestination(
+          icon: Icons.mail_outline_rounded,
+          onTap: () {
+            Navigator.of(context)
+                .push(MaterialPageRoute(builder: (context) => const NeutralPage()))
+                .then((_) => resetToHome());
+          },
+        ),
+        const FloatingNavBarDestination(icon: Icons.add, onTap: null),
+        FloatingNavBarDestination(
+          icon: Icons.favorite_border_rounded,
+          onTap: () {
+            Navigator.of(context)
+                .push(MaterialPageRoute(builder: (context) => const NotificationsScreen()))
+                .then((_) => resetToHome());
+          },
+        ),
+        FloatingNavBarDestination(
+          icon: Icons.person_outline_rounded,
+          onTap: () {
+            Navigator.of(context)
+                .push(MaterialPageRoute(builder: (context) => const ProfileScreen()))
+                .then((_) => resetToHome());
+          },
+        ),
+      ],
     );
   }
 }
 
-class _HeaderBanner extends StatelessWidget {
-  const _HeaderBanner({required this.profiles, this.onOpen, this.onProfileTap});
-  final List<PostModel> profiles;
-  final VoidCallback? onOpen;
-  final ValueChanged<String>? onProfileTap;
+class _TopicItem {
+  const _TopicItem({required this.topic, required this.count});
+
+  final String topic;
+  final int count;
+}
+
+class _TrendingSearchBar extends StatelessWidget {
+  const _TrendingSearchBar({
+    required this.controller,
+    required this.hintText,
+    this.dense = false,
+  });
+
+  final TextEditingController controller;
+  final String hintText;
+  final bool dense;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final Color outline =
-        theme.colorScheme.outlineVariant.withValues(alpha: isDark ? 0.35 : 0.24);
-    final Color chipColor = theme.colorScheme.primary.withValues(alpha: 0.08);
-    final Color onSurface = theme.colorScheme.onSurface;
-    final subtle = onSurface.withValues(alpha: isDark ? 0.7 : 0.6);
+    final Color subtle = theme.colorScheme.onSurface.withValues(
+      alpha: isDark ? 0.65 : 0.55,
+    );
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onOpen,
-        borderRadius: BorderRadius.circular(28),
-        child: Ink(
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: outline, width: 1.1),
-            boxShadow: [
-              if (!isDark)
+    final Color fill = isDark
+        ? theme.colorScheme.surfaceContainerHighest
+        : theme.colorScheme.surface;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: fill,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: dense
+            ? null
+            : [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 18,
-                  offset: const Offset(0, 8),
+                  color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.08),
+                  blurRadius: 24,
+                  offset: const Offset(0, 12),
                 ),
-            ],
-          ),
-          padding: const EdgeInsets.fromLTRB(20, 22, 20, 22),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: chipColor,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Icon(
-                      Icons.local_fire_department_rounded,
-                      color: theme.colorScheme.primary,
-                      size: 26,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Trends',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.2,
-                            color: onSurface,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        _HexAvatarStrip(
-                          profiles: profiles,
-                          onProfileTap: onProfileTap,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'See topics getting the biggest reaction from the community.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: subtle,
-                  height: 1.5,
+              ],
+        border: Border.all(
+          color: theme.dividerColor.withValues(alpha: isDark ? 0.28 : 0.18),
+        ),
+      ),
+      child: TextField(
+        controller: controller,
+        textInputAction: TextInputAction.search,
+        style: AppTheme.tweetBody(theme.colorScheme.onSurface),
+        decoration: InputDecoration(
+          hintText: hintText,
+          hintStyle: AppTheme.tweetBody(subtle),
+          prefixIcon: Icon(Icons.search, color: subtle),
+          suffixIcon: controller.text.trim().isEmpty
+              ? null
+              : IconButton(
+                  tooltip: 'Clear',
+                  icon: Icon(Icons.close_rounded, color: subtle),
+                  onPressed: controller.clear,
                 ),
-              ),
-            ],
-          ),
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          isDense: dense,
+          contentPadding: dense
+              ? const EdgeInsets.symmetric(horizontal: 12, vertical: 10)
+              : const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
         ),
       ),
     );
   }
 }
 
-class _HexAvatarStrip extends StatelessWidget {
-  const _HexAvatarStrip({required this.profiles, this.onProfileTap});
-  final List<PostModel> profiles;
-  final ValueChanged<String>? onProfileTap;
+const List<String> _fallbackTopics = [
+  'NMCN Key Points',
+  'Skills Lab',
+  'Emergency Care',
+  'Community Posting',
+  'OSCE Practice',
+  'Exam Prep',
+  'Clinical Skills',
+  'Research Updates',
+  'Case Studies',
+  'Student Life',
+  'Medication Safety',
+  'Simulation Lab',
+];
+
+const List<int> _fallbackTopicCounts = [
+  39200,
+  13700,
+  1227,
+  1271,
+  8450,
+  2310,
+  5640,
+  4210,
+  3125,
+  2760,
+];
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
 
   @override
   Widget build(BuildContext context) {
-    if (profiles.isEmpty) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final Color subtle = theme.colorScheme.onSurface.withValues(
+      alpha: isDark ? 0.65 : 0.6,
+    );
 
-    final List<Color> palette = const [
-      Color(0xFFD946EF),
-      Color(0xFF818CF8),
-      Color(0xFFFB7185),
-      Color(0xFF38BDF8),
-      Color(0xFF34D399),
-      Color(0xFFF97316),
-      Color(0xFF60A5FA),
-    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          subtitle,
+          style: theme.textTheme.bodyMedium?.copyWith(color: subtle),
+        ),
+      ],
+    );
+  }
+}
 
-    final List<PostModel> visibleProfiles =
-        profiles.length > 6 ? profiles.sublist(0, 6) : profiles;
-    return SizedBox(
-      height: 40,
-      width: 40 + (visibleProfiles.length - 1) * 24,
-      child: Stack(
-        children: [
-          for (int i = 0; i < visibleProfiles.length; i++)
-            Positioned(
-              left: i * 24,
-              child: GestureDetector(
-                onTap: onProfileTap == null
-                    ? null
-                    : () => onProfileTap!(visibleProfiles[i].handle),
-                child: HexagonAvatar(
-                  size: 40,
-                  backgroundColor: palette[i % palette.length],
-                  borderColor: Colors.white,
-                  borderWidth: 2,
-                  child: Center(
-                    child: Text(
-                      _initialsFor(visibleProfiles[i].author),
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                          ) ??
-                          const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                          ),
+class _SectionDivider extends StatelessWidget {
+  const _SectionDivider({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Divider(height: 1, thickness: 1, color: color),
+    );
+  }
+}
+
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final Color border = theme.dividerColor.withValues(alpha: isDark ? 0.35 : 0.2);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: border),
+      ),
+      child: child,
+    );
+  }
+}
+
+class _TopicRow extends StatelessWidget {
+  const _TopicRow({
+    required this.topic,
+    required this.showDivider,
+    this.count,
+  });
+
+  final String topic;
+  final int? count;
+  final bool showDivider;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final Color subtle = theme.colorScheme.onSurface.withValues(
+      alpha: isDark ? 0.65 : 0.6,
+    );
+    final Color line = theme.dividerColor.withValues(alpha: isDark ? 0.35 : 0.18);
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'In Nigeria',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: subtle,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 4),
+                    Text(
+                      topic,
+                      style: AppTheme.tweetBody(theme.colorScheme.onSurface)
+                          .copyWith(fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${_formatCount(count ?? 0)} posts',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: subtle,
+                      ),
+                    ),
+                  ],
                 ),
               ),
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.only(top: 2),
+                icon: Icon(Icons.more_vert_rounded, color: subtle),
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('More options for $topic'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+        if (showDivider)
+          Divider(height: 1, thickness: 1, color: line),
+      ],
+    );
+  }
+
+  static String _formatCount(int value) {
+    if (value >= 1000000) {
+      final m = value / 1000000.0;
+      return '${m.toStringAsFixed(m >= 10 ? 0 : 1)}M';
+    }
+    if (value >= 1000) {
+      final k = value / 1000.0;
+      return '${k.toStringAsFixed(k >= 10 ? 0 : 1)}K';
+    }
+    return value.toString();
+  }
+}
+
+class _TopicChip extends StatelessWidget {
+  const _TopicChip({
+    required this.topic,
+    required this.count,
+  });
+
+  final String topic;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final Color subtle = theme.colorScheme.onSurface.withValues(
+      alpha: isDark ? 0.65 : 0.6,
+    );
+    final Color border =
+        theme.dividerColor.withValues(alpha: isDark ? 0.35 : 0.18);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: border, width: 0.8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            topic,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: AppTheme.tweetBody(theme.colorScheme.onSurface).copyWith(
+              fontWeight: FontWeight.w700,
             ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${_TopicRow._formatCount(count)} posts',
+            style: theme.textTheme.bodySmall?.copyWith(color: subtle),
+          ),
         ],
       ),
     );
   }
 }
 
-String _initialsFor(String name) {
-  final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty);
-  if (parts.isEmpty) return '#';
-  if (parts.length == 1) {
-    final part = parts.first;
-    return part.length >= 2
-        ? part.substring(0, 2).toUpperCase()
-        : part.substring(0, 1).toUpperCase();
-  }
-  final first = parts.first;
-  final last = parts.last;
-  return '${first[0]}${last[0]}'.toUpperCase();
-}
+class _FollowRow extends StatelessWidget {
+  const _FollowRow({
+    required this.author,
+    required this.handle,
+    required this.showDivider,
+  });
 
-class _TrendingEmptyState extends StatelessWidget {
-  const _TrendingEmptyState({this.handle});
-  final String? handle;
+  final String author;
+  final String handle;
+  final bool showDivider;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final title = handle == null
-        ? 'No trending posts yet'
-        : 'No posts for $handle right now';
-    final subtitle = handle == null
-        ? 'Try checking back later or follow more creators to see activity here.'
-        : 'When $handle shares something popular, it will show up here.';
+    final isDark = theme.brightness == Brightness.dark;
+    final Color subtle = theme.colorScheme.onSurface.withValues(
+      alpha: isDark ? 0.65 : 0.6,
+    );
+    final Color line = theme.dividerColor.withValues(alpha: isDark ? 0.35 : 0.18);
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(0, 14, 0, 14),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  _initialsFor(author),
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      author,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      handle,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: subtle,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              FilledButton(
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Following $handle'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                },
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  shape: const StadiumBorder(),
+                ),
+                child: const Text('Follow'),
+              ),
+            ],
+          ),
+        ),
+        if (showDivider)
+          Padding(
+            padding: EdgeInsets.zero,
+            child: Divider(height: 1, thickness: 1, color: line),
+          ),
+      ],
+    );
+  }
+
+  static String _initialsFor(String name) {
+    final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty);
+    if (parts.isEmpty) return '#';
+    if (parts.length == 1) {
+      final part = parts.first;
+      return part.length >= 2
+          ? part.substring(0, 2).toUpperCase()
+          : part.substring(0, 1).toUpperCase();
+    }
+    final first = parts.first;
+    final last = parts.last;
+    return '${first[0]}${last[0]}'.toUpperCase();
+  }
+}
+
+class _WhoToFollowEmpty extends StatelessWidget {
+  const _WhoToFollowEmpty();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final Color subtle = theme.colorScheme.onSurface.withValues(
+      alpha: isDark ? 0.65 : 0.6,
+    );
+    return Text(
+      'No suggestions yet.',
+      style: theme.textTheme.bodyMedium?.copyWith(color: subtle),
+    );
+  }
+}
+
+class _TrendingEmptyState extends StatelessWidget {
+  const _TrendingEmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    const title = 'No posts yet';
+    const subtitle =
+        'Try checking back later or follow more creators to see activity here.';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
@@ -422,349 +1006,40 @@ class _TrendingEmptyState extends StatelessWidget {
   }
 }
 
-class _SearchBar extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    return TextField(
-      decoration: InputDecoration(
-        hintText: 'Search trending topics... ',
-        prefixIcon: Icon(Icons.search, color: theme.textTheme.bodySmall?.color),
-        filled: true,
-        fillColor: isDark ? AppTheme.darkSurface : Colors.white,
-      ),
-    );
-  }
-}
+class _QuickControlIcon extends StatelessWidget {
+  const _QuickControlIcon({required this.color});
 
-class _FilterChips extends StatelessWidget {
-  const _FilterChips({
-    required this.filters,
-    required this.selected,
-    required this.onSelected,
-  });
-
-  final List<String> filters;
-  final String selected;
-  final ValueChanged<String> onSelected;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final Color baseBackground = isDark ? Colors.black : Colors.white;
-    final Color borderColor = isDark
-        ? Colors.white.withValues(alpha: 0.28)
-        : Colors.black.withValues(alpha: 0.08);
-    final Color selectedBackground = isDark
-        ? Colors.white.withValues(alpha: 0.16)
-        : const Color(0xFFE2E8F0);
-    final Color selectedText = theme.colorScheme.onSurface;
-    final Color unselectedText =
-        isDark ? Colors.white.withValues(alpha: 0.65) : Colors.black.withValues(alpha: 0.65);
-
-    return Row(
-      children: List.generate(filters.length, (index) {
-        final label = filters[index];
-        final bool isSelected = label == selected;
-        return Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(
-              left: index == 0 ? 0 : 6,
-              right: index == filters.length - 1 ? 0 : 6,
-            ),
-            child: ChoiceChip(
-              label: Text(label.toUpperCase()),
-              selected: isSelected,
-              onSelected: (_) => onSelected(label),
-              labelStyle: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.4,
-                color: isSelected ? selectedText : unselectedText,
-              ),
-              shape: const StadiumBorder(),
-              side: BorderSide(color: isSelected ? selectedBackground : borderColor),
-              backgroundColor: baseBackground,
-              selectedColor: selectedBackground,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              elevation: 0,
-              pressElevation: 0,
-            ),
-          ),
-        );
-      }),
-    );
-  }
-}
-
-class _TrendingCard extends StatelessWidget {
-  const _TrendingCard({required this.item});
-
-  final _TrendingItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final onSurface = theme.colorScheme.onSurface;
-    final subtle = onSurface.withValues(alpha: isDark ? 0.65 : 0.6);
-
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: theme.dividerColor.withValues(alpha: isDark ? 0.35 : 0.25),
-        ),
-        boxShadow: [
-          if (!isDark)
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _IconBadge(gradient: item.gradient, icon: item.icon),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              item.title,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                color: onSurface,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                          _CategoryPill(text: item.category),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        item.subtitle,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: subtle,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                _MetricChip(
-                  icon: Icons.local_fire_department_outlined,
-                  label: item.trendingScore,
-                ),
-                const SizedBox(width: 8),
-                _MetricChip(icon: Icons.trending_up, label: item.growth),
-                const Spacer(),
-                TextButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Opening ${item.title}…'),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
-                  child: const Text('Open'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _IconBadge extends StatelessWidget {
-  const _IconBadge({required this.gradient, required this.icon});
-  final Gradient gradient;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 44,
-      height: 44,
-      decoration: BoxDecoration(
-        gradient: gradient,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF667EEA).withValues(alpha: 0.15),
-            blurRadius: 14,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Icon(icon, color: Colors.white),
-    );
-  }
-}
-
-class _CategoryPill extends StatelessWidget {
-  const _CategoryPill({required this.text});
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        text,
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: theme.colorScheme.primary,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-}
-
-class _MetricChip extends StatelessWidget {
-  const _MetricChip({required this.icon, required this.label});
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey[50],
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: theme.dividerColor.withValues(alpha: isDark ? 0.35 : 0.25),
-        ),
-      ),
-      child: Row(
+    return Center(
+      child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: theme.colorScheme.primary),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: theme.textTheme.bodySmall?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          _QuickControlLine(color: color),
+          const SizedBox(height: 6),
+          _QuickControlLine(color: color),
         ],
       ),
     );
   }
 }
 
-class _TrendingItem {
-  const _TrendingItem({
-    required this.title,
-    required this.subtitle,
-    required this.category,
-    required this.trendingScore,
-    required this.growth,
-    required this.icon,
-    required this.gradient,
-  });
+class _QuickControlLine extends StatelessWidget {
+  const _QuickControlLine({required this.color});
 
-  final String title;
-  final String subtitle;
-  final String category;
-  final String trendingScore;
-  final String growth;
-  final IconData icon;
-  final Gradient gradient;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 20,
+      height: 3,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(999),
+      ),
+    );
+  }
 }
-
-const List<_TrendingItem> _demoTrending = [
-  _TrendingItem(
-    title: 'AI study groups forming',
-    subtitle: 'Students collaborating on ML projects and Kaggle comps',
-    category: 'AI',
-    trendingScore: '12.3K',
-    growth: '+34%',
-    icon: Icons.groups_3_rounded,
-    gradient: LinearGradient(
-      colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-    ),
-  ),
-  _TrendingItem(
-    title: 'Residency application tips',
-    subtitle: 'Senior advice threads for matching in 2026',
-    category: 'Health',
-    trendingScore: '8.1K',
-    growth: '+18%',
-    icon: Icons.medical_services_outlined,
-    gradient: LinearGradient(
-      colors: [Color(0xFF06B6D4), Color(0xFF22D3EE)],
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-    ),
-  ),
-  _TrendingItem(
-    title: 'Rust vs Go for services',
-    subtitle: 'Discussion on performance, safety and ergonomics',
-    category: 'Tech',
-    trendingScore: '6.9K',
-    growth: '+22%',
-    icon: Icons.memory_rounded,
-    gradient: LinearGradient(
-      colors: [Color(0xFFFB7185), Color(0xFFF97316)],
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-    ),
-  ),
-  _TrendingItem(
-    title: 'Grant writing workshop',
-    subtitle: 'Best practices to land that research funding',
-    category: 'Research',
-    trendingScore: '4.4K',
-    growth: '+12%',
-    icon: Icons.attach_money_rounded,
-    gradient: LinearGradient(
-      colors: [Color(0xFF10B981), Color(0xFF34D399)],
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-    ),
-  ),
-  _TrendingItem(
-    title: 'Board prep resources',
-    subtitle: 'High-yield decks and spaced repetition strategies',
-    category: 'Education',
-    trendingScore: '3.2K',
-    growth: '+9%',
-    icon: Icons.menu_book_rounded,
-    gradient: LinearGradient(
-      colors: [Color(0xFF9F7AEA), Color(0xFF7C3AED)],
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-    ),
-  ),
-];

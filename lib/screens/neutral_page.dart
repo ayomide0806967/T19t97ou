@@ -54,7 +54,9 @@ class NeutralPage extends StatelessWidget {
               subtitle: 'Review drafts, quizzes, and performance summaries.',
               icon: Icons.create_outlined,
               onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const QuizDashboardScreen()),
+                MaterialPageRoute(
+                  builder: (_) => const QuizDashboardScreen(),
+                ),
               ),
             ),
           ],

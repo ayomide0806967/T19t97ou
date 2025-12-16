@@ -7,13 +7,36 @@ import 'quiz_answers_screen.dart';
 import 'quiz_leaderboard_screen.dart';
 import 'quiz_create_screen.dart';
 
-class QuizResultsScreen extends StatelessWidget {
+class QuizResultsScreen extends StatefulWidget {
   const QuizResultsScreen({super.key});
+
+  @override
+  State<QuizResultsScreen> createState() => _QuizResultsScreenState();
+}
+
+class _QuizResultsScreenState extends State<QuizResultsScreen> {
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<QuizResultSummary> _filteredResults(List<QuizResultSummary> all) {
+    final query = _searchController.text.trim().toLowerCase();
+    if (query.isEmpty) return all;
+    return all
+        .where(
+          (r) => r.title.toLowerCase().contains(query),
+        )
+        .toList();
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final results = QuizRepository.results;
+    final results = _filteredResults(QuizRepository.results);
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -22,30 +45,62 @@ class QuizResultsScreen extends StatelessWidget {
         backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
       ),
-      body: ListView.builder(
+      body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-        itemCount: results.length + 2,
-        itemBuilder: (context, index) {
-          if (index == 0) {
-            return _MyQuizzesHeader();
-          }
-          if (index == 1) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Text(
-                'Previous quizzes',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
+        children: [
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceVariant.withValues(alpha: 0.85),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.06),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search),
+                prefixIconColor: Colors.black.withValues(alpha: 0.55),
+                hintText: 'Search quizzes',
+                hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                  color: Colors.black.withValues(alpha: 0.45),
+                  fontWeight: FontWeight.w500,
+                ),
+                border: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 4,
+                  vertical: 12,
                 ),
               ),
-            );
-          }
-          final result = results[index - 2];
-          return _ResultCard(
-            result: result,
-            index: index - 1,
-          );
-        },
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+              textInputAction: TextInputAction.search,
+            ),
+          ),
+          const SizedBox(height: 18),
+          _MyQuizzesHeader(),
+          const SizedBox(height: 18),
+          Text(
+            'Previous quizzes',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          for (int i = 0; i < results.length; i++)
+            _ResultCard(
+              result: results[i],
+              index: i + 1,
+            ),
+        ],
       ),
     );
   }

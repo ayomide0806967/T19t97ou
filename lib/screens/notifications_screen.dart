@@ -39,9 +39,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               padding: const EdgeInsets.only(top: 4, bottom: 20),
               itemCount: notifications.length,
               separatorBuilder: (_, __) => Divider(
-                height: 20,
-                thickness: 0.6,
-                color: theme.dividerColor.withValues(alpha: 0.35),
+                height: 24,
+                thickness: 1.0,
+                color: theme.dividerColor.withValues(alpha: 0.55),
               ),
               itemBuilder: (context, index) {
                 final notification = notifications[index];

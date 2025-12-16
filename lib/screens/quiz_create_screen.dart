@@ -599,20 +599,21 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
 
     if (!mounted) return;
 
-    await Navigator.of(context).push(
+    Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (_) => QuizDashboardScreen(
-          recentlyPublishedTitle: title,
-        ),
+        builder: (_) => const QuizResultsScreen(),
       ),
     );
 
-    _showSnack(
-      shareSupported
-          ? 'Quiz published and ready to share.'
-          : 'Quiz published, but sharing isn\'t available on this device.',
-      success: true,
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _showSnack(
+        shareSupported
+            ? 'Quiz published and ready to share.'
+            : 'Quiz published, but sharing isn\'t available on this device.',
+        success: true,
+      );
+    });
   }
 
   void _showSnack(String message, {bool success = false}) {

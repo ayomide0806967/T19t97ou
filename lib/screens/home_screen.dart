@@ -136,7 +136,11 @@ class _HomeScreenState extends State<HomeScreen>
                     strokeWidthFactor: 0.10,
                   ),
                   onPressed: () {
-                    _showToast('Search coming soon');
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const TrendingScreen(),
+                      ),
+                    );
                   },
                 ),
               ),
@@ -173,6 +177,7 @@ class _HomeScreenState extends State<HomeScreen>
                               ),
                               child: _FeedTabBar(
                                 selectedIndex: _selectedFeedTabIndex,
+                                pageController: _feedPageController,
                                 onChanged: (index) {
                                   if (mounted) {
                                     setState(
@@ -315,7 +320,7 @@ class _HomeScreenState extends State<HomeScreen>
         onRefresh: _handlePullToRefresh,
         child: ListView(
           physics: const BouncingScrollPhysics(),
-          padding: EdgeInsets.zero,
+          padding: const EdgeInsets.only(top: 10),
           children: children,
         ),
       ),
@@ -766,67 +771,115 @@ class _HomeScreenState extends State<HomeScreen>
   }
 }
 
-class _FeedTabBar extends StatelessWidget {
-  const _FeedTabBar({required this.selectedIndex, required this.onChanged});
+class _FeedTabBar extends StatefulWidget {
+  const _FeedTabBar({
+    required this.selectedIndex,
+    required this.onChanged,
+    required this.pageController,
+  });
 
   final int selectedIndex;
   final ValueChanged<int> onChanged;
+  final PageController pageController;
 
+  @override
+  State<_FeedTabBar> createState() => _FeedTabBarState();
+}
+
+class _FeedTabBarState extends State<_FeedTabBar> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final Color accent = theme.colorScheme.primary;
 
-    Widget buildTab(String label, int index) {
-      final bool isSelected = selectedIndex == index;
-      final TextStyle baseStyle =
-          theme.textTheme.titleMedium ??
-          const TextStyle(fontSize: 18, fontWeight: FontWeight.w600);
+    final TextStyle baseStyle =
+        theme.textTheme.titleMedium ??
+        const TextStyle(fontSize: 18, fontWeight: FontWeight.w600);
 
+    Widget buildLabel(String label, int index) {
+      final bool isSelected = widget.selectedIndex == index;
       return Expanded(
         child: InkWell(
           borderRadius: BorderRadius.circular(4),
           onTap: () {
             if (!isSelected) {
-              onChanged(index);
+              widget.onChanged(index);
             }
           },
           child: Padding(
-            padding: const EdgeInsets.only(top: 10, bottom: 2),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AnimatedDefaultTextStyle(
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeOutCubic,
-                  style: baseStyle.copyWith(
-                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-                    color: theme.colorScheme.onSurface.withValues(
-                      alpha: isSelected ? 0.98 : 0.65,
-                    ),
-                  ),
-                  child: Text(label),
+            padding: const EdgeInsets.only(top: 10, bottom: 6),
+            child: AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutCubic,
+              style: baseStyle.copyWith(
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+                color: theme.colorScheme.onSurface.withValues(
+                  alpha: isSelected ? 0.98 : 0.65,
                 ),
-                const SizedBox(height: 6),
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 220),
-                  curve: Curves.easeOutCubic,
-                  height: 4,
-                  width: double.infinity,
-                  margin: const EdgeInsets.symmetric(horizontal: 18),
-                  decoration: BoxDecoration(
-                    color: isSelected ? accent : Colors.transparent,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-              ],
+              ),
+              child: Center(child: Text(label)),
             ),
           ),
         ),
       );
     }
 
-    return Row(children: [buildTab('For You', 0), buildTab('Following', 1)]);
+    // Rebuild indicator position continuously while the PageView is being swiped.
+    return AnimatedBuilder(
+      animation: widget.pageController,
+      builder: (context, _) {
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final double totalWidth = constraints.maxWidth;
+            final double tabWidth = totalWidth / 2;
+
+            final double t = () {
+              if (widget.pageController.hasClients) {
+                return (widget.pageController.page ??
+                        widget.pageController.initialPage.toDouble())
+                    .clamp(0.0, 1.0);
+              }
+              return widget.selectedIndex.toDouble().clamp(0.0, 1.0);
+            }();
+
+            // Indicator spans most of each tab, leaving a small inset so it
+            // doesn't feel full-width, while still reaching closer to edges.
+            const double inset = 8;
+            final double indicatorWidth = tabWidth - (inset * 2);
+            final double indicatorLeft = (tabWidth * t) + inset;
+
+            return SizedBox(
+              height: 40,
+              child: Stack(
+                alignment: Alignment.bottomLeft,
+                children: [
+                  Row(
+                    children: [
+                      buildLabel('For You', 0),
+                      buildLabel('Following', 1),
+                    ],
+                  ),
+                  Positioned(
+                    left: indicatorLeft,
+                    bottom: 0,
+                    child: RepaintBoundary(
+                      child: Container(
+                        height: 4,
+                        width: indicatorWidth,
+                        decoration: BoxDecoration(
+                          color: accent,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 }
 
