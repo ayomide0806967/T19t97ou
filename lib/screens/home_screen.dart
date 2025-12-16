@@ -17,6 +17,7 @@ import '../widgets/tweet_post_card.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
 import 'ios_messages_screen.dart';
+import 'messages_hub_screen.dart';
 import 'notifications_screen.dart';
 import 'quiz_dashboard_screen.dart';
 import 'trending_screen.dart';
@@ -358,7 +359,7 @@ class _HomeScreenState extends State<HomeScreen>
             Navigator.of(context)
                 .push(
                   MaterialPageRoute(
-                    builder: (context) => const IosMinimalistMessagePage(),
+                    builder: (context) => const MessagesHubScreen(),
                   ),
                 )
                 .then((_) => resetToHome());
