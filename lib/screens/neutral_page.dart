@@ -43,7 +43,9 @@ class NeutralPage extends StatelessWidget {
               subtitle: 'Open your class space.',
               icon: Icons.class_outlined,
               onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const CreateClassScreen()),
+                MaterialPageRoute(
+                  builder: (_) => const IosMinimalistMessagePage(),
+                ),
               ),
             ),
             const SizedBox(height: 16),

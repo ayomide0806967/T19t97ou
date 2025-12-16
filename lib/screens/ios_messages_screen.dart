@@ -265,7 +265,9 @@ class _IosMinimalistMessagePageState extends State<IosMinimalistMessagePage> {
                   child: SingleChildScrollView(
                     controller: _classesScrollController,
                     physics: const BouncingScrollPhysics(),
-                    child: const _ClassesExperience(),
+                    child: const _ClassesExperience(
+                      showSearchAndJoin: false,
+                    ),
                   ),
                 ),
               ],
@@ -776,7 +778,9 @@ class _Conversation {
 }
 
 class _ClassesExperience extends StatefulWidget {
-  const _ClassesExperience();
+  const _ClassesExperience({this.showSearchAndJoin = true});
+
+  final bool showSearchAndJoin;
 
   @override
   State<_ClassesExperience> createState() => _ClassesExperienceState();
@@ -821,100 +825,126 @@ class _ClassesExperienceState extends State<_ClassesExperience> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              height: 58,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF3F4F6),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 18),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.search_rounded,
-                    color: const Color(0xFF6B7280),
-                    size: 28,
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      onChanged: (_) => setState(() {}),
-                      decoration: InputDecoration(
-                        hintText: 'Search public classes',
-                        hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                          color: const Color(0xFF9CA3AF),
-                          fontWeight: FontWeight.w500,
-                        ),
-                        border: InputBorder.none,
-                        isCollapsed: true,
-                      ),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                      textInputAction: TextInputAction.search,
+            if (widget.showSearchAndJoin) ...[
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color:
+                      theme.colorScheme.surfaceVariant.withValues(alpha: 0.85),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 14),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(
-                  color: Colors.black.withValues(alpha: 0.06),
+                  ],
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.06),
-                    blurRadius: 18,
-                    offset: const Offset(0, 10),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (_) => setState(() {}),
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.search),
+                    prefixIconColor: Colors.black.withValues(alpha: 0.55),
+                    hintText: 'Search public classes',
+                    hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.black.withValues(alpha: 0.45),
+                      fontWeight: FontWeight.w500,
+                    ),
+                    border: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 12,
+                    ),
                   ),
-                ],
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                  textInputAction: TextInputAction.search,
+                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Join a class',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+              const SizedBox(height: 14),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(
+                    color: Colors.black.withValues(alpha: 0.06),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Join a class space with an invite code.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: Colors.black.withValues(alpha: 0.55),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 18,
+                      offset: const Offset(0, 10),
                     ),
-                  ),
-                  const SizedBox(height: 18),
-                  ElevatedButton.icon(
-                    onPressed: () => _handleJoinClass(context),
-                    icon: const Icon(Icons.group_add_rounded, size: 22),
-                    label: const Text('Join a class'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF7DD3E8),
-                      foregroundColor: Colors.black87,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 26,
-                        vertical: 14,
-                      ),
-                      shape: const StadiumBorder(),
-                      elevation: 3,
-                      textStyle: theme.textTheme.titleSmall?.copyWith(
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Join a class',
+                      style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 8),
+                    Text(
+                      'Join a class space with an invite code.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.black.withValues(alpha: 0.55),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () => _handleJoinClass(context),
+                            icon: const Icon(Icons.group_add_rounded, size: 22),
+                            label: const Text('Join a class'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF7DD3E8),
+                              foregroundColor: Colors.black87,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 26,
+                                vertical: 14,
+                              ),
+                              shape: const StadiumBorder(),
+                              elevation: 3,
+                              textStyle:
+                                  theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        SizedBox(
+                          height: 48,
+                          width: 48,
+                          child: ElevatedButton(
+                            onPressed: () => _handleCreateClass(context),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF7DD3E8),
+                              foregroundColor: Colors.black87,
+                              padding: EdgeInsets.zero,
+                              shape: const CircleBorder(),
+                              elevation: 3,
+                            ),
+                            child: const Icon(Icons.add, size: 26),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 18),
+              const SizedBox(height: 18),
+            ],
             Text(
               'Your classes',
               style: theme.textTheme.titleSmall?.copyWith(
