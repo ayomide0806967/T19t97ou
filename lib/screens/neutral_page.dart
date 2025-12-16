@@ -4,8 +4,8 @@ import 'create_class_screen.dart';
 import 'ios_messages_screen.dart';
 import 'quiz_create_screen.dart';
 
-class MessagesHubScreen extends StatelessWidget {
-  const MessagesHubScreen({super.key});
+class NeutralPage extends StatelessWidget {
+  const NeutralPage({super.key});
 
   @override
   Widget build(BuildContext context) {
