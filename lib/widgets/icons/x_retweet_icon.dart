@@ -181,7 +181,7 @@ class _TwitterRetweetPainter extends CustomPainter {
       ..color = color
       ..style = PaintingStyle.fill;
 
-    // Two separate bent arrows with gap between them
+    // Two separate bent arrows with an even more visible gap between them
     final double margin = s * 0.10;
     final double topY = s * 0.28;
     final double bottomY = s * 0.72;
@@ -189,7 +189,7 @@ class _TwitterRetweetPainter extends CustomPainter {
     final double rightX = s - margin;
     final double cornerR = s * 0.14;
     final double arrowSize = s * 0.18;
-    final double gapOffset = s * 0.08; // Gap between arrows
+    final double gapOffset = s * 0.14; // Larger vertical gap between arrows
 
     // ===== ARROW 1: Top-right pointing arrow =====
     // Starts from lower-left, goes up, curves right, ends with right arrowhead
@@ -201,7 +201,7 @@ class _TwitterRetweetPainter extends CustomPainter {
       // Curve to horizontal
       ..quadraticBezierTo(leftX, topY, leftX + cornerR, topY)
       // Go right toward arrowhead
-      ..lineTo(rightX - arrowSize * 0.6, topY);
+      ..lineTo(rightX - arrowSize * 0.8, topY);
     canvas.drawPath(arrow1, stroke);
 
     // Right-pointing arrowhead (top arrow)
@@ -222,7 +222,7 @@ class _TwitterRetweetPainter extends CustomPainter {
       // Curve to horizontal
       ..quadraticBezierTo(rightX, bottomY, rightX - cornerR, bottomY)
       // Go left toward arrowhead
-      ..lineTo(leftX + arrowSize * 0.6, bottomY);
+      ..lineTo(leftX + arrowSize * 0.8, bottomY);
     canvas.drawPath(arrow2, stroke);
 
     // Left-pointing arrowhead (bottom arrow)
@@ -299,14 +299,14 @@ class _MinimalRetweetPainter extends CustomPainter {
     final double rightX = s - margin;
     final double cornerR = s * 0.14;
     final double arrowSize = s * 0.18;
-    final double gapOffset = s * 0.08;
+    final double gapOffset = s * 0.14;
 
     // Arrow 1: goes up-left, curves right, ends with right arrowhead
     final Path arrow1 = Path()
       ..moveTo(leftX, bottomY - gapOffset)
       ..lineTo(leftX, topY + cornerR)
       ..quadraticBezierTo(leftX, topY, leftX + cornerR, topY)
-      ..lineTo(rightX - arrowSize * 0.6, topY);
+      ..lineTo(rightX - arrowSize * 0.8, topY);
     canvas.drawPath(arrow1, paint);
 
     // Right arrowhead
@@ -322,7 +322,7 @@ class _MinimalRetweetPainter extends CustomPainter {
       ..moveTo(rightX, topY + gapOffset)
       ..lineTo(rightX, bottomY - cornerR)
       ..quadraticBezierTo(rightX, bottomY, rightX - cornerR, bottomY)
-      ..lineTo(leftX + arrowSize * 0.6, bottomY);
+      ..lineTo(leftX + arrowSize * 0.8, bottomY);
     canvas.drawPath(arrow2, paint);
 
     // Left arrowhead
