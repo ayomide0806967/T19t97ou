@@ -216,29 +216,45 @@ class _EducationArtworkPainter extends CustomPainter {
       );
     }
 
-    // Doodle: pencil.
+    // Doodle: graduation cap (replaces pencil).
     stroke.strokeWidth = (size.shortestSide * 0.012).clamp(1.5, 3.0);
-    final Offset p1 = Offset(size.width * 0.68, size.height * 0.42);
-    final Offset p2 = Offset(size.width * 0.88, size.height * 0.62);
-    final Offset dir = (p2 - p1);
-    final double len = dir.distance;
-    final Offset u = len == 0 ? const Offset(1, 0) : dir / len;
-    final Offset n = Offset(-u.dy, u.dx);
-    final double pencilW = (size.shortestSide * 0.07).clamp(12.0, 22.0);
-    final Path pencil = Path()
-      ..moveTo(p1.dx + n.dx * pencilW * 0.4, p1.dy + n.dy * pencilW * 0.4)
-      ..lineTo(p2.dx + n.dx * pencilW * 0.4, p2.dy + n.dy * pencilW * 0.4)
-      ..lineTo(p2.dx - n.dx * pencilW * 0.4, p2.dy - n.dy * pencilW * 0.4)
-      ..lineTo(p1.dx - n.dx * pencilW * 0.4, p1.dy - n.dy * pencilW * 0.4)
+    final Offset capCenter = Offset(size.width * 0.80, size.height * 0.44);
+    final double capW = size.width * 0.26;
+    final double capH = size.height * 0.10;
+
+    final Path board = Path()
+      ..moveTo(capCenter.dx, capCenter.dy - capH * 0.55)
+      ..lineTo(capCenter.dx + capW * 0.48, capCenter.dy)
+      ..lineTo(capCenter.dx, capCenter.dy + capH * 0.55)
+      ..lineTo(capCenter.dx - capW * 0.48, capCenter.dy)
       ..close();
-    canvas.drawPath(pencil, accent);
-    canvas.drawPath(pencil, stroke);
-    final Path tip = Path()
-      ..moveTo(p2.dx + n.dx * pencilW * 0.4, p2.dy + n.dy * pencilW * 0.4)
-      ..lineTo(p2.dx - n.dx * pencilW * 0.4, p2.dy - n.dy * pencilW * 0.4)
-      ..lineTo(p2.dx + u.dx * pencilW * 0.55, p2.dy + u.dy * pencilW * 0.55)
-      ..close();
-    canvas.drawPath(tip, stroke);
+    canvas.drawPath(board, accent);
+    canvas.drawPath(board, stroke);
+
+    final Rect band = Rect.fromCenter(
+      center: Offset(capCenter.dx, capCenter.dy + capH * 0.78),
+      width: capW * 0.42,
+      height: capH * 0.45,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(band, const Radius.circular(10)),
+      accent,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(band, const Radius.circular(10)),
+      stroke,
+    );
+
+    final Offset tasselAnchor =
+        Offset(capCenter.dx + capW * 0.18, capCenter.dy + capH * 0.16);
+    final Offset tasselEnd =
+        Offset(capCenter.dx + capW * 0.30, capCenter.dy + capH * 1.15);
+    canvas.drawLine(tasselAnchor, tasselEnd, fineStroke);
+    canvas.drawCircle(
+      tasselEnd,
+      (size.shortestSide * 0.012).clamp(2.0, 4.0),
+      Paint()..color = ink.withValues(alpha: 0.65),
+    );
 
     // Doodle: atom.
     final Offset atomCenter = Offset(size.width * 0.72, size.height * 0.78);
