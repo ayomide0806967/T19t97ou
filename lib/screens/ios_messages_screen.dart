@@ -822,30 +822,27 @@ class _ClassesExperienceState extends State<_ClassesExperience> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              height: 54,
+              height: 58,
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(
-                  color: Colors.black.withValues(alpha: 0.06),
-                ),
+                color: const Color(0xFFF3F4F6),
+                borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 16,
-                    offset: const Offset(0, 10),
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 18,
+                    offset: const Offset(0, 12),
                   ),
                 ],
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 18),
               child: Row(
                 children: [
                   Icon(
                     Icons.search_rounded,
-                    color: Colors.black.withValues(alpha: 0.55),
-                    size: 22,
+                    color: const Color(0xFF6B7280),
+                    size: 28,
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 14),
                   Expanded(
                     child: TextField(
                       controller: _searchController,
@@ -853,7 +850,8 @@ class _ClassesExperienceState extends State<_ClassesExperience> {
                       decoration: InputDecoration(
                         hintText: 'Search public classes',
                         hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                          color: Colors.black.withValues(alpha: 0.45),
+                          color: const Color(0xFF9CA3AF),
+                          fontWeight: FontWeight.w500,
                         ),
                         border: InputBorder.none,
                         isCollapsed: true,
@@ -864,18 +862,6 @@ class _ClassesExperienceState extends State<_ClassesExperience> {
                       textInputAction: TextInputAction.search,
                     ),
                   ),
-                  if (_searchController.text.isNotEmpty)
-                    IconButton(
-                      onPressed: () {
-                        _searchController.clear();
-                        setState(() {});
-                      },
-                      icon: Icon(
-                        Icons.close_rounded,
-                        color: Colors.black.withValues(alpha: 0.55),
-                      ),
-                      splashRadius: 18,
-                    ),
                 ],
               ),
             ),
