@@ -194,7 +194,7 @@ class _IosMinimalistMessagePageState extends State<IosMinimalistMessagePage> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         final filtered = _filteredConversations();
-        Navigator.of(context).push(
+        Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (_) => _InboxPage(conversations: filtered),
           ),
