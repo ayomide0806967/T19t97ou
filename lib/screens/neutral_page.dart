@@ -112,12 +112,25 @@ class _NeutralArtwork extends StatelessWidget {
                   left: 18,
                   right: 18,
                   child: Center(
-                    child: Text(
-                      'IN INSTITUTION',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.4,
-                      ),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final Color ink = (isDark
+                                ? Colors.white
+                                : const Color(0xFF111827))
+                            .withValues(alpha: 0.55);
+                        final double fontSize =
+                            (constraints.biggest.shortestSide * 0.08)
+                                .clamp(14.0, 22.0);
+                        return Text(
+                          'IN INSTITUTION',
+                          style: TextStyle(
+                            color: ink,
+                            fontSize: fontSize,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.5,
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ),
