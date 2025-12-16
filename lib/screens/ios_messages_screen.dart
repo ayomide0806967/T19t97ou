@@ -794,11 +794,24 @@ class _ClassesExperience extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Your classes',
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+            Row(
+              children: [
+                Text(
+                  'Your classes',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const Spacer(),
+                InkWell(
+                  onTap: () => _handleCreateClass(context),
+                  borderRadius: BorderRadius.circular(999),
+                  child: const _ClassHeaderChip(
+                    icon: Icons.add_rounded,
+                    label: 'Create class',
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             // Grid layout for class cards
