@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 
 class SwissBankIcon extends StatelessWidget {
@@ -121,7 +123,7 @@ class _SwissBankPainter extends CustomPainter {
     if (totalLength <= 0) return;
 
     double remaining = (progress % 1.0) * totalLength;
-    Tangent? tangent;
+    ui.Tangent? tangent;
     for (final metric in metrics) {
       if (remaining > metric.length) {
         remaining -= metric.length;

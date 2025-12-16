@@ -1,6 +1,5 @@
 import 'dart:ui' as ui;
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -11,21 +10,16 @@ import '../state/app_settings.dart';
 import '../theme/app_theme.dart';
 import '../widgets/hexagon_avatar.dart';
 import '../services/class_service.dart';
-import '../widgets/brand_mark.dart';
 import '../widgets/swiss_bank_icon.dart';
 import '../widgets/floating_nav_bar.dart';
 import 'compose_screen.dart';
-import 'class_note_stepper_screen.dart';
 import '../widgets/tweet_post_card.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
 import 'ios_messages_screen.dart';
 import 'notifications_screen.dart';
 import 'quiz_dashboard_screen.dart';
-import 'create_class_screen.dart';
 import 'trending_screen.dart';
-
-const Color _xBlue = Color(0xFF1D9BF0);
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -40,8 +34,6 @@ class _HomeScreenState extends State<HomeScreen>
   final GlobalKey _composeFabKey = GlobalKey();
   bool _isFabMenuOpen = false;
   int _selectedBottomNavIndex = 0;
-  double _horizontalDragDistance = 0;
-  double _leftSwipeDistance = 0;
   int _selectedFeedTabIndex = 0;
   final PageController _feedPageController = PageController();
   late final AnimationController _logoRefreshController;
@@ -89,24 +81,19 @@ class _HomeScreenState extends State<HomeScreen>
       await context.read<DataService>().load();
       await Future<void>.delayed(const Duration(milliseconds: 450));
     } finally {
-      if (!mounted) return;
-      _logoRefreshController
-        ..stop()
-        ..value = 0;
-      setState(() => _isRefreshingFeed = false);
+      if (mounted) {
+        _logoRefreshController
+          ..stop()
+          ..value = 0;
+        setState(() => _isRefreshingFeed = false);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final dataService = context.watch<DataService>();
     final baseTimeline = dataService.timelinePosts;
-    // Tab 0: For You (trending-style sort), Tab 1: Following (chronological)
-    final posts = _selectedFeedTabIndex == 0
-        ? _sortedTrending(baseTimeline)
-        : baseTimeline;
-    final initials = _initialsFrom(_authService.currentUserEmail);
     final currentUserHandle = _currentUserHandle;
 
     return Scaffold(
@@ -382,12 +369,6 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  void _handleHorizontalDragStart(DragStartDetails details) {}
-
-  void _handleHorizontalDragUpdate(DragUpdateDetails details) {}
-
-  void _handleHorizontalDragEnd(DragEndDetails details) {}
-
   Future<void> _openQuickComposer() async {
     await Navigator.of(
       context,
@@ -458,6 +439,7 @@ class _HomeScreenState extends State<HomeScreen>
               label: 'Photos',
               icon: Icons.photo_outlined,
               animationOrder: 0,
+              showPlus: true,
               onTap: () {
                 close();
                 _openQuickComposer();
@@ -932,7 +914,6 @@ class _QuickControlPanel extends StatefulWidget {
 class _QuickControlPanelState extends State<_QuickControlPanel> {
   late final List<_QuickControlItem> _items;
   late final List<bool> _activeStates;
-  int _selectedTopTab = 0;
 
   Future<void> _showComingSoon(String feature) async {
     final messenger = ScaffoldMessenger.of(context);
@@ -1043,7 +1024,6 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final double sheetHeight = MediaQuery.of(context).size.height * 0.5;
     final theme = widget.theme;
     final bool isDark = theme.brightness == Brightness.dark;
 
@@ -1122,7 +1102,6 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
 
   Future<void> _handleItemInteraction(int index) async {
     final item = _items[index];
-    final isActive = _activeStates[index];
     await item.onPressed?.call();
   }
 
@@ -1169,89 +1148,6 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
     return Column(children: gridRows);
   }
 
-  Widget _buildTopBar(ThemeData theme) {
-    final bool isDark = theme.brightness == Brightness.dark;
-    final Color border = theme.dividerColor.withValues(
-      alpha: isDark ? 0.45 : 0.25,
-    );
-    final Color indicator = theme.colorScheme.primary;
-
-    Widget buildTab({
-      required String label,
-      required int index,
-      required VoidCallback onTap,
-    }) {
-      final bool selected = _selectedTopTab == index;
-      final TextStyle baseStyle =
-          theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600) ??
-          const TextStyle(fontSize: 14, fontWeight: FontWeight.w600);
-
-      return Expanded(
-        child: InkWell(
-          onTap: () {
-            setState(() => _selectedTopTab = index);
-            onTap();
-          },
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  label,
-                  textAlign: TextAlign.center,
-                  style: baseStyle.copyWith(
-                    color: selected
-                        ? indicator
-                        : theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeOutCubic,
-                  height: 3,
-                  width: 40,
-                  decoration: BoxDecoration(
-                    color: selected ? indicator : Colors.transparent,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: border, width: 1)),
-      ),
-      child: Row(
-        children: [
-          buildTab(
-            label: 'Home feed',
-            index: 0,
-            onTap: () {
-              Navigator.of(context).pop();
-              widget.onNavigateHome();
-            },
-          ),
-          buildTab(
-            label: 'Class',
-            index: 1,
-            onTap: () async {
-              Navigator.of(context).pop();
-              await Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const CreateClassScreen()),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _QuickControlItem {
