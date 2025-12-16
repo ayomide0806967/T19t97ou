@@ -826,13 +826,6 @@ class _ClassesExperienceState extends State<_ClassesExperience> {
               decoration: BoxDecoration(
                 color: const Color(0xFFF3F4F6),
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.06),
-                    blurRadius: 18,
-                    offset: const Offset(0, 12),
-                  ),
-                ],
               ),
               padding: const EdgeInsets.symmetric(horizontal: 18),
               child: Row(
