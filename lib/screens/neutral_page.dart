@@ -55,11 +55,166 @@ class NeutralPage extends StatelessWidget {
                 MaterialPageRoute(builder: (_) => const QuizCreateScreen()),
               ),
             ),
+            const SizedBox(height: 18),
+            const Expanded(child: _NeutralArtwork()),
           ],
         ),
       ),
     );
   }
+}
+
+class _NeutralArtwork extends StatelessWidget {
+  const _NeutralArtwork();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final Color border =
+        theme.dividerColor.withValues(alpha: isDark ? 0.35 : 0.18);
+    final Color cardColor = isDark ? theme.colorScheme.surface : Colors.white;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(28),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: border),
+          boxShadow: [
+            if (!isDark)
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+          ],
+        ),
+        child: CustomPaint(
+          painter: _NeutralArtworkPainter(isDark: isDark),
+          child: const SizedBox.expand(),
+        ),
+      ),
+    );
+  }
+}
+
+class _NeutralArtworkPainter extends CustomPainter {
+  const _NeutralArtworkPainter({required this.isDark});
+
+  final bool isDark;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Rect rect = Offset.zero & size;
+
+    final Color base = isDark ? const Color(0xFF0B0D12) : Colors.white;
+    final Paint basePaint = Paint()..color = base;
+    canvas.drawRect(rect, basePaint);
+
+    final Paint glow = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          const Color(0xFF38BDF8).withValues(alpha: isDark ? 0.18 : 0.22),
+          const Color(0xFF34D399).withValues(alpha: isDark ? 0.14 : 0.18),
+          const Color(0xFFA78BFA).withValues(alpha: isDark ? 0.10 : 0.14),
+        ],
+        stops: const [0.0, 0.55, 1.0],
+      ).createShader(rect)
+      ..style = PaintingStyle.fill;
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, const Radius.circular(28)),
+      glow,
+    );
+
+    final Paint wave = Paint()
+      ..color = (isDark ? Colors.white : Colors.black).withValues(alpha: 0.06)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.shortestSide * 0.03
+      ..strokeCap = StrokeCap.round;
+
+    final Path p1 = Path()
+      ..moveTo(size.width * -0.1, size.height * 0.72)
+      ..cubicTo(
+        size.width * 0.18,
+        size.height * 0.50,
+        size.width * 0.44,
+        size.height * 0.90,
+        size.width * 0.72,
+        size.height * 0.58,
+      )
+      ..cubicTo(
+        size.width * 0.88,
+        size.height * 0.40,
+        size.width * 1.05,
+        size.height * 0.70,
+        size.width * 1.12,
+        size.height * 0.48,
+      );
+    canvas.drawPath(p1, wave);
+
+    final Paint wave2 = Paint()
+      ..color = (isDark ? Colors.white : Colors.black).withValues(alpha: 0.045)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.shortestSide * 0.018
+      ..strokeCap = StrokeCap.round;
+
+    final Path p2 = Path()
+      ..moveTo(size.width * -0.1, size.height * 0.36)
+      ..cubicTo(
+        size.width * 0.22,
+        size.height * 0.20,
+        size.width * 0.42,
+        size.height * 0.48,
+        size.width * 0.62,
+        size.height * 0.28,
+      )
+      ..cubicTo(
+        size.width * 0.82,
+        size.height * 0.10,
+        size.width * 1.06,
+        size.height * 0.36,
+        size.width * 1.14,
+        size.height * 0.16,
+      );
+    canvas.drawPath(p2, wave2);
+
+    final Paint dot = Paint()
+      ..color = (isDark ? Colors.white : Colors.black).withValues(alpha: 0.10)
+      ..style = PaintingStyle.fill;
+
+    void drawDot(double dx, double dy, double r) {
+      canvas.drawCircle(Offset(dx, dy), r, dot);
+    }
+
+    final double r1 = (size.shortestSide * 0.020).clamp(2.0, 6.0);
+    final double r2 = (size.shortestSide * 0.012).clamp(1.5, 4.0);
+    drawDot(size.width * 0.18, size.height * 0.22, r2);
+    drawDot(size.width * 0.30, size.height * 0.42, r1);
+    drawDot(size.width * 0.52, size.height * 0.20, r2);
+    drawDot(size.width * 0.70, size.height * 0.34, r1);
+    drawDot(size.width * 0.84, size.height * 0.18, r2);
+
+    final Paint chip = Paint()
+      ..color = (isDark ? Colors.white : Colors.black).withValues(alpha: 0.05);
+    final RRect pill = RRect.fromRectAndRadius(
+      Rect.fromCenter(
+        center: Offset(size.width * 0.50, size.height * 0.70),
+        width: size.width * 0.62,
+        height: size.height * 0.18,
+      ),
+      const Radius.circular(999),
+    );
+    canvas.drawRRect(pill, chip);
+  }
+
+  @override
+  bool shouldRepaint(_NeutralArtworkPainter oldDelegate) =>
+      oldDelegate.isDark != isDark;
 }
 
 class _HubCard extends StatelessWidget {
