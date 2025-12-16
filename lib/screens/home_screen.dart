@@ -34,7 +34,8 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final GlobalKey _composeFabKey = GlobalKey();
   bool _isFabMenuOpen = false;
@@ -43,6 +44,8 @@ class _HomeScreenState extends State<HomeScreen> {
   double _leftSwipeDistance = 0;
   int _selectedFeedTabIndex = 0;
   final PageController _feedPageController = PageController();
+  late final AnimationController _logoRefreshController;
+  bool _isRefreshingFeed = false;
   SimpleAuthService get _authService => SimpleAuthService();
   String get _currentUserHandle {
     final email = _authService.currentUserEmail;
@@ -58,6 +61,40 @@ class _HomeScreenState extends State<HomeScreen> {
       return '@yourprofile';
     }
     return '@$normalized';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _logoRefreshController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+  }
+
+  @override
+  void dispose() {
+    _logoRefreshController.dispose();
+    _feedPageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handlePullToRefresh() async {
+    if (_isRefreshingFeed) return;
+    setState(() => _isRefreshingFeed = true);
+    _logoRefreshController.repeat();
+
+    try {
+      HapticFeedback.lightImpact();
+      await context.read<DataService>().load();
+      await Future<void>.delayed(const Duration(milliseconds: 450));
+    } finally {
+      if (!mounted) return;
+      _logoRefreshController
+        ..stop()
+        ..value = 0;
+      setState(() => _isRefreshingFeed = false);
+    }
   }
 
   @override
@@ -92,32 +129,24 @@ class _HomeScreenState extends State<HomeScreen> {
             backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
             shadowColor: Colors.black.withValues(alpha: 0.05),
             centerTitle: true,
-            title: const SwissBankIcon(size: 30),
+            title: SwissBankIcon(
+              size: 30,
+              color: const Color(0xFF9CA3AF),
+              strokeWidthFactor: 0.085,
+              refreshProgress:
+                  _isRefreshingFeed ? _logoRefreshController : null,
+            ),
             actions: [
               RepaintBoundary(
                 child: IconButton(
-                  tooltip: 'Profile',
-                  icon: HexagonAvatar(
-                    size: 40,
-                    backgroundColor:
-                        theme.colorScheme.surfaceContainerHighest,
-                    borderColor: theme.colorScheme.primary.withValues(
-                      alpha: 0.35,
-                    ),
-                    borderWidth: 1.5,
-                    child: Center(
-                      child: Text(
-                        initials,
-                        style: theme.textTheme.labelLarge,
-                      ),
-                    ),
+                  tooltip: 'Search',
+                  icon: _SearchIcon(
+                    size: 28,
+                    color: const Color(0xFF9CA3AF),
+                    strokeWidthFactor: 0.10,
                   ),
                   onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const ProfileScreen(),
-                      ),
-                    );
+                    _showToast('Search coming soon');
                   },
                 ),
               ),
@@ -125,37 +154,69 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.only(
-                left: 24,
-                right: 24,
-                top: 4,
-                bottom: 0,
-              ),
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 720),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _FeedTabBar(
+            child: Builder(
+              builder: (context) {
+                final theme = Theme.of(context);
+                final bool isDark = theme.brightness == Brightness.dark;
+                final Color line = theme.colorScheme.onSurface.withValues(
+                  alpha: isDark ? 0.12 : 0.06,
+                );
+
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Full-width divider line like X, with centered tab content.
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(color: line, width: 0.6),
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 720),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                              ),
+                              child: _FeedTabBar(
                                 selectedIndex: _selectedFeedTabIndex,
                                 onChanged: (index) {
                                   if (mounted) {
-                                    setState(() => _selectedFeedTabIndex = index);
+                                    setState(
+                                      () => _selectedFeedTabIndex = index,
+                                    );
                                     _feedPageController.animateToPage(
-                              index,
-                              duration: const Duration(milliseconds: 260),
-                              curve: Curves.easeOutCubic,
-                            );
-                          }
-                        },
+                                      index,
+                                      duration: const Duration(
+                                        milliseconds: 260,
+                                      ),
+                                      curve: Curves.easeOutCubic,
+                                    );
+                                  }
+                                },
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
-                      _StoryRail(currentUserHandle: currentUserHandle),
-                    ],
-                  ),
-                ),
-              ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 720),
+                          child: _StoryRail(
+                            currentUserHandle: currentUserHandle,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ],
@@ -167,8 +228,11 @@ class _HomeScreenState extends State<HomeScreen> {
             }
           },
           children: [
-            _buildFeedList(context, _sortedTrending(baseTimeline),
-                currentUserHandle),
+            _buildFeedList(
+              context,
+              _sortedTrending(baseTimeline),
+              currentUserHandle,
+            ),
             _buildFeedList(context, baseTimeline, currentUserHandle),
           ],
         ),
@@ -195,25 +259,21 @@ class _HomeScreenState extends State<HomeScreen> {
   }) {
     final theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
-    final Color line = theme.colorScheme.onSurface
-        .withValues(alpha: isDark ? 0.12 : 0.06);
+    final Color line = theme.colorScheme.onSurface.withValues(
+      alpha: isDark ? 0.12 : 0.06,
+    );
 
     final List<Widget> children = <Widget>[];
     for (int index = 0; index < posts.length; index++) {
       final post = posts[index];
       final Border border = Border(
-        top: index == 0
-            ? BorderSide.none
-            : BorderSide(color: line, width: 0.6),
+        top: index == 0 ? BorderSide.none : BorderSide(color: line, width: 0.6),
         bottom: BorderSide(color: line, width: 0.6),
       );
       children.add(
         RepaintBoundary(
           child: Container(
-            padding: EdgeInsets.only(
-              top: index == 0 ? 0 : 14,
-              bottom: 14,
-            ),
+            padding: EdgeInsets.only(top: index == 0 ? 0 : 14, bottom: 1),
             decoration: BoxDecoration(border: border),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -234,10 +294,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return KeyedSubtree(
       key: key,
-      child: ListView(
-        physics: const BouncingScrollPhysics(),
-        padding: EdgeInsets.zero,
-        children: children,
+      child: RefreshIndicator(
+        color: Colors.black,
+        notificationPredicate: (notification) => notification.depth == 1,
+        onRefresh: _handlePullToRefresh,
+        child: ListView(
+          physics: const BouncingScrollPhysics(),
+          padding: EdgeInsets.zero,
+          children: children,
+        ),
       ),
     );
   }
@@ -254,9 +319,9 @@ class _HomeScreenState extends State<HomeScreen> {
       onIndexChange: (index) {
         // Center button opens full-page composer (no modal)
         if (index == 2) {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const ComposeScreen()),
-          );
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const ComposeScreen()));
           return;
         }
         if (mounted) {
@@ -324,9 +389,9 @@ class _HomeScreenState extends State<HomeScreen> {
   void _handleHorizontalDragEnd(DragEndDetails details) {}
 
   Future<void> _openQuickComposer() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const ComposeScreen()),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const ComposeScreen()));
   }
 
   void _showFabMenu() async {
@@ -582,34 +647,35 @@ class _HomeScreenState extends State<HomeScreen> {
                             ? Icons.dark_mode
                             : Icons.light_mode,
                         title: 'Dark Mode',
-                    trailing: Switch(
-                      value: Theme.of(context).brightness == Brightness.dark,
-                      onChanged: (value) {
-                        context.read<AppSettings>().toggleDarkMode(value);
-                      },
-                      activeTrackColor: const Color(
-                        0xFF4299E1,
-                      ).withValues(alpha: 0.5),
-                      activeThumbColor: const Color(0xFF4299E1),
-                    ),
-                  ),
-                  _buildDropdownItem(
-                    icon: Icons.settings_outlined,
-                    title: 'Settings',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => const SettingsScreen(),
+                        trailing: Switch(
+                          value:
+                              Theme.of(context).brightness == Brightness.dark,
+                          onChanged: (value) {
+                            context.read<AppSettings>().toggleDarkMode(value);
+                          },
+                          activeTrackColor: const Color(
+                            0xFF4299E1,
+                          ).withValues(alpha: 0.5),
+                          activeThumbColor: const Color(0xFF4299E1),
                         ),
-                      );
-                    },
-                  ),
-                  _buildDropdownItem(
-                    icon: Icons.language_outlined,
-                    title: 'Language',
-                    onTap: () => Navigator.pop(context),
-                  ),
+                      ),
+                      _buildDropdownItem(
+                        icon: Icons.settings_outlined,
+                        title: 'Settings',
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const SettingsScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildDropdownItem(
+                        icon: Icons.language_outlined,
+                        title: 'Language',
+                        onTap: () => Navigator.pop(context),
+                      ),
                       _buildDropdownItem(
                         icon: Icons.help_outline,
                         title: 'Help',
@@ -675,20 +741,23 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-  
+
   List<PostModel> _sortedTrending(List<PostModel> posts) {
     final sorted = List<PostModel>.from(posts);
     int score(PostModel p) => p.likes + (p.reposts * 2) + (p.views ~/ 100);
     sorted.sort((a, b) => score(b).compareTo(score(a)));
     return sorted;
   }
+
+  void _showToast(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
+    );
+  }
 }
 
 class _FeedTabBar extends StatelessWidget {
-  const _FeedTabBar({
-    required this.selectedIndex,
-    required this.onChanged,
-  });
+  const _FeedTabBar({required this.selectedIndex, required this.onChanged});
 
   final int selectedIndex;
   final ValueChanged<int> onChanged;
@@ -696,14 +765,12 @@ class _FeedTabBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final Color divider =
-        theme.dividerColor.withValues(alpha: isDark ? 0.4 : 0.25);
     final Color accent = theme.colorScheme.primary;
 
     Widget buildTab(String label, int index) {
       final bool isSelected = selectedIndex == index;
-      final TextStyle baseStyle = theme.textTheme.titleMedium ??
+      final TextStyle baseStyle =
+          theme.textTheme.titleMedium ??
           const TextStyle(fontSize: 18, fontWeight: FontWeight.w600);
 
       return Expanded(
@@ -715,7 +782,7 @@ class _FeedTabBar extends StatelessWidget {
             }
           },
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.only(top: 10, bottom: 2),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -723,8 +790,7 @@ class _FeedTabBar extends StatelessWidget {
                   duration: const Duration(milliseconds: 200),
                   curve: Curves.easeOutCubic,
                   style: baseStyle.copyWith(
-                    fontWeight:
-                        isSelected ? FontWeight.w800 : FontWeight.w500,
+                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
                     color: theme.colorScheme.onSurface.withValues(
                       alpha: isSelected ? 0.98 : 0.65,
                     ),
@@ -735,9 +801,9 @@ class _FeedTabBar extends StatelessWidget {
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 220),
                   curve: Curves.easeOutCubic,
-                  height: 3,
+                  height: 4,
                   width: double.infinity,
-                  margin: const EdgeInsets.symmetric(horizontal: 24),
+                  margin: const EdgeInsets.symmetric(horizontal: 18),
                   decoration: BoxDecoration(
                     color: isSelected ? accent : Colors.transparent,
                     borderRadius: BorderRadius.circular(999),
@@ -750,19 +816,7 @@ class _FeedTabBar extends StatelessWidget {
       );
     }
 
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: divider, width: 1),
-        ),
-      ),
-      child: Row(
-        children: [
-          buildTab('For You', 0),
-          buildTab('Following', 1),
-        ],
-      ),
-    );
+    return Row(children: [buildTab('For You', 0), buildTab('Following', 1)]);
   }
 }
 
@@ -774,14 +828,68 @@ class _TwoLineMenuIcon extends StatelessWidget {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        children: const [
-          _MenuLine(),
-          SizedBox(height: 6),
-          _MenuLine(),
-        ],
+        children: const [_MenuLine(), SizedBox(height: 6), _MenuLine()],
       ),
     );
   }
+}
+
+class _SearchIcon extends StatelessWidget {
+  const _SearchIcon({
+    this.size = 28,
+    required this.color,
+    this.strokeWidthFactor = 0.06,
+  });
+
+  final double size;
+  final Color color;
+  final double strokeWidthFactor;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: CustomPaint(
+        painter: _SearchIconPainter(
+          color: color,
+          strokeWidthFactor: strokeWidthFactor,
+        ),
+      ),
+    );
+  }
+}
+
+class _SearchIconPainter extends CustomPainter {
+  _SearchIconPainter({required this.color, required this.strokeWidthFactor});
+
+  final Color color;
+  final double strokeWidthFactor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double s = size.shortestSide;
+    final double sw = s * strokeWidthFactor;
+    final Paint stroke = Paint()
+      ..color = color
+      ..strokeWidth = sw
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    final Offset center = Offset(s * 0.46, s * 0.46);
+    final double radius = s * 0.26;
+    canvas.drawCircle(center, radius, stroke);
+
+    final Offset handleStart = Offset(s * 0.64, s * 0.64);
+    final Offset handleEnd = Offset(s * 0.82, s * 0.82);
+    canvas.drawLine(handleStart, handleEnd, stroke);
+  }
+
+  @override
+  bool shouldRepaint(_SearchIconPainter oldDelegate) =>
+      oldDelegate.color != color ||
+      oldDelegate.strokeWidthFactor != strokeWidthFactor;
 }
 
 class _MenuLine extends StatelessWidget {
@@ -857,9 +965,7 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
         onPressed: () async {
           Navigator.of(context).pop();
           await Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => const IosMinimalistMessagePage(),
-            ),
+            MaterialPageRoute(builder: (_) => const IosMinimalistMessagePage()),
           );
         },
       ),
@@ -877,9 +983,7 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
         onPressed: () async {
           Navigator.of(context).pop();
           await Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => const QuizDashboardScreen(),
-            ),
+            MaterialPageRoute(builder: (_) => const QuizDashboardScreen()),
           );
         },
       ),
@@ -905,9 +1009,7 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
         onPressed: () async {
           Navigator.of(context).pop();
           await Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => const IosMinimalistMessagePage(),
-            ),
+            MaterialPageRoute(builder: (_) => const IosMinimalistMessagePage()),
           );
         },
       ),
@@ -916,11 +1018,9 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
         label: 'Search',
         onPressed: () async {
           Navigator.of(context).pop();
-          await Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => TrendingScreen(),
-            ),
-          );
+          await Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => TrendingScreen()));
         },
       ),
       _QuickControlItem(
@@ -966,16 +1066,12 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
             child: Container(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(
-                  alpha: isDark ? 0.10 : 0.16,
-                ),
+                color: Colors.white.withValues(alpha: isDark ? 0.10 : 0.16),
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(28),
                   topRight: Radius.circular(28),
                 ),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.26),
-                ),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.26)),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.10),
@@ -1072,11 +1168,12 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
 
     return Column(children: gridRows);
   }
-  
+
   Widget _buildTopBar(ThemeData theme) {
     final bool isDark = theme.brightness == Brightness.dark;
-    final Color border =
-        theme.dividerColor.withValues(alpha: isDark ? 0.45 : 0.25);
+    final Color border = theme.dividerColor.withValues(
+      alpha: isDark ? 0.45 : 0.25,
+    );
     final Color indicator = theme.colorScheme.primary;
 
     Widget buildTab({
@@ -1087,7 +1184,7 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
       final bool selected = _selectedTopTab == index;
       final TextStyle baseStyle =
           theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600) ??
-              const TextStyle(fontSize: 14, fontWeight: FontWeight.w600);
+          const TextStyle(fontSize: 14, fontWeight: FontWeight.w600);
 
       return Expanded(
         child: InkWell(
@@ -1106,9 +1203,7 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
                   style: baseStyle.copyWith(
                     color: selected
                         ? indicator
-                        : theme.colorScheme.onSurface.withValues(
-                              alpha: 0.7,
-                            ),
+                        : theme.colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -1131,9 +1226,7 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
 
     return Container(
       decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: border, width: 1),
-        ),
+        border: Border(bottom: BorderSide(color: border, width: 1)),
       ),
       child: Row(
         children: [
@@ -1151,9 +1244,7 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
             onTap: () async {
               Navigator.of(context).pop();
               await Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const CreateClassScreen(),
-                ),
+                MaterialPageRoute(builder: (_) => const CreateClassScreen()),
               );
             },
           ),
@@ -1168,9 +1259,9 @@ class _QuickControlItem {
     required this.icon,
     required this.label,
     this.onPressed,
-  })  : isTogglable = false,
-        onToggle = null,
-        initialValue = false;
+  }) : isTogglable = false,
+       onToggle = null,
+       initialValue = false;
 
   final IconData icon;
   final String label;
@@ -1232,23 +1323,23 @@ class _QuickControlButton extends StatelessWidget {
         const TextStyle(fontSize: 11, fontWeight: FontWeight.w600);
 
     final Widget content = Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                displayIcon,
-                size: 20,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.72),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                displayLabel,
-                textAlign: TextAlign.center,
-                style: labelStyle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          );
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(
+          displayIcon,
+          size: 20,
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.72),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          displayLabel,
+          textAlign: TextAlign.center,
+          style: labelStyle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
 
     return Material(
       color: Colors.transparent,
@@ -1260,10 +1351,7 @@ class _QuickControlButton extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
           curve: Curves.easeOutCubic,
-          padding: EdgeInsets.symmetric(
-            horizontal: 14,
-            vertical: 16,
-          ),
+          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 16),
           decoration: decoration,
           child: content,
         ),
@@ -1636,8 +1724,7 @@ class _ComposeFabMenuOverlay extends StatefulWidget {
   final List<_ComposeFabAction> actions;
 
   @override
-  State<_ComposeFabMenuOverlay> createState() =>
-      _ComposeFabMenuOverlayState();
+  State<_ComposeFabMenuOverlay> createState() => _ComposeFabMenuOverlayState();
 }
 
 class _ComposeFabMenuOverlayState extends State<_ComposeFabMenuOverlay>
@@ -1680,10 +1767,7 @@ class _ComposeFabMenuOverlayState extends State<_ComposeFabMenuOverlay>
                   behavior: HitTestBehavior.opaque,
                   onTap: widget.onClose,
                   child: BackdropFilter(
-                    filter: ui.ImageFilter.blur(
-                      sigmaX: 2 * t,
-                      sigmaY: 2 * t,
-                    ),
+                    filter: ui.ImageFilter.blur(sigmaX: 2 * t, sigmaY: 2 * t),
                     child: Container(
                       color: Colors.white.withValues(alpha: 0.94 * t),
                     ),
@@ -1725,16 +1809,14 @@ class _ComposeFabMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     const double itemGap = 18;
     final theme = Theme.of(context);
-    final Animation<double> buttonScale = Tween<double>(
-      begin: 0.8,
-      end: 1.0,
-    ).animate(
-      CurvedAnimation(
-        parent: animation,
-        curve: Curves.easeOutBack,
-        reverseCurve: Curves.easeInCubic,
-      ),
-    );
+    final Animation<double> buttonScale = Tween<double>(begin: 0.8, end: 1.0)
+        .animate(
+          CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutBack,
+            reverseCurve: Curves.easeInCubic,
+          ),
+        );
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -1774,10 +1856,7 @@ class _ComposeFabMenu extends StatelessWidget {
               const SizedBox(width: 12),
               ScaleTransition(
                 scale: buttonScale,
-                child: _HexagonComposeButton(
-                  onTap: onCompose,
-                  showPlus: true,
-                ),
+                child: _HexagonComposeButton(onTap: onCompose, showPlus: true),
               ),
             ],
           ),
@@ -1832,10 +1911,7 @@ class _ComposeFabStaggeredEntry extends StatelessWidget {
 }
 
 class _HexagonComposeButton extends StatelessWidget {
-  const _HexagonComposeButton({
-    required this.onTap,
-    this.showPlus = false,
-  });
+  const _HexagonComposeButton({required this.onTap, this.showPlus = false});
 
   final VoidCallback onTap;
   final bool showPlus;
@@ -1922,8 +1998,7 @@ class _FabMenuItem extends StatelessWidget {
     // to match the design of the overlay.
     const Color labelColor = Colors.black;
     final Color iconColor = isDark ? Colors.white : Colors.black;
-    final Color chipColor =
-        isDark ? theme.colorScheme.surface : Colors.white;
+    final Color chipColor = isDark ? theme.colorScheme.surface : Colors.white;
     // Stronger black shadow for popup icons in both modes.
     final Color chipShadowColor = Colors.black.withValues(
       alpha: isDark ? 0.85 : 0.5,
@@ -1955,11 +2030,7 @@ class _FabMenuItem extends StatelessWidget {
                     ? Stack(
                         alignment: Alignment.center,
                         children: [
-                          Icon(
-                            Icons.edit_rounded,
-                            color: iconColor,
-                            size: 24,
-                          ),
+                          Icon(Icons.edit_rounded, color: iconColor, size: 24),
                           Transform.translate(
                             offset: Offset(-8, -6),
                             child: Icon(
@@ -1970,11 +2041,7 @@ class _FabMenuItem extends StatelessWidget {
                           ),
                         ],
                       )
-                    : Icon(
-                        icon,
-                        size: 24,
-                        color: iconColor,
-                      ),
+                    : Icon(icon, size: 24, color: iconColor),
               ),
             ),
           ),
@@ -2015,8 +2082,9 @@ class _StoryRail extends StatelessWidget {
           separatorBuilder: (_, __) => const SizedBox(width: 16),
           itemBuilder: (context, index) {
             final story = stories[index];
-            final Color borderColor =
-                theme.colorScheme.primary.withValues(alpha: 0.25);
+            final Color borderColor = theme.colorScheme.primary.withValues(
+              alpha: 0.25,
+            );
             final Color background = Theme.of(context).colorScheme.surface;
 
             return GestureDetector(
