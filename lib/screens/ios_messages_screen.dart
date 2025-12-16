@@ -775,12 +775,39 @@ class _Conversation {
   final int unreadCount;
 }
 
-class _ClassesExperience extends StatelessWidget {
+class _ClassesExperience extends StatefulWidget {
   const _ClassesExperience();
+
+  @override
+  State<_ClassesExperience> createState() => _ClassesExperienceState();
+}
+
+class _ClassesExperienceState extends State<_ClassesExperience> {
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<College> _filteredColleges() {
+    final query = _searchController.text.trim().toLowerCase();
+    if (query.isEmpty) return _demoColleges;
+    return _demoColleges.where((college) {
+      final name = college.name.toLowerCase();
+      final facilitator = college.facilitator.toLowerCase();
+      final upcoming = college.upcomingExam.toLowerCase();
+      return name.contains(query) ||
+          facilitator.contains(query) ||
+          upcoming.contains(query);
+    }).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final List<College> colleges = _filteredColleges();
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -794,10 +821,62 @@ class _ClassesExperience extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Your classes',
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w700,
+            Container(
+              height: 54,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: Colors.black.withValues(alpha: 0.06),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 16,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.search_rounded,
+                    color: Colors.black.withValues(alpha: 0.55),
+                    size: 22,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: (_) => setState(() {}),
+                      decoration: InputDecoration(
+                        hintText: 'Search public classes',
+                        hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                          color: Colors.black.withValues(alpha: 0.45),
+                        ),
+                        border: InputBorder.none,
+                        isCollapsed: true,
+                      ),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                      textInputAction: TextInputAction.search,
+                    ),
+                  ),
+                  if (_searchController.text.isNotEmpty)
+                    IconButton(
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() {});
+                      },
+                      icon: Icon(
+                        Icons.close_rounded,
+                        color: Colors.black.withValues(alpha: 0.55),
+                      ),
+                      splashRadius: 18,
+                    ),
+                ],
               ),
             ),
             const SizedBox(height: 14),
@@ -822,23 +901,23 @@ class _ClassesExperience extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Create a class',
+                    'Join a class',
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Start a new class space for your learners.',
+                    'Join a class space with an invite code.',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: Colors.black.withValues(alpha: 0.55),
                     ),
                   ),
                   const SizedBox(height: 18),
                   ElevatedButton.icon(
-                    onPressed: () => _handleCreateClass(context),
-                    icon: const Icon(Icons.add_rounded, size: 22),
-                    label: const Text('Create a class'),
+                    onPressed: () => _handleJoinClass(context),
+                    icon: const Icon(Icons.group_add_rounded, size: 22),
+                    label: const Text('Join a class'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF7DD3E8),
                       foregroundColor: Colors.black87,
@@ -856,6 +935,13 @@ class _ClassesExperience extends StatelessWidget {
                 ],
               ),
             ),
+            const SizedBox(height: 18),
+            Text(
+              'Your classes',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
             const SizedBox(height: 16),
             // Grid layout for class cards
             LayoutBuilder(
@@ -866,11 +952,26 @@ class _ClassesExperience extends StatelessWidget {
                   spacing: 12,
                   runSpacing: 12,
                   children: [
-                    for (int i = 0; i < _demoColleges.length; i++)
+                    if (colleges.isEmpty)
+                      SizedBox(
+                        width: constraints.maxWidth,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          child: Text(
+                            'No classes found.',
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: Colors.black.withValues(alpha: 0.50),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    for (int i = 0; i < colleges.length; i++)
                       SizedBox(
                         width: cardWidth,
                         child: _ModernCollegeCard(
-                          college: _demoColleges[i],
+                          college: colleges[i],
                           isDark: i % 2 == 0, // Alternate dark/light
                         ),
                       ),
