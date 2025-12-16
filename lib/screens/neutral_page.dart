@@ -101,9 +101,27 @@ class _NeutralArtwork extends StatelessWidget {
                   ),
               ],
             ),
-            child: CustomPaint(
-              painter: _EducationArtworkPainter(isDark: isDark),
-              child: const SizedBox.expand(),
+            child: Stack(
+              children: [
+                CustomPaint(
+                  painter: _EducationArtworkPainter(isDark: isDark),
+                  child: const SizedBox.expand(),
+                ),
+                Positioned(
+                  top: 16,
+                  left: 18,
+                  right: 18,
+                  child: Center(
+                    child: Text(
+                      'IN INSTITUTION',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.4,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
