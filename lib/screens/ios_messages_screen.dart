@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
 // Note: file_picker is optional. We avoid importing it so the app builds even
 // when the dependency hasn't been fetched. If you add file_picker to
@@ -14,6 +13,8 @@ import 'package:provider/provider.dart';
 import '../l10n/strings.dart';
 import '../services/data_service.dart';
 import '../widgets/tweet_post_card.dart';
+import '../widgets/icons/x_retweet_icon.dart';
+import '../theme/app_theme.dart';
 import '../services/simple_auth_service.dart';
 import '../services/roles_service.dart';
 import '../screens/post_activity_screen.dart';
@@ -36,11 +37,11 @@ VoidCallback? _notifyClassNotesChanged;
 const String _classNotesStoragePrefix = 'lecture_notes_';
 
 Map<String, dynamic> _classNoteSectionToJson(ClassNoteSection s) => {
-      'title': s.title,
-      'subtitle': s.subtitle,
-      'bullets': s.bullets,
-      'imagePaths': s.imagePaths,
-    };
+  'title': s.title,
+  'subtitle': s.subtitle,
+  'bullets': s.bullets,
+  'imagePaths': s.imagePaths,
+};
 
 ClassNoteSection _classNoteSectionFromJson(Map<String, dynamic> json) =>
     ClassNoteSection(
@@ -52,14 +53,14 @@ ClassNoteSection _classNoteSectionFromJson(Map<String, dynamic> json) =>
     );
 
 Map<String, dynamic> _classNoteSummaryToJson(ClassNoteSummary s) => {
-      'title': s.title,
-      'subtitle': s.subtitle,
-      'steps': s.steps,
-      'estimatedMinutes': s.estimatedMinutes,
-      'createdAt': s.createdAt.toIso8601String(),
-      'commentCount': s.commentCount,
-      'sections': s.sections.map(_classNoteSectionToJson).toList(),
-    };
+  'title': s.title,
+  'subtitle': s.subtitle,
+  'steps': s.steps,
+  'estimatedMinutes': s.estimatedMinutes,
+  'createdAt': s.createdAt.toIso8601String(),
+  'commentCount': s.commentCount,
+  'sections': s.sections.map(_classNoteSectionToJson).toList(),
+};
 
 ClassNoteSummary _classNoteSummaryFromJson(Map<String, dynamic> json) =>
     ClassNoteSummary(
@@ -69,9 +70,9 @@ ClassNoteSummary _classNoteSummaryFromJson(Map<String, dynamic> json) =>
       estimatedMinutes: (json['estimatedMinutes'] as num).toInt(),
       createdAt: DateTime.parse(json['createdAt'] as String),
       commentCount: (json['commentCount'] as num?)?.toInt() ?? 0,
-      sections: (json['sections'] as List?)
-              ?.map((e) =>
-                  _classNoteSectionFromJson(e as Map<String, dynamic>))
+      sections:
+          (json['sections'] as List?)
+              ?.map((e) => _classNoteSectionFromJson(e as Map<String, dynamic>))
               .toList() ??
           const <ClassNoteSection>[],
     );
@@ -116,10 +117,12 @@ Future<void> _loadNotesForCollege(String code) async {
 Future<void> _saveNotesForCollege(String code) async {
   final prefs = await SharedPreferences.getInstance();
   final base = '$_classNotesStoragePrefix$code';
-  final classJson =
-      jsonEncode(_classNotes.map(_classNoteSummaryToJson).toList());
-  final libraryJson =
-      jsonEncode(_libraryNotes.map(_classNoteSummaryToJson).toList());
+  final classJson = jsonEncode(
+    _classNotes.map(_classNoteSummaryToJson).toList(),
+  );
+  final libraryJson = jsonEncode(
+    _libraryNotes.map(_classNoteSummaryToJson).toList(),
+  );
   await prefs.setString('${base}_class', classJson);
   await prefs.setString('${base}_library', libraryJson);
 }
@@ -231,8 +234,7 @@ class _IosMinimalistMessagePageState extends State<IosMinimalistMessagePage> {
                       onInboxTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (_) =>
-                                _InboxPage(conversations: filtered),
+                            builder: (_) => _InboxPage(conversations: filtered),
                           ),
                         );
                       },
@@ -266,8 +268,10 @@ class _IosMinimalistMessagePageState extends State<IosMinimalistMessagePage> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.black,
                       foregroundColor: Colors.white,
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(24),
                       ),
@@ -292,7 +296,7 @@ class _IosMinimalistMessagePageState extends State<IosMinimalistMessagePage> {
       ),
     );
   }
-  
+
   List<_Conversation> _filteredConversations() {
     final query = _searchController.text.trim().toLowerCase();
     if (query.isEmpty) return _demoConversations;
@@ -304,7 +308,6 @@ class _IosMinimalistMessagePageState extends State<IosMinimalistMessagePage> {
         )
         .toList();
   }
-
 }
 
 class _FullPageClassesScreen extends StatelessWidget {
@@ -382,11 +385,7 @@ class _MessagesHeader extends StatelessWidget {
       child: Stack(
         children: [
           // Wave artwork background
-          Positioned.fill(
-            child: CustomPaint(
-              painter: _WaveArtworkPainter(),
-            ),
-          ),
+          Positioned.fill(child: CustomPaint(painter: _WaveArtworkPainter())),
           // Decorative circles
           Positioned(
             top: -20,
@@ -477,12 +476,16 @@ class _WaveArtworkPainter extends CustomPainter {
     final path1 = Path();
     path1.moveTo(0, size.height * 0.7);
     path1.quadraticBezierTo(
-      size.width * 0.25, size.height * 0.5,
-      size.width * 0.5, size.height * 0.65,
+      size.width * 0.25,
+      size.height * 0.5,
+      size.width * 0.5,
+      size.height * 0.65,
     );
     path1.quadraticBezierTo(
-      size.width * 0.75, size.height * 0.8,
-      size.width, size.height * 0.6,
+      size.width * 0.75,
+      size.height * 0.8,
+      size.width,
+      size.height * 0.6,
     );
     path1.lineTo(size.width, size.height);
     path1.lineTo(0, size.height);
@@ -493,16 +496,20 @@ class _WaveArtworkPainter extends CustomPainter {
     final paint2 = Paint()
       ..color = Colors.white.withValues(alpha: 0.04)
       ..style = PaintingStyle.fill;
-    
+
     final path2 = Path();
     path2.moveTo(0, size.height * 0.85);
     path2.quadraticBezierTo(
-      size.width * 0.35, size.height * 0.6,
-      size.width * 0.6, size.height * 0.75,
+      size.width * 0.35,
+      size.height * 0.6,
+      size.width * 0.6,
+      size.height * 0.75,
     );
     path2.quadraticBezierTo(
-      size.width * 0.85, size.height * 0.9,
-      size.width, size.height * 0.7,
+      size.width * 0.85,
+      size.height * 0.9,
+      size.width,
+      size.height * 0.7,
     );
     path2.lineTo(size.width, size.height);
     path2.lineTo(0, size.height);
@@ -565,7 +572,9 @@ class _SchoolTabBar extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: TabBar(
           isScrollable: false,
-          labelStyle: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+          labelStyle: theme.textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
           labelColor: _whatsAppDarkGreen,
           unselectedLabelColor: unselected,
           indicatorColor: _whatsAppGreen,
@@ -676,7 +685,7 @@ class _ConversationTile extends StatelessWidget {
             ],
           ),
         ),
-        ),
+      ),
     );
   }
 }
@@ -774,8 +783,9 @@ class _ClassesExperience extends StatelessWidget {
           children: [
             Text(
               'Your classes',
-              style:
-                  theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
             ),
             const SizedBox(height: 16),
             // Grid layout for class cards
@@ -808,9 +818,9 @@ class _ClassesExperience extends StatelessWidget {
 }
 
 Future<void> _handleCreateClass(BuildContext context) async {
-  final result = await Navigator.of(context).push(
-    MaterialPageRoute(builder: (_) => const _CreateClassPage()),
-  );
+  final result = await Navigator.of(
+    context,
+  ).push(MaterialPageRoute(builder: (_) => const _CreateClassPage()));
   if (result is College) {
     if (context.mounted) {
       Navigator.of(context).push(
@@ -827,9 +837,9 @@ Future<void> _handleJoinClass(BuildContext context) async {
   final resolved = await InvitesService.resolve(code);
   if (resolved == null) {
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(S.invalidInviteCode)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(S.invalidInviteCode)));
     }
     return;
   }
@@ -841,9 +851,9 @@ Future<void> _handleJoinClass(BuildContext context) async {
   members.add(handle);
   await MembersService.saveMembersFor(match.code, members);
   if (context.mounted) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => _CollegeScreen(college: match)),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => _CollegeScreen(college: match)));
   }
 }
 
@@ -855,9 +865,7 @@ class _InboxPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Inbox'),
-      ),
+      appBar: AppBar(title: const Text('Inbox')),
       body: _MessagesList(conversations: conversations),
       backgroundColor: Colors.white,
     );
@@ -872,7 +880,7 @@ class _SpotifyStyleHero extends StatelessWidget {
     required this.onCreateClassTap,
     required this.onJoinClassTap,
   });
-  
+
   final double topPadding;
   final VoidCallback onInboxTap;
   final VoidCallback onCreateClassTap;
@@ -904,9 +912,7 @@ class _SpotifyStyleHero extends StatelessWidget {
               children: [
                 // Background artwork/pattern
                 Positioned.fill(
-                  child: CustomPaint(
-                    painter: _HeroArtworkPainter(),
-                  ),
+                  child: CustomPaint(painter: _HeroArtworkPainter()),
                 ),
                 // Decorative elements
                 Positioned(
@@ -963,7 +969,9 @@ class _SpotifyStyleHero extends StatelessWidget {
                                 vertical: 6,
                               ),
                               foregroundColor: Colors.white,
-                              backgroundColor: Colors.white.withValues(alpha: 0.16),
+                              backgroundColor: Colors.white.withValues(
+                                alpha: 0.16,
+                              ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(20),
                               ),
@@ -1012,7 +1020,9 @@ class _SpotifyStyleHero extends StatelessWidget {
                                 vertical: 8,
                               ),
                               foregroundColor: Colors.white,
-                              backgroundColor: Colors.white.withValues(alpha: 0.18),
+                              backgroundColor: Colors.white.withValues(
+                                alpha: 0.18,
+                              ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(22),
                                 side: BorderSide(
@@ -1073,7 +1083,7 @@ class _CurvedBottomClipper extends CustomClipper<Path> {
   Path getClip(Size size) {
     final path = Path();
     path.lineTo(0, size.height - 50);
-    
+
     // Create a smooth curve at the bottom
     path.quadraticBezierTo(
       size.width / 2, // Control point X (center)
@@ -1081,7 +1091,7 @@ class _CurvedBottomClipper extends CustomClipper<Path> {
       size.width, // End point X
       size.height - 50, // End point Y
     );
-    
+
     path.lineTo(size.width, 0);
     path.close();
     return path;
@@ -1140,7 +1150,9 @@ class _CreateClassTile extends StatelessWidget {
     final theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
     final Color surface = isDark ? const Color(0xFF0E0F12) : Colors.white;
-    final Color border = theme.dividerColor.withValues(alpha: isDark ? 0.3 : 0.2);
+    final Color border = theme.dividerColor.withValues(
+      alpha: isDark ? 0.3 : 0.2,
+    );
     final Color subtitle = theme.colorScheme.onSurface.withValues(alpha: 0.65);
 
     return Material(
@@ -1172,7 +1184,11 @@ class _CreateClassTile extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                   color: _whatsAppGreen.withValues(alpha: 0.12),
                 ),
-                child: const Icon(Icons.group_add_outlined, size: 28, color: _whatsAppDarkGreen),
+                child: const Icon(
+                  Icons.group_add_outlined,
+                  size: 28,
+                  color: _whatsAppDarkGreen,
+                ),
               ),
               const SizedBox(width: 20),
               Expanded(
@@ -1188,12 +1204,18 @@ class _CreateClassTile extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       'Invite members, share tweets, and attach PDF resources.',
-                      style: theme.textTheme.bodyMedium?.copyWith(color: subtitle),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: subtitle,
+                      ),
                     ),
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right, size: 32, color: _whatsAppDarkGreen.withValues(alpha: 0.7)),
+              Icon(
+                Icons.chevron_right,
+                size: 32,
+                color: _whatsAppDarkGreen.withValues(alpha: 0.7),
+              ),
             ],
           ),
         ),
@@ -1211,7 +1233,9 @@ class _JoinClassTile extends StatelessWidget {
     final theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
     final Color surface = isDark ? const Color(0xFF0E0F12) : Colors.white;
-    final Color border = theme.dividerColor.withValues(alpha: isDark ? 0.3 : 0.2);
+    final Color border = theme.dividerColor.withValues(
+      alpha: isDark ? 0.3 : 0.2,
+    );
     final Color subtitle = theme.colorScheme.onSurface.withValues(alpha: 0.65);
     return Material(
       color: Colors.transparent,
@@ -1242,20 +1266,38 @@ class _JoinClassTile extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                   color: _whatsAppGreen.withValues(alpha: 0.12),
                 ),
-                child: const Icon(Icons.qr_code_2_rounded, size: 28, color: _whatsAppDarkGreen),
+                child: const Icon(
+                  Icons.qr_code_2_rounded,
+                  size: 28,
+                  color: _whatsAppDarkGreen,
+                ),
               ),
               const SizedBox(width: 20),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(S.joinByCodeTitle, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+                    Text(
+                      S.joinByCodeTitle,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                     const SizedBox(height: 6),
-                    Text(S.joinByCodeSubtitle, style: theme.textTheme.bodyMedium?.copyWith(color: subtitle)),
+                    Text(
+                      S.joinByCodeSubtitle,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: subtitle,
+                      ),
+                    ),
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right, size: 32, color: _whatsAppDarkGreen.withValues(alpha: 0.7)),
+              Icon(
+                Icons.chevron_right,
+                size: 32,
+                color: _whatsAppDarkGreen.withValues(alpha: 0.7),
+              ),
             ],
           ),
         ),
@@ -1275,8 +1317,14 @@ Future<String?> _promptForInviteCode(BuildContext context) async {
         decoration: const InputDecoration(hintText: 'e.g. AB23YZ'),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.of(ctx).pop(), child: Text(S.cancel)),
-        FilledButton(onPressed: () => Navigator.of(ctx).pop(controller.text.trim()), child: Text(S.join)),
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: Text(S.cancel),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
+          child: Text(S.join),
+        ),
       ],
     ),
   );
@@ -1295,13 +1343,15 @@ class _ModernCollegeCard extends StatelessWidget {
     // Colors based on dark/light variant
     final backgroundColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black;
-    final subtleTextColor = isDark 
-        ? Colors.white.withValues(alpha: 0.6) 
+    final subtleTextColor = isDark
+        ? Colors.white.withValues(alpha: 0.6)
         : Colors.black.withValues(alpha: 0.5);
-    final pillBgColor = isDark 
-        ? Colors.white.withValues(alpha: 0.12) 
+    final pillBgColor = isDark
+        ? Colors.white.withValues(alpha: 0.12)
         : const Color(0xFFF0F0F0);
-    final accentColor = const Color(0xFF7DD3E8); // Light cyan/teal for play button
+    final accentColor = const Color(
+      0xFF7DD3E8,
+    ); // Light cyan/teal for play button
 
     return GestureDetector(
       onTap: () {
@@ -1314,9 +1364,9 @@ class _ModernCollegeCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: backgroundColor,
           borderRadius: BorderRadius.circular(20),
-          border: isDark ? null : Border.all(
-            color: Colors.grey.withValues(alpha: 0.2),
-          ),
+          border: isDark
+              ? null
+              : Border.all(color: Colors.grey.withValues(alpha: 0.2)),
           boxShadow: [
             if (!isDark)
               BoxShadow(
@@ -1348,10 +1398,7 @@ class _ModernCollegeCard extends StatelessWidget {
               college.facilitator.split('•').first.trim(),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: subtleTextColor,
-                fontSize: 12,
-              ),
+              style: TextStyle(color: subtleTextColor, fontSize: 12),
             ),
             const SizedBox(height: 24),
             // Bottom row with schedule and play button
@@ -1360,8 +1407,10 @@ class _ModernCollegeCard extends StatelessWidget {
                 // Schedule pill
                 Expanded(
                   child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: pillBgColor,
                       borderRadius: BorderRadius.circular(18),
@@ -1403,6 +1452,7 @@ class _ModernCollegeCard extends StatelessWidget {
     );
   }
 }
+
 class _CollegeCard extends StatelessWidget {
   const _CollegeCard({required this.college});
 
@@ -1414,7 +1464,9 @@ class _CollegeCard extends StatelessWidget {
     final textTheme = theme.textTheme;
     final bool isDark = theme.brightness == Brightness.dark;
     final Color surface = isDark ? const Color(0xFF0E0F12) : Colors.white;
-    final Color border = theme.dividerColor.withValues(alpha: isDark ? 0.3 : 0.2);
+    final Color border = theme.dividerColor.withValues(
+      alpha: isDark ? 0.3 : 0.2,
+    );
     return GestureDetector(
       onTap: () {
         Navigator.of(context).push(
@@ -1436,41 +1488,49 @@ class _CollegeCard extends StatelessWidget {
           ],
         ),
         padding: const EdgeInsets.all(24),
-        
-child: Row(
-  children: [
-    Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            college.name,
-            style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            college.facilitator,
-            style: textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              const Icon(CupertinoIcons.person_2, size: 16, color: Color(0xFF475569)),
-              const SizedBox(width: 6),
-              Text(
-                '\${college.members} students',
-                style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    college.name,
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    college.facilitator,
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Icon(
+                        CupertinoIcons.person_2,
+                        size: 16,
+                        color: Color(0xFF475569),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '\${college.members} students',
+                        style: textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ],
-          ),
-        ],
-      ),
-    ),
-    const Icon(Icons.chevron_right, size: 28),
-  ],
-),
+            ),
+            const Icon(Icons.chevron_right, size: 28),
+          ],
+        ),
       ),
     );
   }
@@ -1519,8 +1579,9 @@ class _CreateClassPageState extends State<_CreateClassPage> {
     final String code = codeRaw.isEmpty
         ? name.replaceAll(RegExp(r'\s+'), '').toUpperCase()
         : codeRaw.toUpperCase();
-    final String facilitator =
-        _facilitator.text.trim().isEmpty ? 'Admin' : _facilitator.text.trim();
+    final String facilitator = _facilitator.text.trim().isEmpty
+        ? 'Admin'
+        : _facilitator.text.trim();
 
     final College result = College(
       name: name,
@@ -1540,7 +1601,12 @@ class _CreateClassPageState extends State<_CreateClassPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    const List<String> stepTitles = ['Basics', 'Privacy & roles', 'Features', 'Review'];
+    const List<String> stepTitles = [
+      'Basics',
+      'Privacy & roles',
+      'Features',
+      'Review',
+    ];
 
     return Scaffold(
       appBar: AppBar(title: const Text('Create a class')),
@@ -1575,7 +1641,9 @@ class _CreateClassPageState extends State<_CreateClassPage> {
                                   if (i <= _step)
                                     Positioned.fill(
                                       child: Padding(
-                                        padding: const EdgeInsets.only(left: 12),
+                                        padding: const EdgeInsets.only(
+                                          left: 12,
+                                        ),
                                         child: Align(
                                           alignment: Alignment.centerLeft,
                                           child: Container(
@@ -1589,18 +1657,33 @@ class _CreateClassPageState extends State<_CreateClassPage> {
                                     children: [
                                       GestureDetector(
                                         onTap: () => setState(() => _step = i),
-                                        child: _StepDot(active: i == _step, label: '${i + 1}', size: 24, dimmed: i > _step),
+                                        child: _StepDot(
+                                          active: i == _step,
+                                          label: '${i + 1}',
+                                          size: 24,
+                                          dimmed: i > _step,
+                                        ),
                                       ),
                                       const SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
                                           stepTitles[i],
-                                          style: theme.textTheme.bodyMedium?.copyWith(
-                                            fontWeight: i == _step ? FontWeight.w700 : FontWeight.w600,
-                                            color: i > _step
-                                                ? Colors.black45
-                                                : theme.colorScheme.onSurface.withValues(alpha: i == _step ? 1.0 : 0.85),
-                                          ),
+                                          style: theme.textTheme.bodyMedium
+                                              ?.copyWith(
+                                                fontWeight: i == _step
+                                                    ? FontWeight.w700
+                                                    : FontWeight.w600,
+                                                color: i > _step
+                                                    ? Colors.black45
+                                                    : theme
+                                                          .colorScheme
+                                                          .onSurface
+                                                          .withValues(
+                                                            alpha: i == _step
+                                                                ? 1.0
+                                                                : 0.85,
+                                                          ),
+                                              ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
@@ -1696,7 +1779,9 @@ class _CreateClassStepContent extends StatelessWidget {
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.25)),
+          border: Border.all(
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.25),
+          ),
         ),
         child: child,
       );
@@ -1707,7 +1792,9 @@ class _CreateClassStepContent extends StatelessWidget {
       children: [
         Text(
           stepTitles[step],
-          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
         ),
         const SizedBox(height: 12),
         if (step == 0) ...[
@@ -1718,23 +1805,41 @@ class _CreateClassStepContent extends StatelessWidget {
                   isDense: true,
                   filled: true,
                   fillColor: theme.colorScheme.surface,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                  labelStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
-                  floatingLabelStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.w700),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 14,
+                  ),
+                  labelStyle: const TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  floatingLabelStyle: const TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.w700,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Theme.of(context).dividerColor),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).dividerColor,
+                    ),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Theme.of(context).dividerColor),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).dividerColor,
+                    ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.black, width: 1.8),
+                    borderSide: const BorderSide(
+                      color: Colors.black,
+                      width: 1.8,
+                    ),
                   ),
                 ),
-                textSelectionTheme: const TextSelectionThemeData(cursorColor: Colors.black),
+                textSelectionTheme: const TextSelectionThemeData(
+                  cursorColor: Colors.black,
+                ),
               ),
               child: LayoutBuilder(
                 builder: (context, inner) {
@@ -1751,9 +1856,13 @@ class _CreateClassStepContent extends StatelessWidget {
                             controller: name,
                             textInputAction: TextInputAction.next,
                             textCapitalization: TextCapitalization.words,
-                            decoration: const InputDecoration(labelText: 'Class name'),
+                            decoration: const InputDecoration(
+                              labelText: 'Class name',
+                            ),
                             style: const TextStyle(color: Colors.black),
-                            validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter a class name' : null,
+                            validator: (v) => (v == null || v.trim().isEmpty)
+                                ? 'Enter a class name'
+                                : null,
                           ),
                         ),
                         SizedBox(
@@ -1762,7 +1871,9 @@ class _CreateClassStepContent extends StatelessWidget {
                             controller: code,
                             textInputAction: TextInputAction.next,
                             textCapitalization: TextCapitalization.characters,
-                            decoration: const InputDecoration(labelText: 'Code (optional)'),
+                            decoration: const InputDecoration(
+                              labelText: 'Code (optional)',
+                            ),
                             style: const TextStyle(color: Colors.black),
                           ),
                         ),
@@ -1772,7 +1883,9 @@ class _CreateClassStepContent extends StatelessWidget {
                             controller: facilitator,
                             textInputAction: TextInputAction.next,
                             textCapitalization: TextCapitalization.words,
-                            decoration: const InputDecoration(labelText: 'Facilitator (optional)'),
+                            decoration: const InputDecoration(
+                              labelText: 'Facilitator (optional)',
+                            ),
                             style: const TextStyle(color: Colors.black),
                           ),
                         ),
@@ -1782,7 +1895,9 @@ class _CreateClassStepContent extends StatelessWidget {
                             controller: description,
                             maxLines: 3,
                             textInputAction: TextInputAction.done,
-                            decoration: const InputDecoration(labelText: 'Description (optional)'),
+                            decoration: const InputDecoration(
+                              labelText: 'Description (optional)',
+                            ),
                             style: const TextStyle(color: Colors.black),
                           ),
                         ),
@@ -1796,16 +1911,22 @@ class _CreateClassStepContent extends StatelessWidget {
                         controller: name,
                         textInputAction: TextInputAction.next,
                         textCapitalization: TextCapitalization.words,
-                        decoration: const InputDecoration(labelText: 'Class name'),
+                        decoration: const InputDecoration(
+                          labelText: 'Class name',
+                        ),
                         style: const TextStyle(color: Colors.black),
-                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter a class name' : null,
+                        validator: (v) => (v == null || v.trim().isEmpty)
+                            ? 'Enter a class name'
+                            : null,
                       ),
                       const SizedBox(height: 12),
                       TextFormField(
                         controller: code,
                         textInputAction: TextInputAction.next,
                         textCapitalization: TextCapitalization.characters,
-                        decoration: const InputDecoration(labelText: 'Code (optional)'),
+                        decoration: const InputDecoration(
+                          labelText: 'Code (optional)',
+                        ),
                         style: const TextStyle(color: Colors.black),
                       ),
                       const SizedBox(height: 12),
@@ -1813,7 +1934,9 @@ class _CreateClassStepContent extends StatelessWidget {
                         controller: facilitator,
                         textInputAction: TextInputAction.next,
                         textCapitalization: TextCapitalization.words,
-                        decoration: const InputDecoration(labelText: 'Facilitator (optional)'),
+                        decoration: const InputDecoration(
+                          labelText: 'Facilitator (optional)',
+                        ),
                         style: const TextStyle(color: Colors.black),
                       ),
                       const SizedBox(height: 12),
@@ -1821,7 +1944,9 @@ class _CreateClassStepContent extends StatelessWidget {
                         controller: description,
                         maxLines: 3,
                         textInputAction: TextInputAction.done,
-                        decoration: const InputDecoration(labelText: 'Description (optional)'),
+                        decoration: const InputDecoration(
+                          labelText: 'Description (optional)',
+                        ),
                         style: const TextStyle(color: Colors.black),
                       ),
                     ],
@@ -1831,11 +1956,31 @@ class _CreateClassStepContent extends StatelessWidget {
             ),
           ),
         ] else if (step == 1) ...[
-          SettingSwitchRow(label: 'Private class', subtitle: 'Join via invite only', value: isPrivate, onChanged: (_) {}),
-          SettingSwitchRow(label: 'Only admins can post', subtitle: 'Members can still reply', value: adminOnlyPosting, onChanged: (_) {}),
-          SettingSwitchRow(label: 'Approval required for member posts', subtitle: 'Admins receive requests to approve', value: approvalRequired, onChanged: (_) {}),
+          SettingSwitchRow(
+            label: 'Private class',
+            subtitle: 'Join via invite only',
+            value: isPrivate,
+            onChanged: (_) {},
+          ),
+          SettingSwitchRow(
+            label: 'Only admins can post',
+            subtitle: 'Members can still reply',
+            value: adminOnlyPosting,
+            onChanged: (_) {},
+          ),
+          SettingSwitchRow(
+            label: 'Approval required for member posts',
+            subtitle: 'Admins receive requests to approve',
+            value: approvalRequired,
+            onChanged: (_) {},
+          ),
         ] else if (step == 2) ...[
-          SettingSwitchRow(label: 'Allow media attachments', subtitle: 'Images and files in posts', value: allowMedia, onChanged: (_) {}),
+          SettingSwitchRow(
+            label: 'Allow media attachments',
+            subtitle: 'Images and files in posts',
+            value: allowMedia,
+            onChanged: (_) {},
+          ),
         ] else ...[
           _ReviewSummary(
             name: name.text.trim(),
@@ -1873,10 +2018,7 @@ class _CreateClassStepContent extends StatelessWidget {
                 child: Text(step == 3 ? 'Create' : 'Next'),
               ),
               const SizedBox(width: 8),
-              OutlinedButton(
-                onPressed: onBack,
-                child: const Text('Back'),
-              ),
+              OutlinedButton(onPressed: onBack, child: const Text('Back')),
             ],
           ),
       ],
@@ -1911,24 +2053,31 @@ class _ReviewSummary extends StatelessWidget {
     final textColorMuted = theme.colorScheme.onSurface.withValues(alpha: 0.75);
 
     Widget row(String label, String value) => Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                width: 140,
-                child: Text(label, style: theme.textTheme.bodyMedium?.copyWith(color: textColorMuted)),
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 140,
+            child: Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: textColorMuted,
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  value.isEmpty ? '—' : value,
-                  style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
-                ),
-              ),
-            ],
+            ),
           ),
-        );
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value.isEmpty ? '—' : value,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1968,17 +2117,20 @@ class _LibraryChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.picture_as_pdf, size: 18, color: theme.colorScheme.primary),
+          Icon(
+            Icons.picture_as_pdf,
+            size: 18,
+            color: theme.colorScheme.primary,
+          ),
           const SizedBox(width: 8),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 resource.title,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.copyWith(fontWeight: FontWeight.w700),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
               Text(
                 '${resource.fileType.toUpperCase()} • ${resource.size}',
@@ -2033,11 +2185,7 @@ class CollegeResource {
 }
 
 class LectureNote {
-  const LectureNote({
-    required this.title,
-    this.subtitle,
-    this.size,
-  });
+  const LectureNote({required this.title, this.subtitle, this.size});
 
   final String title;
   final String? subtitle; // e.g., Week 3, Chapter, or brief description
@@ -2045,7 +2193,6 @@ class LectureNote {
 }
 
 // Removed unused _TweetMessage model
-
 
 const List<_Conversation> _demoConversations = <_Conversation>[
   _Conversation(
@@ -2098,17 +2245,35 @@ const List<College> _demoColleges = <College>[
     deliveryMode: 'Hybrid cohort',
     upcomingExam: 'Mid-sem • 18 Oct',
     resources: <CollegeResource>[
-      CollegeResource(title: 'Gene Expression Slides', fileType: 'pdf', size: '3.2 MB'),
-      CollegeResource(title: 'CRISPR Lab Manual', fileType: 'pdf', size: '1.1 MB'),
+      CollegeResource(
+        title: 'Gene Expression Slides',
+        fileType: 'pdf',
+        size: '3.2 MB',
+      ),
+      CollegeResource(
+        title: 'CRISPR Lab Manual',
+        fileType: 'pdf',
+        size: '1.1 MB',
+      ),
       CollegeResource(title: 'Exam Blueprint', fileType: 'pdf', size: '820 KB'),
     ],
-    memberHandles: <String>{
-      '@year3_shift', '@osce_ready', '@skillslab'
-    },
+    memberHandles: <String>{'@year3_shift', '@osce_ready', '@skillslab'},
     lectureNotes: <LectureNote>[
-      LectureNote(title: 'Mendelian inheritance overview', subtitle: 'Week 1 notes', size: '6 pages'),
-      LectureNote(title: 'Gene regulation basics', subtitle: 'Week 2 notes', size: '9 pages'),
-      LectureNote(title: 'CRISPR: principles + ethics', subtitle: 'Seminar handout', size: '4 pages'),
+      LectureNote(
+        title: 'Mendelian inheritance overview',
+        subtitle: 'Week 1 notes',
+        size: '6 pages',
+      ),
+      LectureNote(
+        title: 'Gene regulation basics',
+        subtitle: 'Week 2 notes',
+        size: '9 pages',
+      ),
+      LectureNote(
+        title: 'CRISPR: principles + ethics',
+        subtitle: 'Seminar handout',
+        size: '4 pages',
+      ),
     ],
   ),
   College(
@@ -2119,15 +2284,25 @@ const List<College> _demoColleges = <College>[
     deliveryMode: 'Virtual classroom',
     upcomingExam: 'Mock exam • 26 Oct',
     resources: <CollegeResource>[
-      CollegeResource(title: 'Policy Case Studies', fileType: 'pdf', size: '2.5 MB'),
+      CollegeResource(
+        title: 'Policy Case Studies',
+        fileType: 'pdf',
+        size: '2.5 MB',
+      ),
       CollegeResource(title: 'Past Questions', fileType: 'pdf', size: '4.1 MB'),
     ],
-    memberHandles: <String>{
-      '@coach_amaka', '@community_rounds'
-    },
+    memberHandles: <String>{'@coach_amaka', '@community_rounds'},
     lectureNotes: <LectureNote>[
-      LectureNote(title: 'Arms of government', subtitle: 'Introductory lecture', size: '8 pages'),
-      LectureNote(title: 'Policy lifecycle', subtitle: 'Framework + examples', size: '5 pages'),
+      LectureNote(
+        title: 'Arms of government',
+        subtitle: 'Introductory lecture',
+        size: '8 pages',
+      ),
+      LectureNote(
+        title: 'Policy lifecycle',
+        subtitle: 'Framework + examples',
+        size: '5 pages',
+      ),
     ],
   ),
   College(
@@ -2138,16 +2313,29 @@ const List<College> _demoColleges = <College>[
     deliveryMode: 'On‑campus',
     upcomingExam: 'Quiz • 4 Nov',
     resources: <CollegeResource>[
-      CollegeResource(title: 'Intro to Organic Reactions', fileType: 'pdf', size: '2.1 MB'),
-      CollegeResource(title: 'Lab Safety Checklist', fileType: 'pdf', size: '940 KB'),
+      CollegeResource(
+        title: 'Intro to Organic Reactions',
+        fileType: 'pdf',
+        size: '2.1 MB',
+      ),
+      CollegeResource(
+        title: 'Lab Safety Checklist',
+        fileType: 'pdf',
+        size: '940 KB',
+      ),
     ],
-    memberHandles: <String>{
-      '@lab_group_a',
-      '@study_circle',
-    },
+    memberHandles: <String>{'@lab_group_a', '@study_circle'},
     lectureNotes: <LectureNote>[
-      LectureNote(title: 'Hydrocarbons overview', subtitle: 'Week 1 notes', size: '7 pages'),
-      LectureNote(title: 'Functional groups', subtitle: 'Week 2 notes', size: '6 pages'),
+      LectureNote(
+        title: 'Hydrocarbons overview',
+        subtitle: 'Week 1 notes',
+        size: '7 pages',
+      ),
+      LectureNote(
+        title: 'Functional groups',
+        subtitle: 'Week 2 notes',
+        size: '6 pages',
+      ),
     ],
   ),
   College(
@@ -2158,16 +2346,29 @@ const List<College> _demoColleges = <College>[
     deliveryMode: 'Lecture theatre',
     upcomingExam: 'Revision test • 12 Nov',
     resources: <CollegeResource>[
-      CollegeResource(title: 'Limits & Continuity slides', fileType: 'pdf', size: '1.8 MB'),
-      CollegeResource(title: 'Problem set – Derivatives', fileType: 'pdf', size: '600 KB'),
+      CollegeResource(
+        title: 'Limits & Continuity slides',
+        fileType: 'pdf',
+        size: '1.8 MB',
+      ),
+      CollegeResource(
+        title: 'Problem set – Derivatives',
+        fileType: 'pdf',
+        size: '600 KB',
+      ),
     ],
-    memberHandles: <String>{
-      '@calc_club',
-      '@math_helpers',
-    },
+    memberHandles: <String>{'@calc_club', '@math_helpers'},
     lectureNotes: <LectureNote>[
-      LectureNote(title: 'Introduction to limits', subtitle: 'Lecture 1', size: '5 pages'),
-      LectureNote(title: 'Derivative rules', subtitle: 'Lecture 3', size: '9 pages'),
+      LectureNote(
+        title: 'Introduction to limits',
+        subtitle: 'Lecture 1',
+        size: '5 pages',
+      ),
+      LectureNote(
+        title: 'Derivative rules',
+        subtitle: 'Lecture 3',
+        size: '9 pages',
+      ),
     ],
   ),
 ];
@@ -2319,7 +2520,8 @@ Mock exam briefing extended update: please review chapters one through five, pra
             author: '@StudyCouncil',
             handle: '@study_council',
             timeAgo: '3d ago',
-            body: 'Mid‑sem schedule posted on the portal. Lab sessions moved to Week 6.',
+            body:
+                'Mid‑sem schedule posted on the portal. Lab sessions moved to Week 6.',
             likes: 12,
             replies: 4,
             heartbreaks: 0,
@@ -2329,7 +2531,8 @@ Mock exam briefing extended update: please review chapters one through five, pra
             author: '@TutorAnika',
             handle: '@tutor_anika',
             timeAgo: '2d ago',
-            body: 'Cardio physiology slides added in Resources → Week 2. Read before lab.',
+            body:
+                'Cardio physiology slides added in Resources → Week 2. Read before lab.',
             likes: 7,
             replies: 3,
             heartbreaks: 0,
@@ -2351,7 +2554,8 @@ Mock exam briefing extended update: please review chapters one through five, pra
   Future<void> _openManageAdminsSheet(BuildContext context) async {
     final theme = Theme.of(context);
     final code = widget.college.code;
-    final List<String> members = _members.toList()..sort((a, b) => a.compareTo(b));
+    final List<String> members = _members.toList()
+      ..sort((a, b) => a.compareTo(b));
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -2374,7 +2578,12 @@ Mock exam briefing extended update: please review chapters one through five, pra
               children: [
                 Row(
                   children: [
-                    Text(S.manageAdmins, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                    Text(
+                      S.manageAdmins,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                     const Spacer(),
                     IconButton(
                       icon: const Icon(Icons.close),
@@ -2385,7 +2594,9 @@ Mock exam briefing extended update: please review chapters one through five, pra
                 const SizedBox(height: 8),
                 Flexible(
                   child: ConstrainedBox(
-                    constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.6),
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.of(ctx).size.height * 0.6,
+                    ),
                     child: ListView.separated(
                       shrinkWrap: true,
                       itemCount: members.length,
@@ -2406,7 +2617,11 @@ Mock exam briefing extended update: please review chapters one through five, pra
                                 // Prevent removing the last admin
                                 if (_admins.length <= 1 && isAdmin) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('At least one admin is required')),
+                                    const SnackBar(
+                                      content: Text(
+                                        'At least one admin is required',
+                                      ),
+                                    ),
                                   );
                                   return;
                                 }
@@ -2415,7 +2630,8 @@ Mock exam briefing extended update: please review chapters one through five, pra
                                 setState(() => _admins.add(handle));
                               }
                               await RolesService.saveAdminsFor(code, _admins);
-                              if (isSelf && !_admins.contains(_currentUserHandle)) {
+                              if (isSelf &&
+                                  !_admins.contains(_currentUserHandle)) {
                                 // If user demoted self and sheet still open, update UI
                                 setState(() {});
                               }
@@ -2445,7 +2661,8 @@ Mock exam briefing extended update: please review chapters one through five, pra
   Future<void> _openSuspendMembersSheet(BuildContext context) async {
     final theme = Theme.of(context);
     final code = widget.college.code;
-    final List<String> members = _members.toList()..sort((a, b) => a.compareTo(b));
+    final List<String> members = _members.toList()
+      ..sort((a, b) => a.compareTo(b));
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -2463,7 +2680,12 @@ Mock exam briefing extended update: please review chapters one through five, pra
               children: [
                 Row(
                   children: [
-                    Text(S.suspendMembers, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                    Text(
+                      S.suspendMembers,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                     const Spacer(),
                     IconButton(
                       icon: const Icon(Icons.close),
@@ -2474,7 +2696,9 @@ Mock exam briefing extended update: please review chapters one through five, pra
                 const SizedBox(height: 8),
                 Flexible(
                   child: ConstrainedBox(
-                    constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.6),
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.of(ctx).size.height * 0.6,
+                    ),
                     child: ListView.separated(
                       shrinkWrap: true,
                       itemCount: members.length,
@@ -2491,18 +2715,38 @@ Mock exam briefing extended update: please review chapters one through five, pra
                             children: [
                               IconButton(
                                 tooltip: 'Remove',
-                                icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent),
+                                icon: const Icon(
+                                  Icons.remove_circle_outline,
+                                  color: Colors.redAccent,
+                                ),
                                 onPressed: isSelf
                                     ? null
                                     : () async {
-                                        final ok = await showDialog<bool>(
+                                        final ok =
+                                            await showDialog<bool>(
                                               context: ctx,
                                               builder: (d) => AlertDialog(
-                                                title: const Text('Remove member?'),
-                                                content: Text('Remove $handle from this class?'),
+                                                title: const Text(
+                                                  'Remove member?',
+                                                ),
+                                                content: Text(
+                                                  'Remove $handle from this class?',
+                                                ),
                                                 actions: [
-                                                  TextButton(onPressed: () => Navigator.of(d).pop(false), child: const Text('Cancel')),
-                                                  FilledButton(onPressed: () => Navigator.of(d).pop(true), child: const Text('Remove')),
+                                                  TextButton(
+                                                    onPressed: () =>
+                                                        Navigator.of(
+                                                          d,
+                                                        ).pop(false),
+                                                    child: const Text('Cancel'),
+                                                  ),
+                                                  FilledButton(
+                                                    onPressed: () =>
+                                                        Navigator.of(
+                                                          d,
+                                                        ).pop(true),
+                                                    child: const Text('Remove'),
+                                                  ),
                                                 ],
                                               ),
                                             ) ??
@@ -2513,10 +2757,17 @@ Mock exam briefing extended update: please review chapters one through five, pra
                                           _admins.remove(handle);
                                         });
                                         await _persistMembers();
-                                        await RolesService.saveAdminsFor(code, _admins);
+                                        await RolesService.saveAdminsFor(
+                                          code,
+                                          _admins,
+                                        );
                                         if (mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(content: Text('Removed $handle')),
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text('Removed $handle'),
+                                            ),
                                           );
                                         }
                                       },
@@ -2535,6 +2786,7 @@ Mock exam briefing extended update: please review chapters one through five, pra
       },
     );
   }
+
   Future<void> _bootstrapAdmins() async {
     final code = widget.college.code;
     final saved = await RolesService.getAdminsFor(code);
@@ -2553,7 +2805,10 @@ Mock exam briefing extended update: please review chapters one through five, pra
     final code = widget.college.code;
     final saved = await MembersService.getMembersFor(code);
     if (saved.isEmpty) {
-      final initial = <String>{...widget.college.memberHandles, _currentUserHandle};
+      final initial = <String>{
+        ...widget.college.memberHandles,
+        _currentUserHandle,
+      };
       _members = initial;
       await MembersService.saveMembersFor(code, _members);
     } else {
@@ -2647,8 +2902,9 @@ Mock exam briefing extended update: please review chapters one through five, pra
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color:
-                              theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.6,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -2673,8 +2929,9 @@ Mock exam briefing extended update: please review chapters one through five, pra
                   padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
                   child: Builder(
                     builder: (context) {
-                      final TabController controller =
-                          DefaultTabController.of(context)!;
+                      final TabController controller = DefaultTabController.of(
+                        context,
+                      )!;
                       return AnimatedBuilder(
                         animation: controller.animation ?? controller,
                         builder: (context, _) {
@@ -2690,21 +2947,21 @@ Mock exam briefing extended update: please review chapters one through five, pra
                           return Container(
                             height: 40,
                             decoration: BoxDecoration(
-                              color: theme.colorScheme.surface
-                                  .withValues(alpha: 0.9),
+                              color: theme.colorScheme.surface.withValues(
+                                alpha: 0.9,
+                              ),
                               borderRadius: BorderRadius.circular(999),
                             ),
                             child: TabBar(
-                              labelStyle: theme.textTheme.labelMedium
+                              labelStyle: theme.textTheme.labelMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                fontFamily: 'Roboto',
+                              ),
+                              unselectedLabelStyle: theme.textTheme.labelMedium
                                   ?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                fontFamily: 'Roboto',
-                              ),
-                              unselectedLabelStyle:
-                                  theme.textTheme.labelMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                fontFamily: 'Roboto',
-                              ),
+                                    fontWeight: FontWeight.w700,
+                                    fontFamily: 'Roboto',
+                                  ),
                               labelColor: Colors.white,
                               unselectedLabelColor: Colors.black,
                               indicator: BoxDecoration(
@@ -2712,15 +2969,17 @@ Mock exam briefing extended update: please review chapters one through five, pra
                                 borderRadius: BorderRadius.circular(999),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: indicatorColor
-                                        .withValues(alpha: 0.25),
+                                    color: indicatorColor.withValues(
+                                      alpha: 0.25,
+                                    ),
                                     blurRadius: 8,
                                     offset: const Offset(0, 3),
                                   ),
                                 ],
                               ),
                               indicatorPadding: const EdgeInsets.symmetric(
-                                  horizontal: 4),
+                                horizontal: 4,
+                              ),
                               indicatorSize: TabBarIndicatorSize.tab,
                               dividerColor: Colors.transparent,
                               tabs: const [
@@ -2783,9 +3042,9 @@ Mock exam briefing extended update: please review chapters one through five, pra
               },
               onShare: (msg) async {
                 if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(S.useRepostToast)),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text(S.useRepostToast)));
               },
               requiresPin: _activeTopic?.requirePin ?? false,
               pinCode: _activeTopic?.pinCode,
@@ -2800,9 +3059,9 @@ Mock exam briefing extended update: please review chapters one through five, pra
                   });
                   return true;
                 }
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Incorrect PIN')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('Incorrect PIN')));
                 return false;
               },
             ),
@@ -2814,9 +3073,9 @@ Mock exam briefing extended update: please review chapters one through five, pra
               onSuspend: (h) {
                 setState(() => _members.remove(h));
                 _persistMembers();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Suspended $h')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text('Suspended $h')));
               },
             ),
           ],
@@ -2858,8 +3117,8 @@ Mock exam briefing extended update: please review chapters one through five, pra
                           Text(
                             S.classSettings,
                             style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                ),
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                           const SizedBox(width: 8),
                           FilledButton.tonalIcon(
@@ -2875,8 +3134,9 @@ Mock exam briefing extended update: please review chapters one through five, pra
                             label: const Text('Invite by code'),
                             onPressed: () async {
                               Navigator.of(ctx).pop();
-                              final code =
-                                  await InvitesService.getOrCreateCode(widget.college.code);
+                              final code = await InvitesService.getOrCreateCode(
+                                widget.college.code,
+                              );
                               if (!context.mounted) return;
                               showModalBottomSheet<void>(
                                 context: context,
@@ -2896,7 +3156,8 @@ Mock exam briefing extended update: please review chapters one through five, pra
                                     ),
                                     child: Column(
                                       mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Row(
                                           children: [
@@ -2954,8 +3215,9 @@ Mock exam briefing extended update: please review chapters one through five, pra
                                                 ClipboardData(text: code),
                                               );
                                               if (context.mounted) {
-                                                ScaffoldMessenger.of(context)
-                                                    .showSnackBar(
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
                                                   SnackBar(
                                                     content: Text(
                                                       S.inviteCodeCopied,
@@ -3058,7 +3320,10 @@ Mock exam briefing extended update: please review chapters one through five, pra
     );
   }
 
-  Future<void> _handleSubmitLectureNote(BuildContext context, String body) async {
+  Future<void> _handleSubmitLectureNote(
+    BuildContext context,
+    String body,
+  ) async {
     final text = body.trim();
     if (text.isEmpty) return;
     if (!_isCurrentUserAdmin) {
@@ -3069,7 +3334,9 @@ Mock exam briefing extended update: please review chapters one through five, pra
     }
     if (_activeTopic == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Start a lecture above before adding notes')),
+        const SnackBar(
+          content: Text('Start a lecture above before adding notes'),
+        ),
       );
       return;
     }
@@ -3100,7 +3367,10 @@ Mock exam briefing extended update: please review chapters one through five, pra
           decoration: const InputDecoration(hintText: '@handle'),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             onPressed: () {
               String h = controller.text.trim();
@@ -3109,9 +3379,9 @@ Mock exam briefing extended update: please review chapters one through five, pra
               setState(() => _members.add(h));
               _persistMembers();
               Navigator.of(ctx).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Added $h')),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text('Added $h')));
             },
             child: const Text('Add'),
           ),
@@ -3127,14 +3397,17 @@ Mock exam briefing extended update: please review chapters one through five, pra
         title: const Text('Exit class?'),
         content: const Text('You will stop receiving updates from this class.'),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             onPressed: () {
               Navigator.of(ctx).pop();
               Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Exited class')),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('Exited class')));
             },
             child: const Text('Exit'),
           ),
@@ -3166,7 +3439,13 @@ class _ClassFeedTab extends StatefulWidget {
   final ClassTopic? activeTopic;
   final ValueChanged<String> onSend;
   final Future<void> Function(_ClassMessage message) onShare;
-  final void Function(String course, String tutor, String topic, _TopicSettings settings) onStartLecture;
+  final void Function(
+    String course,
+    String tutor,
+    String topic,
+    _TopicSettings settings,
+  )
+  onStartLecture;
   final VoidCallback onArchiveTopic;
   final bool isAdmin;
   final _ClassSettings settings;
@@ -3200,9 +3479,7 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
     setState(() {
       _visibleNotes = _classNotes.isEmpty
           ? 0
-          : (_classNotes.length < _pageSize
-              ? _classNotes.length
-              : _pageSize);
+          : (_classNotes.length < _pageSize ? _classNotes.length : _pageSize);
     });
   }
 
@@ -3213,7 +3490,9 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
       final int minNeeded = widget.notes.isEmpty ? 0 : _pageSize;
       _visibleNotes = _visibleNotes.clamp(minNeeded, widget.notes.length);
       if (_visibleNotes == 0 && widget.notes.isNotEmpty) {
-        _visibleNotes = widget.notes.length < _pageSize ? widget.notes.length : _pageSize;
+        _visibleNotes = widget.notes.length < _pageSize
+            ? widget.notes.length
+            : _pageSize;
       }
     }
   }
@@ -3244,9 +3523,7 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Delete'),
           ),
         ],
@@ -3258,9 +3535,9 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
     });
     await _saveNotesForCollege(widget.college.code);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Lecture note deleted')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Lecture note deleted')));
   }
 
   @override
@@ -3283,64 +3560,64 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
             children: [
-            // Class discussion label sits above the lecture CTA so
-            // both the create button and cards feel grouped under it.
-            Text(
-              S.classDiscussion,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
+              // Class discussion label sits above the lecture CTA so
+              // both the create button and cards feel grouped under it.
+              Text(
+                S.classDiscussion,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            if (widget.activeTopic == null && widget.isAdmin) ...[
-              Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: _ClassActionCard(
-                      title: 'Create lecture note',
-                      backgroundColor: _whatsAppGreen.withValues(alpha: 0.15),
-                      playIconColor: _whatsAppTeal,
-                      onTap: () async {
-                        final summary =
-                            await Navigator.of(context).push<ClassNoteSummary>(
-                          MaterialPageRoute(
-                            builder: (_) => _LectureSetupPage(
-                              college: widget.college,
-                              onStartLecture: widget.onStartLecture,
+              const SizedBox(height: 12),
+              if (widget.activeTopic == null && widget.isAdmin) ...[
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: _ClassActionCard(
+                        title: 'Create lecture note',
+                        backgroundColor: _whatsAppGreen.withValues(alpha: 0.15),
+                        playIconColor: _whatsAppTeal,
+                        onTap: () async {
+                          final summary = await Navigator.of(context)
+                              .push<ClassNoteSummary>(
+                                MaterialPageRoute(
+                                  builder: (_) => _LectureSetupPage(
+                                    college: widget.college,
+                                    onStartLecture: widget.onStartLecture,
+                                  ),
+                                ),
+                              );
+                          if (summary != null && mounted) {
+                            setState(() {
+                              _classNotes.insert(0, summary);
+                            });
+                            await _saveNotesForCollege(widget.college.code);
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: _ClassActionCard(
+                        title: 'Quiz',
+                        backgroundColor: _whatsAppGreen.withValues(alpha: 0.15),
+                        playIconColor: _whatsAppTeal,
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const QuizHubScreen(),
                             ),
-                          ),
-                        );
-                        if (summary != null && mounted) {
-                          setState(() {
-                            _classNotes.insert(0, summary);
-                          });
-                          await _saveNotesForCollege(widget.college.code);
-                        }
-                      },
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 2,
-                    child: _ClassActionCard(
-                      title: 'Quiz',
-                      backgroundColor: _whatsAppGreen.withValues(alpha: 0.15),
-                      playIconColor: _whatsAppTeal,
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const QuizHubScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ] else
-              const SizedBox.shrink(),
-            const SizedBox(height: 12),
+                  ],
+                ),
+              ] else
+                const SizedBox.shrink(),
+              const SizedBox(height: 12),
               if (widget.activeTopic != null) ...[
                 if (widget.requiresPin && !widget.unlocked)
                   _PinGateCard(
@@ -3355,9 +3632,7 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
               if (_classNotes.isEmpty) ...[
                 Text(
                   'Class notes you create will appear here.',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: subtle,
-                  ),
+                  style: theme.textTheme.bodySmall?.copyWith(color: subtle),
                 ),
                 const SizedBox(height: 4),
               ] else ...[
@@ -3382,9 +3657,7 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
                           _libraryNotes.insert(0, note);
                           _saveNotesForCollege(widget.college.code);
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Moved to Library'),
-                            ),
+                            const SnackBar(content: Text('Moved to Library')),
                           );
                         },
                         onDelete: () {
@@ -3499,10 +3772,7 @@ class _ClassActionCard extends StatelessWidget {
                   color: Colors.white,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  Icons.play_arrow_rounded,
-                  color: playIconColor,
-                ),
+                child: Icon(Icons.play_arrow_rounded, color: playIconColor),
               ),
             ],
           ),
@@ -3517,7 +3787,13 @@ class _ClassActionCard extends StatelessWidget {
 
 class _StartLectureCard extends StatefulWidget {
   const _StartLectureCard({required this.onStart});
-  final void Function(String course, String tutor, String topic, _TopicSettings settings) onStart;
+  final void Function(
+    String course,
+    String tutor,
+    String topic,
+    _TopicSettings settings,
+  )
+  onStart;
   @override
   State<_StartLectureCard> createState() => _StartLectureCardState();
 }
@@ -3532,8 +3808,13 @@ class _LectureSetupPage extends StatelessWidget {
   });
 
   final College college;
-  final void Function(String course, String tutor, String topic, _TopicSettings settings)
-      onStartLecture;
+  final void Function(
+    String course,
+    String tutor,
+    String topic,
+    _TopicSettings settings,
+  )
+  onStartLecture;
 
   @override
   Widget build(BuildContext context) {
@@ -3623,14 +3904,15 @@ class _LectureSetupPage extends StatelessWidget {
                     // Notify parent to mark the topic as active
                     onStartLecture(course, tutor, topic, settings);
                     // Then take the user straight into the note creation flow
-                    final summary = await Navigator.of(context).push<ClassNoteSummary>(
-                      MaterialPageRoute(
-                        builder: (_) => TeacherNoteCreationScreen(
-                          topic: topic,
-                          subtitle: tutor.isNotEmpty ? tutor : course,
-                        ),
-                      ),
-                    );
+                    final summary = await Navigator.of(context)
+                        .push<ClassNoteSummary>(
+                          MaterialPageRoute(
+                            builder: (_) => TeacherNoteCreationScreen(
+                              topic: topic,
+                              subtitle: tutor.isNotEmpty ? tutor : course,
+                            ),
+                          ),
+                        );
                     if (!context.mounted) return;
                     Navigator.of(context).pop<ClassNoteSummary>(summary);
                   },
@@ -3646,16 +3928,15 @@ class _LectureSetupPage extends StatelessWidget {
 
 /// Boxed lecture setup form that mirrors the "Create Lecture" note style.
 class _LectureSetupForm extends StatefulWidget {
-  const _LectureSetupForm({
-    required this.onSubmit,
-  });
+  const _LectureSetupForm({required this.onSubmit});
 
   final void Function(
     String course,
     String tutor,
     String topic,
     _TopicSettings settings,
-  ) onSubmit;
+  )
+  onSubmit;
 
   @override
   State<_LectureSetupForm> createState() => _LectureSetupFormState();
@@ -3792,9 +4073,7 @@ class _LectureSetupFormState extends State<_LectureSetupForm> {
     if (date == null) return;
     final time = await _pickTimeSheet(
       context,
-      TimeOfDay.fromDateTime(
-        now.add(const Duration(hours: 1)),
-      ),
+      TimeOfDay.fromDateTime(now.add(const Duration(hours: 1))),
     );
     if (time == null) return;
     setState(() {
@@ -3830,10 +4109,7 @@ class _LectureSetupFormState extends State<_LectureSetupForm> {
       isDense: true,
       filled: true,
       fillColor: theme.colorScheme.surface,
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 12,
-        vertical: 14,
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
       labelStyle: const TextStyle(
         color: Colors.black,
         fontWeight: FontWeight.w600,
@@ -3852,10 +4128,7 @@ class _LectureSetupFormState extends State<_LectureSetupForm> {
       ),
       focusedBorder: const OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(12)),
-        borderSide: BorderSide(
-          color: Colors.black,
-          width: 1.8,
-        ),
+        borderSide: BorderSide(color: Colors.black, width: 1.8),
       ),
     );
 
@@ -3868,10 +4141,7 @@ class _LectureSetupFormState extends State<_LectureSetupForm> {
           Padding(
             padding: const EdgeInsets.only(bottom: 16),
             child: Center(
-              child: _StepRailMini(
-                activeIndex: _step,
-                steps: const ['1', '2'],
-              ),
+              child: _StepRailMini(activeIndex: _step, steps: const ['1', '2']),
             ),
           ),
           if (_step == 0) ...[
@@ -3912,8 +4182,9 @@ class _LectureSetupFormState extends State<_LectureSetupForm> {
                         hintText: 'e.g., Biology 401 · Genetics',
                       ),
                       style: const TextStyle(color: Colors.black),
-                      validator: (v) =>
-                          v == null || v.trim().isEmpty ? 'Enter course name' : null,
+                      validator: (v) => v == null || v.trim().isEmpty
+                          ? 'Enter course name'
+                          : null,
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
@@ -4024,14 +4295,12 @@ class _LectureSetupFormState extends State<_LectureSetupForm> {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      Text(
-                        'Auto-archive',
-                        style: theme.textTheme.bodyMedium,
-                      ),
+                      Text('Auto-archive', style: theme.textTheme.bodyMedium),
                       const Spacer(),
                       if (_autoArchiveAt != null)
                         TextButton(
-                          onPressed: () => setState(() => _autoArchiveAt = null),
+                          onPressed: () =>
+                              setState(() => _autoArchiveAt = null),
                           child: const Text('Remove'),
                         ),
                     ],
@@ -4121,7 +4390,9 @@ class _StartLectureCardState extends State<_StartLectureCard> {
     final theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
     final Color surface = isDark ? const Color(0xFF0F1114) : Colors.white;
-    final Color border = theme.dividerColor.withValues(alpha: isDark ? 0.28 : 0.18);
+    final Color border = theme.dividerColor.withValues(
+      alpha: isDark ? 0.28 : 0.18,
+    );
     final Color meta = theme.colorScheme.onSurface.withValues(alpha: 0.65);
 
     return Container(
@@ -4136,7 +4407,12 @@ class _StartLectureCardState extends State<_StartLectureCard> {
         children: [
           Row(
             children: [
-              Text('Start a lecture', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+              Text(
+                'Start a lecture',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               const SizedBox(width: 12),
               _StepRailMini(activeIndex: _step, steps: const ['1', '2']),
               const Spacer(),
@@ -4162,7 +4438,9 @@ class _StartLectureCardState extends State<_StartLectureCard> {
                 controller: _tutor,
                 style: const TextStyle(fontSize: 16, color: Colors.black),
                 cursorColor: Colors.black,
-                decoration: const InputDecoration(labelText: 'Tutor name (optional)'),
+                decoration: const InputDecoration(
+                  labelText: 'Tutor name (optional)',
+                ),
                 onChanged: (_) => setState(() {}),
               ),
               const SizedBox(height: 8),
@@ -4172,7 +4450,9 @@ class _StartLectureCardState extends State<_StartLectureCard> {
                 cursorColor: Colors.black,
                 decoration: const InputDecoration(labelText: 'Topic'),
                 onChanged: (_) => setState(() {}),
-                onSubmitted: (_) { if (_canStart) setState(() => _step = 1); },
+                onSubmitted: (_) {
+                  if (_canStart) setState(() => _step = 1);
+                },
               ),
               const SizedBox(height: 12),
               Row(
@@ -4188,8 +4468,13 @@ class _StartLectureCardState extends State<_StartLectureCard> {
                   ),
                   const SizedBox(width: 12),
                   FilledButton(
-                    style: FilledButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white),
-                    onPressed: _canStart ? () => setState(() => _step = 1) : null,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: _canStart
+                        ? () => setState(() => _step = 1)
+                        : null,
                     child: const Text('Next'),
                   ),
                 ],
@@ -4226,14 +4511,19 @@ class _StartLectureCardState extends State<_StartLectureCard> {
                   Text('Date/time', style: theme.textTheme.bodyMedium),
                   if (_autoArchiveAt != null) ...[
                     const SizedBox(height: 6),
-                    Text(_autoArchiveAt!.toString(), style: theme.textTheme.bodySmall),
+                    Text(
+                      _autoArchiveAt!.toString(),
+                      style: theme.textTheme.bodySmall,
+                    ),
                   ],
                   const SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
                         child: OutlinedButton(
-                          style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(0, 44),
+                          ),
                           onPressed: () async {
                             final now = DateTime.now();
                             final date = await showDatePicker(
@@ -4245,10 +4535,18 @@ class _StartLectureCardState extends State<_StartLectureCard> {
                             if (date == null) return;
                             final time = await showTimePicker(
                               context: context,
-                              initialTime: TimeOfDay.fromDateTime(now.add(const Duration(hours: 1))),
+                              initialTime: TimeOfDay.fromDateTime(
+                                now.add(const Duration(hours: 1)),
+                              ),
                             );
                             if (time == null) return;
-                            final dt = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+                            final dt = DateTime(
+                              date.year,
+                              date.month,
+                              date.day,
+                              time.hour,
+                              time.minute,
+                            );
                             setState(() => _autoArchiveAt = dt);
                           },
                           child: const Text('Date/time'),
@@ -4257,8 +4555,11 @@ class _StartLectureCardState extends State<_StartLectureCard> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: OutlinedButton(
-                          style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
-                          onPressed: () => setState(() => _autoArchiveAt = null),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(0, 44),
+                          ),
+                          onPressed: () =>
+                              setState(() => _autoArchiveAt = null),
                           child: const Text('Clear'),
                         ),
                       ),
@@ -4273,9 +4574,14 @@ class _StartLectureCardState extends State<_StartLectureCard> {
                 gap: 8,
                 children: [
                   OutlinedButton(
-                    style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40)),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 40),
+                    ),
                     onPressed: () => setState(() => _step = 0),
-                    child: const FittedBox(fit: BoxFit.scaleDown, child: Text('Back', maxLines: 1)),
+                    child: const FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text('Back', maxLines: 1),
+                    ),
                   ),
                   FilledButton(
                     style: FilledButton.styleFrom(
@@ -4285,18 +4591,21 @@ class _StartLectureCardState extends State<_StartLectureCard> {
                     ),
                     onPressed: _canStart
                         ? () => widget.onStart(
-                              _course.text.trim(),
-                              _tutor.text.trim(),
-                              _topic.text.trim(),
-                              _TopicSettings(
-                                privateLecture: _privateLecture,
-                                requirePin: _requirePin,
-                                pinCode: _requirePin ? _pin.text.trim() : null,
-                                autoArchiveAt: _autoArchiveAt,
-                              ),
-                            )
+                            _course.text.trim(),
+                            _tutor.text.trim(),
+                            _topic.text.trim(),
+                            _TopicSettings(
+                              privateLecture: _privateLecture,
+                              requirePin: _requirePin,
+                              pinCode: _requirePin ? _pin.text.trim() : null,
+                              autoArchiveAt: _autoArchiveAt,
+                            ),
+                          )
                         : null,
-                    child: const FittedBox(fit: BoxFit.scaleDown, child: Text('Start', maxLines: 1)),
+                    child: const FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text('Start', maxLines: 1),
+                    ),
                   ),
                 ],
               ),
@@ -4324,8 +4633,12 @@ class _TopicFeedListState extends State<_TopicFeedList> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final data = context.watch<DataService>();
-    final posts = data.posts.where((p) => p.tags.contains(widget.topic.topicTag)).toList();
-    final initial = posts.isEmpty ? 0 : (posts.length < _pageSize ? posts.length : _pageSize);
+    final posts = data.posts
+        .where((p) => p.tags.contains(widget.topic.topicTag))
+        .toList();
+    final initial = posts.isEmpty
+        ? 0
+        : (posts.length < _pageSize ? posts.length : _pageSize);
     if (_visible == 0 && initial != 0) {
       _visible = initial;
     } else if (_visible > posts.length) {
@@ -4338,7 +4651,9 @@ class _TopicFeedListState extends State<_TopicFeedList> {
     setState(() => _loading = true);
     await Future<void>.delayed(const Duration(milliseconds: 250));
     final data = context.read<DataService>();
-    final posts = data.posts.where((p) => p.tags.contains(widget.topic.topicTag)).toList();
+    final posts = data.posts
+        .where((p) => p.tags.contains(widget.topic.topicTag))
+        .toList();
     final next = _visible + _pageSize;
     setState(() {
       _visible = next > posts.length ? posts.length : next;
@@ -4349,7 +4664,9 @@ class _TopicFeedListState extends State<_TopicFeedList> {
   @override
   Widget build(BuildContext context) {
     final data = context.watch<DataService>();
-    final posts = data.posts.where((p) => p.tags.contains(widget.topic.topicTag)).toList();
+    final posts = data.posts
+        .where((p) => p.tags.contains(widget.topic.topicTag))
+        .toList();
     if (posts.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -4357,7 +4674,12 @@ class _TopicFeedListState extends State<_TopicFeedList> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(S.topicNotes, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+        Text(
+          S.topicNotes,
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        ),
         const SizedBox(height: 12),
         for (final p in slice) ...[
           // Reuse the class message-style tile so the replies pill remains
@@ -4388,20 +4710,26 @@ class _TopicFeedListState extends State<_TopicFeedList> {
                           .toLowerCase();
                       if (normalized.isNotEmpty) me = '@$normalized';
                     }
-                    final toggled = await context.read<DataService>().toggleRepost(
-                          postId: p.id,
-                          userHandle: me,
-                        );
+                    final toggled = await context
+                        .read<DataService>()
+                        .toggleRepost(postId: p.id, userHandle: me);
                     if (!context.mounted) return toggled;
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(toggled ? 'Reposted to your timeline' : 'Repost removed')),
+                      SnackBar(
+                        content: Text(
+                          toggled
+                              ? 'Reposted to your timeline'
+                              : 'Repost removed',
+                        ),
+                      ),
                     );
                     return toggled;
                   },
           ),
           const SizedBox(height: 8),
         ],
-        if ((_visible == 0 && posts.length > _pageSize) || (_visible > 0 && _visible < posts.length)) ...[
+        if ((_visible == 0 && posts.length > _pageSize) ||
+            (_visible > 0 && _visible < posts.length)) ...[
           Center(
             child: SizedBox(
               width: 200,
@@ -4409,7 +4737,11 @@ class _TopicFeedListState extends State<_TopicFeedList> {
               child: OutlinedButton(
                 onPressed: _loading ? null : _loadMore,
                 child: _loading
-                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
                     : Text(S.loadMoreNotes),
               ),
             ),
@@ -4440,7 +4772,10 @@ class ClassTopic {
   final String? pinCode;
   final DateTime? autoArchiveAt;
   String get topicTag {
-    final t = topicTitle.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '_');
+    final t = topicTitle.trim().toLowerCase().replaceAll(
+      RegExp(r'[^a-z0-9]+'),
+      '_',
+    );
     return 'topic_$t';
   }
 }
@@ -4523,7 +4858,12 @@ class _PinGateCardState extends State<_PinGateCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Enter PIN to view notes', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+          Text(
+            'Enter PIN to view notes',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           const SizedBox(height: 8),
           TextField(
             controller: _code,
@@ -4535,7 +4875,10 @@ class _PinGateCardState extends State<_PinGateCard> {
           Align(
             alignment: Alignment.centerRight,
             child: FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white),
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.black,
+                foregroundColor: Colors.white,
+              ),
               onPressed: () => widget.onUnlock(_code.text.trim()),
               child: const Text('Unlock'),
             ),
@@ -4564,7 +4907,9 @@ class _StepRailVertical extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bool hasTitles = titles != null && titles!.length == steps.length;
-    final Color connectorColor = theme.colorScheme.onSurface.withValues(alpha: 0.25);
+    final Color connectorColor = theme.colorScheme.onSurface.withValues(
+      alpha: 0.25,
+    );
     const double dotSize = 24;
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -4579,17 +4924,25 @@ class _StepRailVertical extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  _StepDot(active: i == activeIndex, label: steps[i], size: dotSize),
+                  _StepDot(
+                    active: i == activeIndex,
+                    label: steps[i],
+                    size: dotSize,
+                  ),
                   if (hasTitles) ...[
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         titles![i],
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: i == activeIndex ? FontWeight.w700 : FontWeight.w600,
+                          fontWeight: i == activeIndex
+                              ? FontWeight.w700
+                              : FontWeight.w600,
                           color: i == activeIndex
                               ? theme.colorScheme.onSurface
-                              : theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                              : theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.7,
+                                ),
                         ),
                       ),
                     ),
@@ -4627,7 +4980,9 @@ class _StepRailHorizontal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final Color connectorColor = theme.colorScheme.onSurface.withValues(alpha: 0.25);
+    final Color connectorColor = theme.colorScheme.onSurface.withValues(
+      alpha: 0.25,
+    );
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -4635,7 +4990,11 @@ class _StepRailHorizontal extends StatelessWidget {
           InkWell(
             onTap: onStepTap == null ? null : () => onStepTap!(i),
             borderRadius: BorderRadius.circular(12),
-            child: _StepDot(active: i == activeIndex, label: steps[i], size: 24),
+            child: _StepDot(
+              active: i == activeIndex,
+              label: steps[i],
+              size: 24,
+            ),
           ),
           if (i < steps.length - 1)
             Container(
@@ -4676,7 +5035,12 @@ class _StepRailMini extends StatelessWidget {
 }
 
 class _StepDot extends StatelessWidget {
-  const _StepDot({required this.active, required this.label, this.size = 24, this.dimmed = false});
+  const _StepDot({
+    required this.active,
+    required this.label,
+    this.size = 24,
+    this.dimmed = false,
+  });
   final bool active;
   final String label;
   final double size;
@@ -4686,7 +5050,9 @@ class _StepDot extends StatelessWidget {
     final theme = Theme.of(context);
     final Color border = dimmed ? Colors.black26 : theme.colorScheme.onSurface;
     final Color fill = active ? Colors.black : Colors.white;
-    final Color text = active ? Colors.white : (dimmed ? Colors.black38 : Colors.black);
+    final Color text = active
+        ? Colors.white
+        : (dimmed ? Colors.black38 : Colors.black);
     return Container(
       width: size,
       height: size,
@@ -4718,13 +5084,18 @@ class _TopicDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final data = context.watch<DataService>();
-    final posts = data.posts.where((p) => p.tags.contains(topic.topicTag)).toList();
+    final posts = data.posts
+        .where((p) => p.tags.contains(topic.topicTag))
+        .toList();
     return Scaffold(
       appBar: AppBar(title: Text(topic.topicTitle)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         children: [
-          Text('${topic.courseName} • Tutor ${topic.tutorName}', style: theme.textTheme.bodyMedium),
+          Text(
+            '${topic.courseName} • Tutor ${topic.tutorName}',
+            style: theme.textTheme.bodyMedium,
+          ),
           const SizedBox(height: 8),
           for (final p in posts) ...[
             _ClassMessageTile(
@@ -4746,7 +5117,10 @@ class _TopicDetailPage extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 40),
               child: Center(
-                child: Text('No notes found for this topic', style: theme.textTheme.bodyMedium),
+                child: Text(
+                  'No notes found for this topic',
+                  style: theme.textTheme.bodyMedium,
+                ),
               ),
             ),
         ],
@@ -4801,39 +5175,89 @@ class _ClassComposerState extends State<_ClassComposer> {
 
   Future<void> _openEmojiPicker() async {
     final theme = Theme.of(context);
-    final emojis = [
-      '😀','😂','😍','😊','😉','😎','😭','😅','🤔','🙌','👍','👏','🔥','💯','🎉','🙏','🤝','🫶','📚','📝','🧪','🩺','💊','⏰','📅','📎','📌','✅','❌','⚠️',
-    ];
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: theme.colorScheme.surface,
+      isScrollControlled: false,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
         return SafeArea(
           top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
-            child: GridView.builder(
-              shrinkWrap: true,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 8,
-                mainAxisSpacing: 8,
-                crossAxisSpacing: 8,
+          child: Container(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20),
               ),
-              itemCount: emojis.length,
-              itemBuilder: (_, i) => InkWell(
-                borderRadius: BorderRadius.circular(8),
-                onTap: () {
-                  _insertEmoji(emojis[i]);
-                  Navigator.of(ctx).pop();
-                },
-                child: Center(
-                  child: Text(
-                    emojis[i],
-                    style: const TextStyle(fontSize: 22),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.16),
+                  blurRadius: 24,
+                  offset: const Offset(0, -4),
+                ),
+              ],
+            ),
+            child: EmojiPicker(
+              onEmojiSelected: (Category? category, Emoji emoji) {
+                _insertEmoji(emoji.emoji);
+                Navigator.of(ctx).pop();
+              },
+              config: Config(
+                height: 320,
+                // Avoid platform channel call for getSupportedEmojis on
+                // platforms where the plugin is not registered.
+                checkPlatformCompatibility: false,
+                // Order: search bar on top, emoji grid in middle,
+                // category bar at the very bottom like WhatsApp.
+                viewOrderConfig: const ViewOrderConfig(
+                  top: EmojiPickerItem.searchBar,
+                  middle: EmojiPickerItem.emojiView,
+                  bottom: EmojiPickerItem.categoryBar,
+                ),
+                emojiViewConfig: EmojiViewConfig(
+                  columns: 8,
+                  emojiSizeMax: 30,
+                  backgroundColor: theme.colorScheme.surface,
+                  verticalSpacing: 8,
+                  horizontalSpacing: 8,
+                  gridPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
                   ),
+                  buttonMode: ButtonMode.CUPERTINO,
+                ),
+                // Start on RECENT so frequently used emojis are shown first,
+                // then users can scroll through other categories.
+                categoryViewConfig: CategoryViewConfig(
+                  initCategory: Category.SMILEYS,
+                  recentTabBehavior: RecentTabBehavior.RECENT,
+                  backgroundColor: theme.colorScheme.surface,
+                  iconColor: theme.colorScheme.onSurface.withValues(
+                    alpha: 0.45,
+                  ),
+                  iconColorSelected: theme.colorScheme.primary,
+                  indicatorColor: theme.colorScheme.primary,
+                  backspaceColor: theme.colorScheme.primary,
+                  dividerColor: theme.dividerColor.withValues(alpha: 0.2),
+                ),
+                bottomActionBarConfig: BottomActionBarConfig(
+                  enabled: false,
+                  backgroundColor: theme.colorScheme.surface,
+                ),
+                searchViewConfig: SearchViewConfig(
+                  backgroundColor: theme.colorScheme.surface.withValues(
+                    alpha: 0.98,
+                  ),
+                  buttonIconColor: theme.colorScheme.onSurface.withValues(
+                    alpha: 0.6,
+                  ),
+                  hintText: 'Search emoji',
+                  hintTextStyle: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                  ),
+                  inputTextStyle: theme.textTheme.bodyMedium,
                 ),
               ),
             ),
@@ -4934,7 +5358,8 @@ class _ClassComposerState extends State<_ClassComposer> {
     final bool isDark = theme.brightness == Brightness.dark;
     final Color onSurface = theme.colorScheme.onSurface;
     final Color subtle = onSurface.withValues(alpha: isDark ? 0.7 : 0.55);
-    final bool showAttach = widget.controller.text.trim().isEmpty;
+    // Show the camera shortcut only when there's no text yet.
+    final bool showCamera = widget.controller.text.trim().isEmpty;
 
     final input = TextField(
       controller: widget.controller,
@@ -4946,14 +5371,17 @@ class _ClassComposerState extends State<_ClassComposer> {
       cursorColor: Colors.black,
       style: theme.textTheme.bodyLarge?.copyWith(
         color: Colors.black,
-        fontSize: 13,
-        height: 1.25,
+        fontSize: 16,
+        height: 1.35,
         letterSpacing: 0.1,
       ),
       decoration: InputDecoration(
         hintText: widget.hintText,
         isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 10,
+          vertical: 14,
+        ),
         filled: true,
         fillColor: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white,
         hintStyle: theme.textTheme.bodyLarge?.copyWith(
@@ -4962,70 +5390,69 @@ class _ClassComposerState extends State<_ClassComposer> {
           height: 1.25,
           letterSpacing: 0.1,
         ),
-        prefixIconConstraints:
-            const BoxConstraints(minWidth: 30, minHeight: 30),
+        prefixIconConstraints: const BoxConstraints(
+          minWidth: 44,
+          minHeight: 44,
+        ),
         prefixIcon: IconButton(
           tooltip: 'Emoji',
           onPressed: _openEmojiPicker,
-          icon: Icon(Icons.emoji_emotions_outlined, color: subtle, size: 18),
+          icon: Icon(Icons.emoji_emotions_outlined, color: subtle, size: 24),
           padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+          constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
           visualDensity: VisualDensity.compact,
         ),
         suffixIcon: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (showAttach)
-              IconButton(
-                tooltip: 'Attach',
-                onPressed: _openAttachMenu,
-                icon: Icon(Icons.attach_file_rounded, color: subtle, size: 18),
-                padding: EdgeInsets.zero,
-                constraints:
-                    const BoxConstraints(minWidth: 30, minHeight: 30),
-                visualDensity: VisualDensity.compact,
-              ),
             IconButton(
-              tooltip: 'Send',
-              onPressed: () {
-                widget.onSend();
-                if (_attachments.isNotEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Sent with ${_attachments.length} attachment${_attachments.length == 1 ? '' : 's'}')),
-                  );
-                  setState(() => _attachments.clear());
-                }
-              },
-              icon: Icon(
-                Icons.send_rounded,
-                color: theme.colorScheme.primary,
-                size: 18,
-              ),
+              tooltip: 'Attach',
+              onPressed: _openAttachMenu,
+              icon: Icon(Icons.attach_file_rounded, color: subtle, size: 24),
               padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
               visualDensity: VisualDensity.compact,
             ),
+            if (showCamera)
+              IconButton(
+                tooltip: 'Camera',
+                onPressed: _handleAttachImage,
+                icon: Icon(
+                  Icons.photo_camera_outlined,
+                  color: subtle,
+                  size: 24,
+                ),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                visualDensity: VisualDensity.compact,
+              ),
           ],
         ),
         // Grey rounded corners
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(24),
           borderSide: BorderSide(
-            color: theme.colorScheme.onSurface.withValues(alpha: isDark ? 0.25 : 0.18),
+            color: theme.colorScheme.onSurface.withValues(
+              alpha: isDark ? 0.25 : 0.18,
+            ),
             width: 1.0,
           ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(24),
           borderSide: BorderSide(
-            color: theme.colorScheme.onSurface.withValues(alpha: isDark ? 0.25 : 0.18),
+            color: theme.colorScheme.onSurface.withValues(
+              alpha: isDark ? 0.25 : 0.18,
+            ),
             width: 1.0,
           ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(24),
           borderSide: BorderSide(
-            color: theme.colorScheme.onSurface.withValues(alpha: isDark ? 0.35 : 0.28),
+            color: theme.colorScheme.onSurface.withValues(
+              alpha: isDark ? 0.35 : 0.28,
+            ),
             width: 1.3,
           ),
         ),
@@ -5033,10 +5460,46 @@ class _ClassComposerState extends State<_ClassComposer> {
       onSubmitted: (_) => widget.onSend(),
     );
 
-    // Keep the composer visually compact by constraining height.
+    // Standalone pill send button to the right of the input.
+    final Widget sendButton = SizedBox(
+      height: 48,
+      width: 48,
+      child: Material(
+        color: theme.colorScheme.primary,
+        borderRadius: BorderRadius.circular(999),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(999),
+          onTap: () {
+            widget.onSend();
+            if (_attachments.isNotEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Sent with ${_attachments.length} attachment${_attachments.length == 1 ? '' : 's'}',
+                  ),
+                ),
+              );
+              setState(() => _attachments.clear());
+            }
+          },
+          child: const Center(
+            child: Icon(Icons.send_rounded, color: Colors.white, size: 22),
+          ),
+        ),
+      ),
+    );
+
+    // Keep the composer at a comfortable, slightly larger height.
     final compactInput = SizedBox(
-      height: 30,
-      child: Center(child: input),
+      height: 56,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(child: input),
+          const SizedBox(width: 4),
+          sendButton,
+        ],
+      ),
     );
 
     if (_attachments.isEmpty) return compactInput;
@@ -5055,18 +5518,32 @@ class _ClassComposerState extends State<_ClassComposer> {
               if (a.isImage) {
                 preview = ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: Image.memory(a.bytes, width: 76, height: 76, fit: BoxFit.cover),
+                  child: Image.memory(
+                    a.bytes,
+                    width: 76,
+                    height: 76,
+                    fit: BoxFit.cover,
+                  ),
                 );
               } else {
                 final ext = (a.name ?? '').split('.').last.toUpperCase();
                 preview = Container(
                   width: 120,
                   height: 76,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.25)),
+                    border: Border.all(
+                      color: Theme.of(
+                        context,
+                      ).dividerColor.withValues(alpha: 0.25),
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -5082,7 +5559,10 @@ class _ClassComposerState extends State<_ClassComposer> {
                       if (ext.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(left: 6),
-                          child: Text(ext, style: const TextStyle(fontWeight: FontWeight.w700)),
+                          child: Text(
+                            ext,
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
                         ),
                     ],
                   ),
@@ -5103,7 +5583,11 @@ class _ClassComposerState extends State<_ClassComposer> {
                           color: Colors.black.withValues(alpha: 0.55),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.close, size: 16, color: Colors.white),
+                        child: const Icon(
+                          Icons.close,
+                          size: 16,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),
@@ -5163,7 +5647,9 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
     // Title-case words
     final parts = base.split(RegExp(r'\s+')).where((w) => w.isNotEmpty);
     final titled = parts
-        .map((w) => w.substring(0, 1).toUpperCase() + w.substring(1).toLowerCase())
+        .map(
+          (w) => w.substring(0, 1).toUpperCase() + w.substring(1).toLowerCase(),
+        )
         .join(' ');
     return titled.isEmpty ? base : titled;
   }
@@ -5618,15 +6104,17 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(
-                                color: theme.colorScheme.onSurface
-                                    .withValues(alpha: 0.35),
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.35,
+                                ),
                               ),
                             ),
                             child: Text(
                               'View ${message.replies} ${message.replies == 1 ? 'reply' : 'replies'}',
                               style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurface
-                                    .withValues(alpha: 0.85),
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.85,
+                                ),
                               ),
                             ),
                           ),
@@ -5659,8 +6147,7 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                                   _good += 1;
                                   _goodActive = true;
                                   if (_badActive) {
-                                    _bad =
-                                        (_bad - 1).clamp(0, 1 << 30);
+                                    _bad = (_bad - 1).clamp(0, 1 << 30);
                                     _badActive = false;
                                   }
                                 }
@@ -5675,8 +6162,8 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                               ? _ScaleTap(
                                   onTap: () async {
                                     if (widget.onRepost != null) {
-                                      final bool next =
-                                          await widget.onRepost!.call();
+                                      final bool next = await widget.onRepost!
+                                          .call();
                                       setState(() {
                                         if (_saved != next) {
                                           _reposts += next ? 1 : -1;
@@ -5695,10 +6182,10 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                                   child: LayoutBuilder(
                                     builder: (context, c) {
                                       final maxW = c.maxWidth;
-                                      final bool tight = maxW.isFinite &&
-                                          maxW < 60;
-                                      final bool ultra = maxW.isFinite &&
-                                          maxW < 38;
+                                      final bool tight =
+                                          maxW.isFinite && maxW < 60;
+                                      final bool ultra =
+                                          maxW.isFinite && maxW < 38;
                                       final String label = ultra
                                           ? 'R'
                                           : (tight ? 'Rep' : 'Repost');
@@ -5710,29 +6197,25 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                                         children: [
                                           Text(
                                             label,
-                                            style: theme
-                                                .textTheme.bodySmall
+                                            style: theme.textTheme.bodySmall
                                                 ?.copyWith(
-                                              color: _saved
-                                                  ? Colors.green
-                                                  : meta,
-                                              fontWeight:
-                                                  FontWeight.w700,
-                                            ),
+                                                  color: _saved
+                                                      ? Colors.green
+                                                      : meta,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
                                           ),
                                           SizedBox(width: gap),
                                           Text(
                                             '$_reposts',
-                                            style: theme
-                                                .textTheme.bodySmall
+                                            style: theme.textTheme.bodySmall
                                                 ?.copyWith(
-                                              fontSize: 10,
-                                              color: _saved
-                                                  ? Colors.green
-                                                  : meta,
-                                              fontWeight:
-                                                  FontWeight.w600,
-                                            ),
+                                                  fontSize: 10,
+                                                  color: _saved
+                                                      ? Colors.green
+                                                      : meta,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
                                           ),
                                         ],
                                       );
@@ -5742,10 +6225,10 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                               : LayoutBuilder(
                                   builder: (context, c) {
                                     final maxW = c.maxWidth;
-                                    final bool tight = maxW.isFinite &&
-                                        maxW < 60;
-                                    final bool ultra = maxW.isFinite &&
-                                        maxW < 38;
+                                    final bool tight =
+                                        maxW.isFinite && maxW < 60;
+                                    final bool ultra =
+                                        maxW.isFinite && maxW < 38;
                                     final String label = ultra
                                         ? 'R'
                                         : (tight ? 'Rep' : 'Repost');
@@ -5757,25 +6240,21 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                                       children: [
                                         Text(
                                           label,
-                                          style: theme
-                                              .textTheme.bodySmall
+                                          style: theme.textTheme.bodySmall
                                               ?.copyWith(
-                                            color: meta,
-                                            fontWeight:
-                                                FontWeight.w700,
-                                          ),
+                                                color: meta,
+                                                fontWeight: FontWeight.w700,
+                                              ),
                                         ),
                                         SizedBox(width: gap),
-                                       Text(
-                                         '$_reposts',
-                                         style: theme
-                                             .textTheme.bodySmall
-                                             ?.copyWith(
-                                            fontSize: 10,
-                                            color: meta,
-                                            fontWeight:
-                                                FontWeight.w600,
-                                          ),
+                                        Text(
+                                          '$_reposts',
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                                fontSize: 10,
+                                                color: meta,
+                                                fontWeight: FontWeight.w600,
+                                              ),
                                         ),
                                       ],
                                     );
@@ -5802,8 +6281,7 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                                   _bad += 1;
                                   _badActive = true;
                                   if (_goodActive) {
-                                    _good =
-                                        (_good - 1).clamp(0, 1 << 30);
+                                    _good = (_good - 1).clamp(0, 1 << 30);
                                     _goodActive = false;
                                   }
                                 }
@@ -5864,7 +6342,10 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
       if (normalized.isNotEmpty) me = '@$normalized';
     }
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => _MessageCommentsPage(message: message, currentUserHandle: me)),
+      MaterialPageRoute(
+        builder: (_) =>
+            _MessageCommentsPage(message: message, currentUserHandle: me),
+      ),
     );
   }
 }
@@ -5908,13 +6389,11 @@ class _ClassNotesCard extends StatelessWidget {
             ),
           );
         },
-          child: Container(
+        child: Container(
           decoration: BoxDecoration(
             color: whatsappGreen,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: whatsappGreen,
-            ),
+            border: Border.all(color: whatsappGreen),
             boxShadow: [
               if (!isDark)
                 BoxShadow(
@@ -5989,8 +6468,10 @@ class _ClassNotesCard extends StatelessWidget {
                       IconButton(
                         visualDensity: VisualDensity.compact,
                         padding: EdgeInsets.zero,
-                        constraints:
-                            const BoxConstraints(minWidth: 32, minHeight: 32),
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
+                        ),
                         icon: const Icon(
                           Icons.delete_outline,
                           color: Colors.white,
@@ -6003,16 +6484,16 @@ class _ClassNotesCard extends StatelessWidget {
                         onPressed: () async {
                           final updated = await Navigator.of(context)
                               .push<ClassNoteSummary>(
-                            MaterialPageRoute(
-                              builder: (_) => TeacherNoteCreationScreen(
-                                topic: summary.title,
-                                subtitle: summary.subtitle,
-                                initialSections: summary.sections,
-                                initialCreatedAt: summary.createdAt,
-                                initialCommentCount: summary.commentCount,
-                              ),
-                            ),
-                          );
+                                MaterialPageRoute(
+                                  builder: (_) => TeacherNoteCreationScreen(
+                                    topic: summary.title,
+                                    subtitle: summary.subtitle,
+                                    initialSections: summary.sections,
+                                    initialCreatedAt: summary.createdAt,
+                                    initialCommentCount: summary.commentCount,
+                                  ),
+                                ),
+                              );
                           if (updated != null &&
                               onUpdated != null &&
                               context.mounted) {
@@ -6023,7 +6504,9 @@ class _ClassNotesCard extends StatelessWidget {
                           backgroundColor: Colors.red,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 6),
+                            horizontal: 14,
+                            vertical: 6,
+                          ),
                           minimumSize: const Size(0, 0),
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           shape: RoundedRectangleBorder(
@@ -6032,9 +6515,7 @@ class _ClassNotesCard extends StatelessWidget {
                         ),
                         child: const Text(
                           'Edit',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: TextStyle(fontWeight: FontWeight.w600),
                         ),
                       ),
                     ],
@@ -6100,8 +6581,12 @@ class _ClassNotesCard extends StatelessWidget {
                   children: [
                     FilledButton.icon(
                       style: FilledButton.styleFrom(
-                        backgroundColor: inLibrary ? Colors.grey.shade300 : Colors.white,
-                        foregroundColor: inLibrary ? Colors.grey.shade700 : whatsappGreen,
+                        backgroundColor: inLibrary
+                            ? Colors.grey.shade300
+                            : Colors.white,
+                        foregroundColor: inLibrary
+                            ? Colors.grey.shade700
+                            : whatsappGreen,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 10,
@@ -6115,7 +6600,8 @@ class _ClassNotesCard extends StatelessWidget {
                           : () {
                               Navigator.of(context).push(
                                 MaterialPageRoute(
-                                  builder: (_) => ClassNoteStepperScreen(summary: summary),
+                                  builder: (_) =>
+                                      ClassNoteStepperScreen(summary: summary),
                                 ),
                               );
                             },
@@ -6143,7 +6629,9 @@ class _ClassNotesCard extends StatelessWidget {
                           ),
                           onPressed: onMoveToLibrary,
                           icon: const Icon(Icons.archive_outlined, size: 18),
-                          label: Text(inLibrary ? 'Move to Class' : 'Move to Library'),
+                          label: Text(
+                            inLibrary ? 'Move to Class' : 'Move to Library',
+                          ),
                         ),
                       ),
                     ),
@@ -6184,7 +6672,8 @@ class _LabelCountButtonState extends State<_LabelCountButton> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final Color meta = widget.color ?? theme.colorScheme.onSurface.withValues(alpha: 0.6);
+    final Color meta =
+        widget.color ?? theme.colorScheme.onSurface.withValues(alpha: 0.6);
     return AnimatedScale(
       duration: const Duration(milliseconds: 120),
       curve: Curves.easeOutCubic,
@@ -6198,7 +6687,9 @@ class _LabelCountButtonState extends State<_LabelCountButton> {
             final bool ultraTight = maxW.isFinite && maxW < 28;
             final double padH = ultraTight ? 4 : (veryTight ? 6 : 10);
             final double gap = ultraTight ? 2 : (veryTight ? 3 : 6);
-            final TextStyle? countStyle = theme.textTheme.bodySmall?.copyWith(color: meta);
+            final TextStyle? countStyle = theme.textTheme.bodySmall?.copyWith(
+              color: meta,
+            );
 
             Widget inner = Row(
               mainAxisSize: MainAxisSize.min,
@@ -6224,7 +6715,11 @@ class _LabelCountButtonState extends State<_LabelCountButton> {
             );
 
             // Scale down the row content if width becomes too tight
-            inner = FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.center, child: inner);
+            inner = FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.center,
+              child: inner,
+            );
 
             return InkWell(
               borderRadius: BorderRadius.circular(8),
@@ -6302,23 +6797,15 @@ class _EmojiReactionChip extends StatelessWidget {
     final Color fg = isHeart
         ? Colors.red
         : (isActive
-            ? theme.colorScheme.primary
-            : theme.colorScheme.onSurface.withValues(alpha: 0.8));
+              ? theme.colorScheme.primary
+              : theme.colorScheme.onSurface.withValues(alpha: 0.8));
 
     return InkWell(
       borderRadius: BorderRadius.circular(999),
       onTap: onTap,
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            emoji,
-            style: TextStyle(
-              fontSize: 14,
-              color: fg,
-            ),
-          ),
-        ],
+        children: [Text(emoji, style: TextStyle(fontSize: 14, color: fg))],
       ),
     );
   }
@@ -6327,7 +6814,10 @@ class _EmojiReactionChip extends StatelessWidget {
 // Repost now rendered as text label "repost"
 
 class _MessageCommentsPage extends StatefulWidget {
-  const _MessageCommentsPage({required this.message, required this.currentUserHandle});
+  const _MessageCommentsPage({
+    required this.message,
+    required this.currentUserHandle,
+  });
 
   final _ClassMessage message;
   final String currentUserHandle;
@@ -6352,7 +6842,8 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
         comment: const _ThreadComment(
           author: '@Naureen Ali',
           timeAgo: '14h',
-          body: "Use Google authenticator instead of recovery Gmail and no what's ths??",
+          body:
+              "Use Google authenticator instead of recovery Gmail and no what's ths??",
           likes: 1,
         ),
       ),
@@ -6484,9 +6975,19 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Selected: $count', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+            Text(
+              'Selected: $count',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
             const SizedBox(height: 8),
-            Text(preview, style: theme.textTheme.bodyMedium, maxLines: 8, overflow: TextOverflow.ellipsis),
+            Text(
+              preview,
+              style: theme.textTheme.bodyMedium,
+              maxLines: 8,
+              overflow: TextOverflow.ellipsis,
+            ),
           ],
         ),
       ),
@@ -6499,9 +7000,14 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete comments?'),
-        content: Text('This will remove ${_selected.length} selected ${_selected.length == 1 ? 'comment' : 'comments'}.'),
+        content: Text(
+          'This will remove ${_selected.length} selected ${_selected.length == 1 ? 'comment' : 'comments'}.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             onPressed: () {
               Navigator.pop(ctx);
@@ -6517,7 +7023,10 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
     );
   }
 
-  List<_ThreadNode> _filterNodes(List<_ThreadNode> nodes, Set<_ThreadNode> remove) {
+  List<_ThreadNode> _filterNodes(
+    List<_ThreadNode> nodes,
+    Set<_ThreadNode> remove,
+  ) {
     final List<_ThreadNode> out = <_ThreadNode>[];
     for (final n in nodes) {
       if (remove.contains(n)) continue;
@@ -6529,10 +7038,14 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
 
   Future<void> _forwardSelected() async {
     if (_selected.isEmpty) return;
-    final text = _selected.map((n) => '${n.comment.author}: ${n.comment.body}').join('\n\n');
+    final text = _selected
+        .map((n) => '${n.comment.author}: ${n.comment.body}')
+        .join('\n\n');
     await Clipboard.setData(ClipboardData(text: text));
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Copied selected comments')));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Copied selected comments')));
   }
 
   void _showMoreMenu() {
@@ -6663,14 +7176,17 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
                     final ThemeData theme = Theme.of(context);
                     // Make the separators around the Top / View activity bar
                     // more prominent so they clearly match the reference UI.
-                    final Color divider =
-                        theme.colorScheme.onSurface.withValues(
-                      // Slightly softer than before so the lines
-                      // are visible but not overpowering.
-                      alpha: theme.brightness == Brightness.dark ? 0.28 : 0.12,
+                    final Color divider = theme.colorScheme.onSurface
+                        .withValues(
+                          // Slightly softer than before so the lines
+                          // are visible but not overpowering.
+                          alpha: theme.brightness == Brightness.dark
+                              ? 0.28
+                              : 0.12,
+                        );
+                    final Color subtle = theme.colorScheme.onSurface.withValues(
+                      alpha: 0.6,
                     );
-                    final Color subtle = theme.colorScheme.onSurface
-                        .withValues(alpha: 0.6);
                     return Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -6688,11 +7204,11 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
                                 children: [
                                   Text(
                                     'Top',
-                                    style:
-                                        theme.textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                      color: theme.colorScheme.onSurface,
-                                    ),
+                                    style: theme.textTheme.titleMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                          color: theme.colorScheme.onSurface,
+                                        ),
                                   ),
                                   const SizedBox(width: 4),
                                   Icon(
@@ -6720,9 +7236,9 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
                                     views: 0,
                                     bookmarks: 0,
                                   );
-                                  Navigator.of(context).push(
-                                    PostActivityScreen.route(post: post),
-                                  );
+                                  Navigator.of(
+                                    context,
+                                  ).push(PostActivityScreen.route(post: post));
                                 },
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
@@ -6731,9 +7247,9 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
                                       'View activity',
                                       style: theme.textTheme.bodyMedium
                                           ?.copyWith(
-                                        color: subtle,
-                                        fontWeight: FontWeight.w500,
-                                      ),
+                                            color: subtle,
+                                            fontWeight: FontWeight.w500,
+                                          ),
                                     ),
                                     const SizedBox(width: 4),
                                     Icon(
@@ -6773,20 +7289,29 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
                       ? Colors.white.withValues(alpha: 0.06)
                       : Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: theme.dividerColor.withValues(alpha: 0.22)),
+                  border: Border.all(
+                    color: theme.dividerColor.withValues(alpha: 0.22),
+                  ),
                 ),
                 padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(width: 3, height: 40, color: theme.colorScheme.primary),
+                    Container(
+                      width: 3,
+                      height: 40,
+                      color: theme.colorScheme.primary,
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            _replyTarget!.comment.author.replaceFirst(RegExp(r'^\s*@'), ''),
+                            _replyTarget!.comment.author.replaceFirst(
+                              RegExp(r'^\s*@'),
+                              '',
+                            ),
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w800,
                               color: theme.colorScheme.onSurface,
@@ -6798,7 +7323,9 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.bodyLarge?.copyWith(
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.75,
+                              ),
                               height: 1.4,
                             ),
                           ),
@@ -6826,7 +7353,7 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
           if (_replyTarget != null || _composerVisible)
             SafeArea(
               top: false,
-              minimum: const EdgeInsets.fromLTRB(16, 2, 16, 4),
+              minimum: const EdgeInsets.fromLTRB(16, 2, 8, 4),
               child: _ClassComposer(
                 controller: _composer,
                 focusNode: _composerFocusNode,
@@ -6853,10 +7380,12 @@ class _PostActivityPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
-    final Color divider =
-        theme.dividerColor.withValues(alpha: isDark ? 0.35 : 0.2);
-    final Color subtle =
-        theme.colorScheme.onSurface.withValues(alpha: isDark ? 0.7 : 0.6);
+    final Color divider = theme.dividerColor.withValues(
+      alpha: isDark ? 0.35 : 0.2,
+    );
+    final Color subtle = theme.colorScheme.onSurface.withValues(
+      alpha: isDark ? 0.7 : 0.6,
+    );
 
     // Derive simple demo counts from the message.
     final int likes = message.likes > 0 ? message.likes : 3261;
@@ -7102,10 +7631,7 @@ class _ActivityUserTile extends StatelessWidget {
           Container(
             width: 40,
             height: 40,
-            decoration: BoxDecoration(
-              color: avatarBg,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: avatarBg, shape: BoxShape.circle),
             child: Center(
               child: Text(
                 name.isNotEmpty ? name.substring(0, 1).toUpperCase() : 'U',
@@ -7130,9 +7656,7 @@ class _ActivityUserTile extends StatelessWidget {
                 Text(
                   subtitle,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(
-                      alpha: 0.7,
-                    ),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
               ],
@@ -7142,14 +7666,11 @@ class _ActivityUserTile extends StatelessWidget {
           TextButton(
             onPressed: () {},
             style: TextButton.styleFrom(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(999),
                 side: BorderSide(
-                  color: theme.colorScheme.onSurface.withValues(
-                    alpha: 0.2,
-                  ),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
                 ),
               ),
             ),
@@ -7182,8 +7703,7 @@ class ClassDiscussionThreadPage extends StatefulWidget {
       _ClassDiscussionThreadPageState();
 }
 
-class _ClassDiscussionThreadPageState
-    extends State<ClassDiscussionThreadPage> {
+class _ClassDiscussionThreadPageState extends State<ClassDiscussionThreadPage> {
   final TextEditingController _composer = TextEditingController();
   final FocusNode _composerFocusNode = FocusNode();
   _ThreadNode? _replyTarget;
@@ -7262,9 +7782,7 @@ class _ClassDiscussionThreadPageState
     final String handle = _currentUserHandle;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Class discussion'),
-      ),
+      appBar: AppBar(title: const Text('Class discussion')),
       body: Column(
         children: [
           Padding(
@@ -7282,8 +7800,7 @@ class _ClassDiscussionThreadPageState
                 Text(
                   widget.subtitle,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface
-                        .withValues(alpha: 0.6),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               ],
@@ -7300,8 +7817,9 @@ class _ClassDiscussionThreadPageState
                     child: Text(
                       'Ask a question to start the discussion.',
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurface
-                            .withValues(alpha: 0.5),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.5,
+                        ),
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -7346,8 +7864,10 @@ class _ClassDiscussionThreadPageState
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            _replyTarget!.comment.author
-                                .replaceFirst(RegExp(r'^\s*@'), ''),
+                            _replyTarget!.comment.author.replaceFirst(
+                              RegExp(r'^\s*@'),
+                              '',
+                            ),
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w800,
                               color: theme.colorScheme.onSurface,
@@ -7359,8 +7879,9 @@ class _ClassDiscussionThreadPageState
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.bodyLarge?.copyWith(
-                              color: theme.colorScheme.onSurface
-                                  .withValues(alpha: 0.75),
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.75,
+                              ),
                               height: 1.4,
                             ),
                           ),
@@ -7403,7 +7924,9 @@ class _ClassDiscussionThreadPageState
 
 class _ThreadNode {
   _ThreadNode({required this.comment, List<_ThreadNode>? children})
-      : children = children != null ? List<_ThreadNode>.from(children) : <_ThreadNode>[];
+    : children = children != null
+          ? List<_ThreadNode>.from(children)
+          : <_ThreadNode>[];
   final _ThreadComment comment;
   final List<_ThreadNode> children;
 }
@@ -7485,10 +8008,7 @@ class _ThreadNodeTile extends StatelessWidget {
                   alignment: Alignment.topCenter,
                   child: Container(
                     width: 2,
-                    margin: EdgeInsets.only(
-                      top: 8,
-                      bottom: isLast ? 18 : 4,
-                    ),
+                    margin: EdgeInsets.only(top: 8, bottom: isLast ? 18 : 4),
                     decoration: BoxDecoration(
                       color: theme.dividerColor.withValues(
                         alpha: isDark ? 0.45 : 0.35,
@@ -7504,8 +8024,9 @@ class _ThreadNodeTile extends StatelessWidget {
                   comment: node.comment,
                   isDark: isDark,
                   currentUserHandle: currentUserHandle,
-                  onSwipeReply:
-                      selectionMode ? null : () => onReply?.call(node),
+                  onSwipeReply: selectionMode
+                      ? null
+                      : () => onReply?.call(node),
                   selected: selected.contains(node),
                   onLongPress: onToggleSelect,
                   onTap: selectionMode ? onToggleSelect : null,
@@ -7646,8 +8167,7 @@ class _CommentTileState extends State<_CommentTile> {
       ),
       isScrollControlled: false,
       builder: (BuildContext ctx) {
-        final String title =
-            '$count reaction${count == 1 ? '' : 's'}';
+        final String title = '$count reaction${count == 1 ? '' : 's'}';
         return SafeArea(
           top: false,
           child: Padding(
@@ -7715,8 +8235,9 @@ class _CommentTileState extends State<_CommentTile> {
                       return ListTile(
                         contentPadding: EdgeInsets.zero,
                         leading: CircleAvatar(
-                          backgroundColor: theme.colorScheme.primary
-                              .withValues(alpha: 0.12),
+                          backgroundColor: theme.colorScheme.primary.withValues(
+                            alpha: 0.12,
+                          ),
                           child: Text(
                             name.substring(0, 1).toUpperCase(),
                             style: theme.textTheme.bodyMedium?.copyWith(
@@ -7727,15 +8248,17 @@ class _CommentTileState extends State<_CommentTile> {
                         title: Text(
                           name,
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            fontWeight:
-                                isYou ? FontWeight.w700 : FontWeight.w500,
+                            fontWeight: isYou
+                                ? FontWeight.w700
+                                : FontWeight.w500,
                           ),
                         ),
                         subtitle: Text(
                           subtitle,
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: 0.6),
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.6,
+                            ),
                           ),
                         ),
                         trailing: Text(
@@ -7842,9 +8365,8 @@ class _CommentTileState extends State<_CommentTile> {
                                           fontSize: 26,
                                           color: emoji == '❤️'
                                               ? Colors.red
-                                              : theme
-                                                  .colorScheme.onSurface
-                                                  .withValues(alpha: 0.95),
+                                              : theme.colorScheme.onSurface
+                                                    .withValues(alpha: 0.95),
                                         ),
                                       ),
                                     ),
@@ -7865,10 +8387,12 @@ class _CommentTileState extends State<_CommentTile> {
                               shape: BoxShape.circle,
                               gradient: SweepGradient(
                                 colors: [
-                                  theme.colorScheme.primary
-                                      .withValues(alpha: 0.15),
-                                  theme.colorScheme.primary
-                                      .withValues(alpha: 0.0),
+                                  theme.colorScheme.primary.withValues(
+                                    alpha: 0.15,
+                                  ),
+                                  theme.colorScheme.primary.withValues(
+                                    alpha: 0.0,
+                                  ),
                                 ],
                               ),
                             ),
@@ -7883,8 +8407,9 @@ class _CommentTileState extends State<_CommentTile> {
                                 child: Icon(
                                   Icons.add,
                                   size: 18,
-                                  color: theme.colorScheme.onSurface
-                                      .withValues(alpha: 0.7),
+                                  color: theme.colorScheme.onSurface.withValues(
+                                    alpha: 0.7,
+                                  ),
                                 ),
                               ),
                             ),
@@ -7899,7 +8424,7 @@ class _CommentTileState extends State<_CommentTile> {
           ],
         );
       },
-	    );
+    );
 
     if (choice == '__more__') {
       choice = await _openFullEmojiSheet();
@@ -7989,8 +8514,10 @@ class _CommentTileState extends State<_CommentTile> {
                   backgroundColor: theme.colorScheme.surface,
                   verticalSpacing: 8,
                   horizontalSpacing: 8,
-                  gridPadding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  gridPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   buttonMode: ButtonMode.CUPERTINO,
                 ),
                 // Start on RECENT so frequently used emojis are shown first,
@@ -8005,22 +8532,22 @@ class _CommentTileState extends State<_CommentTile> {
                   iconColorSelected: theme.colorScheme.primary,
                   indicatorColor: theme.colorScheme.primary,
                   backspaceColor: theme.colorScheme.primary,
-                  dividerColor:
-                      theme.dividerColor.withValues(alpha: 0.2),
+                  dividerColor: theme.dividerColor.withValues(alpha: 0.2),
                 ),
                 bottomActionBarConfig: BottomActionBarConfig(
                   enabled: false,
                   backgroundColor: theme.colorScheme.surface,
                 ),
                 searchViewConfig: SearchViewConfig(
-                  backgroundColor:
-                      theme.colorScheme.surface.withValues(alpha: 0.98),
+                  backgroundColor: theme.colorScheme.surface.withValues(
+                    alpha: 0.98,
+                  ),
                   buttonIconColor: theme.colorScheme.onSurface.withValues(
-                    alpha: 0.6),
+                    alpha: 0.6,
+                  ),
                   hintText: 'Search emoji',
                   hintTextStyle: theme.textTheme.bodyMedium?.copyWith(
-                    color:
-                        theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                   ),
                   inputTextStyle: theme.textTheme.bodyMedium,
                 ),
@@ -8042,8 +8569,9 @@ class _CommentTileState extends State<_CommentTile> {
     // Light: subtle card variants. Dark: glassy card with semi-transparent white.
     final Color lightMine = const Color(0xFFF8FAFC);
     final Color lightOther = Colors.white;
-    final Color baseLight =
-        isMine ? lightMine : lightOther; // used only in light mode
+    final Color baseLight = isMine
+        ? lightMine
+        : lightOther; // used only in light mode
     final Color bubble = widget.isDark
         ? Colors.white.withValues(alpha: 0.06)
         : baseLight;
@@ -8052,246 +8580,298 @@ class _CommentTileState extends State<_CommentTile> {
     final Color meta = theme.colorScheme.onSurface.withValues(alpha: 0.6);
 
     final bool isDark = widget.isDark;
-    // No drop shadow – keep replies flat against the background.
-    final List<BoxShadow>? popShadow = null;
+    // Soft material-style card shadow for each reply (matches app card style).
+    final List<BoxShadow> popShadow = [
+      BoxShadow(
+        color: Colors.black.withOpacity(isDark ? 0.45 : 0.06),
+        offset: const Offset(0, 6),
+        blurRadius: 18,
+        spreadRadius: 0,
+      ),
+      BoxShadow(
+        color: Colors.black.withOpacity(isDark ? 0.25 : 0.03),
+        offset: const Offset(0, 2),
+        blurRadius: 6,
+        spreadRadius: 0,
+      ),
+    ];
+    const double bubbleRadius = 18;
     const double avatarSize = 48;
 
-    final Color selectedHover =
-        widget.isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFF3F4F6);
+    final Color selectedHover = widget.isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : const Color(0xFFF3F4F6);
     // When a reply has been reposted, highlight its card border in green.
     final Color borderColor = _reposted
-        ? Colors.green
-        : theme.colorScheme.onSurface.withValues(
-            alpha: isDark ? 0.30 : 0.14,
-          );
-    // Add extra left padding for other users so text doesn't sit under
-    // the picture-frame avatar that overlaps the left edge.
-    final EdgeInsets bubblePadding = EdgeInsets.fromLTRB(
-      isMine ? 10 : 32,
-      8,
-      10,
-      8,
-    );
-    final Widget bubbleCore = Container(
-        padding: bubblePadding,
-        decoration: BoxDecoration(
-          color: widget.selected ? selectedHover : bubble,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: borderColor,
-            width: 1,
-          ),
-          boxShadow: popShadow,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Username row: for other users, shift left so it visually starts
-            // above the picture frame avatar.
-            Transform.translate(
-              offset: Offset(isMine ? 0 : -(avatarSize / 2 + 6), 0),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        comment.author.replaceFirst(RegExp(r'^\s*@'), ''),
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      comment.timeAgo,
-                      style: theme.textTheme.bodySmall?.copyWith(color: meta),
-                    ),
-                  ],
+        ? const Color(0xFF00BA7C)
+        : (isDark
+              ? Colors.white.withValues(alpha: 0.10)
+              : const Color(0xFFE5E7EB));
+    // Avatar used inside the card for other users.
+    final String displayAuthor = comment.author
+        .replaceFirst(RegExp(r'^\s*@'), '')
+        .trim();
+    final String initial = displayAuthor.isNotEmpty
+        ? displayAuthor.substring(0, 1).toUpperCase()
+        : 'U';
+    final Widget avatarWidget = isMine
+        ? const SizedBox.shrink()
+        : Container(
+            width: avatarSize,
+            height: avatarSize,
+            decoration: const BoxDecoration(
+              color: Color(0xFFF4F1EC),
+              borderRadius: BorderRadius.zero,
+            ),
+            child: Center(
+              child: Text(
+                initial,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: theme.colorScheme.onSurface,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
-            const SizedBox(height: 8),
-            if (comment.quotedBody != null) ...[
-              Container(
-                decoration: BoxDecoration(
-                  color: widget.isDark
-                      ? Colors.white.withValues(alpha: 0.06)
-                      : theme.colorScheme.surfaceVariant
-                          .withValues(alpha: 0.9),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: theme.dividerColor.withValues(
-                      alpha: widget.isDark ? 0.4 : 0.3,
-                    ),
+          );
+    // Padding inside the reply card.
+    final EdgeInsets bubblePadding = const EdgeInsets.fromLTRB(12, 8, 12, 8);
+
+    final Widget bubbleCore = Container(
+      padding: bubblePadding,
+      decoration: BoxDecoration(
+        color: widget.selected ? selectedHover : bubble,
+        borderRadius: BorderRadius.circular(bubbleRadius),
+        border: Border.all(color: borderColor, width: 1),
+        boxShadow: popShadow,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          if (!isMine) avatarWidget,
+          if (!isMine) const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 2,
+                    vertical: 2,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          comment.author.replaceFirst(RegExp(r'^\s*@'), ''),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        comment.timeAgo,
+                        style: theme.textTheme.bodySmall?.copyWith(color: meta),
+                      ),
+                    ],
                   ),
                 ),
-                padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 3,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary,
-                        borderRadius: BorderRadius.circular(999),
+                const SizedBox(height: 2),
+                if (comment.quotedBody != null) ...[
+                  Container(
+                    decoration: BoxDecoration(
+                      color: widget.isDark
+                          ? Colors.white.withValues(alpha: 0.06)
+                          : theme.colorScheme.surfaceVariant.withValues(
+                              alpha: 0.9,
+                            ),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: theme.dividerColor.withValues(
+                          alpha: widget.isDark ? 0.4 : 0.3,
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 3,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                (comment.quotedFrom ?? 'Reply').replaceFirst(
+                                  RegExp(r'^\s*@'),
+                                  '',
+                                ),
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: theme.colorScheme.onSurface,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                comment.quotedBody!,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurface.withValues(
+                                    alpha: widget.isDark ? 0.9 : 0.85,
+                                  ),
+                                  height: 1.35,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                ],
+                Text(
+                  comment.body,
+                  style: AppTheme.tweetBody(
+                    widget.isDark ? Colors.white : theme.colorScheme.onSurface,
+                  ),
+                  textHeightBehavior: const TextHeightBehavior(
+                    applyHeightToFirstAscent: false,
+                  ),
+                ),
+                if (_reposted && !_showRepostActions) ...[
+                  const SizedBox(height: 4),
+                  Align(
+                    alignment: Alignment.center,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const XRetweetIcon(size: 14, color: Color(0xFF00BA7C)),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Reposted',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF00BA7C),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                if (_showRepostActions) ...[
+                  const SizedBox(height: 6),
+                  Align(
+                    alignment: Alignment.center,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: widget.isDark ? 0.25 : 0.06,
+                        ),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            (comment.quotedFrom ?? 'Reply')
-                                .replaceFirst(RegExp(r'^\s*@'), ''),
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: theme.colorScheme.onSurface,
+                          InkWell(
+                            borderRadius: BorderRadius.circular(999),
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              setState(() {
+                                _reposted = !_reposted;
+                                _reposts += _reposted ? 1 : -1;
+                                if (_reposts < 0) _reposts = 0;
+                                _showRepostActions = false;
+                              });
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  XRetweetIcon(
+                                    size: 16,
+                                    color: _reposted
+                                        ? const Color(0xFF00BA7C)
+                                        : meta,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    _reposted ? 'Unrepost' : 'Repost',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 0.3,
+                                      color: _reposted ? Colors.green : meta,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            comment.quotedBody!,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withValues(
-                                alpha: widget.isDark ? 0.9 : 0.85,
+                          Container(
+                            width: 1,
+                            height: 18,
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: widget.isDark ? 0.35 : 0.25,
+                            ),
+                          ),
+                          InkWell(
+                            borderRadius: BorderRadius.circular(999),
+                            onTap: () {
+                              setState(() {
+                                _showRepostActions = false;
+                              });
+                              widget.onSwipeReply?.call();
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
                               ),
-                              height: 1.35,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.reply_rounded, size: 16),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Reply',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: meta,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 6),
-            ],
-            Text(
-              comment.body,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: widget.isDark ? Colors.white : theme.colorScheme.onSurface,
-                fontSize: 16,
-                height: 1.4,
-              ),
+                  ),
+                ],
+              ],
             ),
-            if (_reposted && !_showRepostActions) ...[
-              const SizedBox(height: 4),
-              Align(
-                alignment: Alignment.center,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.repeat_rounded,
-                      size: 14,
-                      color: Colors.green,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Reposted',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.green,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-            if (_showRepostActions) ...[
-              const SizedBox(height: 6),
-              Align(
-                alignment: Alignment.center,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.onSurface.withValues(
-                      alpha: widget.isDark ? 0.25 : 0.06,
-                    ),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      InkWell(
-                        borderRadius: BorderRadius.circular(999),
-                        onTap: () {
-                          HapticFeedback.lightImpact();
-                          setState(() {
-                            _reposted = !_reposted;
-                            _reposts += _reposted ? 1 : -1;
-                            if (_reposts < 0) _reposts = 0;
-                            _showRepostActions = false;
-                          });
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.repeat_rounded,
-                                size: 16,
-                                color: _reposted ? Colors.green : meta,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                _reposted ? 'Unrepost' : 'Repost',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: _reposted ? Colors.green : meta,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      Container(
-                        width: 1,
-                        height: 18,
-                        color: theme.colorScheme.onSurface.withValues(
-                          alpha: widget.isDark ? 0.35 : 0.25,
-                        ),
-                      ),
-                      InkWell(
-                        borderRadius: BorderRadius.circular(999),
-                        onTap: () {
-                          setState(() {
-                            _showRepostActions = false;
-                          });
-                          widget.onSwipeReply?.call();
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.reply_rounded, size: 16),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Reply',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: meta,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-      );
+          ),
+        ],
+      ),
+    );
 
     // Pop effect on selection
     final Widget poppedCard = AnimatedScale(
@@ -8312,43 +8892,21 @@ class _CommentTileState extends State<_CommentTile> {
             width: 56,
             height: double.infinity,
             decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withValues(alpha: widget.isDark ? 0.18 : 0.12),
+              color: theme.colorScheme.primary.withValues(
+                alpha: widget.isDark ? 0.18 : 0.12,
+              ),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Center(
-              child: Icon(Icons.reply_outlined, color: theme.colorScheme.primary),
+              child: Icon(
+                Icons.reply_outlined,
+                color: theme.colorScheme.primary,
+              ),
             ),
           ),
         ),
       ),
     );
-
-    // Prepare left-aligned avatar as a picture-frame square that can "cut into"
-    // the left edge of the reply bubble.
-    final String _displayAuthor = comment.author.replaceFirst(RegExp(r'^\s*@'), '').trim();
-    final String _initial = _displayAuthor.isNotEmpty
-        ? _displayAuthor.substring(0, 1).toUpperCase()
-        : 'U';
-    final Widget avatar = isMine
-        ? const SizedBox.shrink()
-        : Container(
-            width: avatarSize,
-            height: avatarSize,
-            decoration: const BoxDecoration(
-              color: Color(0xFFF4F1EC),
-              borderRadius: BorderRadius.zero, // sharp corners, no border
-            ),
-            child: Center(
-              child: Text(
-                _initial,
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: theme.colorScheme.onSurface,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          );
 
     return GestureDetector(
       onTapDown: (_) => setState(() => _highlight = true),
@@ -8382,7 +8940,8 @@ class _CommentTileState extends State<_CommentTile> {
       },
       onHorizontalDragEnd: (details) {
         final bool trigger =
-            (details.primaryVelocity != null && details.primaryVelocity! > 250) ||
+            (details.primaryVelocity != null &&
+                details.primaryVelocity! > 250) ||
             _dragOffset >= 42;
         if (trigger) {
           widget.onSwipeReply?.call();
@@ -8398,17 +8957,14 @@ class _CommentTileState extends State<_CommentTile> {
         curve: Curves.easeOutCubic,
         transform: Matrix4.identity(),
         margin: const EdgeInsets.symmetric(vertical: 12),
-        decoration: const BoxDecoration(
-          color: Colors.transparent,
-        ),
+        decoration: const BoxDecoration(color: Colors.transparent),
         child: Stack(
           clipBehavior: Clip.none,
           children: [
-            // Reply bubble + swipe background, inset so the avatar can sit
-            // partially "inside" the left edge of the rounded border.
+            // Reply bubble + swipe background
             Padding(
               padding: EdgeInsets.only(
-                left: isMine ? 0 : avatarSize / 2 + 6,
+                left: 0,
                 bottom: _reactions.isNotEmpty ? 14 : 0,
               ),
               child: Stack(
@@ -8428,13 +8984,6 @@ class _CommentTileState extends State<_CommentTile> {
                 ],
               ),
             ),
-            if (!isMine)
-              Positioned(
-                left: 0,
-                top: 0,
-                bottom: 0,
-                child: Center(child: avatar),
-              ),
             if (_reactions.isNotEmpty)
               Positioned(
                 left: isMine ? 12 : avatarSize / 2 + 12,
@@ -8454,8 +9003,9 @@ class _CommentTileState extends State<_CommentTile> {
                           _reactions.entries.toList()
                             ..sort((a, b) => b.value.compareTo(a.value));
                       const int maxVisible = 4;
-                      final int visibleCount =
-                          sorted.length > maxVisible ? maxVisible : sorted.length;
+                      final int visibleCount = sorted.length > maxVisible
+                          ? maxVisible
+                          : sorted.length;
 
                       int totalCount = 0;
                       for (final entry in sorted) {
@@ -8472,8 +9022,7 @@ class _CommentTileState extends State<_CommentTile> {
                               isActive: sorted[i].key == _currentUserReaction,
                               onTap: () => _showReactionDetails(sorted[i].key),
                             ),
-                            if (i != visibleCount - 1)
-                              const SizedBox(width: 8),
+                            if (i != visibleCount - 1) const SizedBox(width: 8),
                           ],
                           if (totalCount > 0) ...[
                             const SizedBox(width: 6),
@@ -8481,8 +9030,9 @@ class _CommentTileState extends State<_CommentTile> {
                               '$totalCount',
                               style: theme.textTheme.bodySmall?.copyWith(
                                 fontSize: 11,
-                                color: theme.colorScheme.onSurface
-                                    .withValues(alpha: 0.8),
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.8,
+                                ),
                               ),
                             ),
                           ],
@@ -8540,8 +9090,9 @@ class _ClassLibraryTabState extends State<_ClassLibraryTab> {
       children: [
         Text(
           'Library',
-          style:
-              theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
         ),
         const SizedBox(height: 16),
         Center(
@@ -8586,9 +9137,7 @@ class _ClassLibraryTabState extends State<_ClassLibraryTab> {
                 ),
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('PDF upload coming soon'),
-                    ),
+                    const SnackBar(content: Text('PDF upload coming soon')),
                   );
                 },
                 icon: const Icon(Icons.picture_as_pdf_outlined),
@@ -8611,16 +9160,18 @@ class _LectureNoteTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
-    final Color border = theme.dividerColor.withValues(alpha: isDark ? 0.3 : 0.2);
+    final Color border = theme.dividerColor.withValues(
+      alpha: isDark ? 0.3 : 0.2,
+    );
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Opening "${note.title}"')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Opening "${note.title}"')));
         },
         child: Ink(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -8637,7 +9188,10 @@ class _LectureNoteTile extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                   color: theme.colorScheme.primary.withValues(alpha: 0.08),
                 ),
-                child: Icon(Icons.article_outlined, color: theme.colorScheme.primary),
+                child: Icon(
+                  Icons.article_outlined,
+                  color: theme.colorScheme.primary,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -8646,25 +9200,30 @@ class _LectureNoteTile extends StatelessWidget {
                   children: [
                     Text(
                       note.title,
-                      style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     if (note.subtitle != null || note.size != null)
-                      Builder(builder: (context) {
-                        final String meta = <String?>[note.subtitle, note.size]
-                            .whereType<String>()
-                            .where((s) => s.isNotEmpty)
-                            .join(' • ');
-                        return meta.isEmpty
-                            ? const SizedBox.shrink()
-                            : Text(
-                                meta,
-                                style: theme.textTheme.bodySmall,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              );
-                      }),
+                      Builder(
+                        builder: (context) {
+                          final String meta =
+                              <String?>[note.subtitle, note.size]
+                                  .whereType<String>()
+                                  .where((s) => s.isNotEmpty)
+                                  .join(' • ');
+                          return meta.isEmpty
+                              ? const SizedBox.shrink()
+                              : Text(
+                                  meta,
+                                  style: theme.textTheme.bodySmall,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                );
+                        },
+                      ),
                   ],
                 ),
               ),
@@ -8713,11 +9272,10 @@ class _ClassStudentsTabState extends State<_ClassStudentsTab> {
     final List<String> filteredList = _query.isEmpty
         ? list
         : list
-            .where(
-              (handle) =>
-                  handle.toLowerCase().contains(_query.toLowerCase()),
-            )
-            .toList();
+              .where(
+                (handle) => handle.toLowerCase().contains(_query.toLowerCase()),
+              )
+              .toList();
 
     void _showStudentActions(String handle) {
       showModalBottomSheet<void>(
@@ -8780,8 +9338,10 @@ class _ClassStudentsTabState extends State<_ClassStudentsTab> {
                 style: FilledButton.styleFrom(
                   backgroundColor: Colors.black,
                   foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   minimumSize: const Size(0, 36),
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
@@ -8795,8 +9355,10 @@ class _ClassStudentsTabState extends State<_ClassStudentsTab> {
                   foregroundColor: Colors.black87,
                   side: BorderSide.none,
                   backgroundColor: Colors.transparent,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   minimumSize: const Size(0, 36),
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
@@ -8834,8 +9396,10 @@ class _ClassStudentsTabState extends State<_ClassStudentsTab> {
                 border: InputBorder.none,
                 focusedBorder: InputBorder.none,
                 enabledBorder: InputBorder.none,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 4,
+                  vertical: 12,
+                ),
               ),
               textInputAction: TextInputAction.search,
               onChanged: (value) {
@@ -8907,8 +9471,9 @@ class _StudentCard extends StatelessWidget {
     final theme = Theme.of(context);
     final Color cardColor = theme.colorScheme.surface;
     final Color nameColor = const Color(0xFF111827);
-    final Color frameColor =
-        theme.colorScheme.surfaceVariant.withValues(alpha: 0.8);
+    final Color frameColor = theme.colorScheme.surfaceVariant.withValues(
+      alpha: 0.8,
+    );
 
     final String cleanHandle = handle.replaceFirst(RegExp('^@'), '');
     final List<String> parts = cleanHandle
@@ -8918,19 +9483,19 @@ class _StudentCard extends StatelessWidget {
     final String displayName = parts.isEmpty
         ? cleanHandle
         : parts
-            .map(
-              (p) => p.length == 1
-                  ? p.toUpperCase()
-                  : '${p[0].toUpperCase()}${p.substring(1)}',
-            )
-            .join(' ');
+              .map(
+                (p) => p.length == 1
+                    ? p.toUpperCase()
+                    : '${p[0].toUpperCase()}${p.substring(1)}',
+              )
+              .join(' ');
     final String initials = cleanHandle.isEmpty
         ? '--'
         : cleanHandle
-            .replaceAll(RegExp(r'[^a-zA-Z]'), '')
-            .toUpperCase()
-            .padRight(2, cleanHandle[0].toUpperCase())
-            .substring(0, 2);
+              .replaceAll(RegExp(r'[^a-zA-Z]'), '')
+              .toUpperCase()
+              .padRight(2, cleanHandle[0].toUpperCase())
+              .substring(0, 2);
 
     return Material(
       color: Colors.transparent,
@@ -8938,9 +9503,7 @@ class _StudentCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         onTap: onTap,
         child: Ink(
-          decoration: BoxDecoration(
-            color: Colors.transparent,
-          ),
+          decoration: BoxDecoration(color: Colors.transparent),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
             child: Column(
@@ -9020,7 +9583,10 @@ class _ClassTopInfo extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
@@ -9080,4 +9646,5 @@ class _ClassTopInfo extends StatelessWidget {
     );
   }
 }
+
 // Removed unused _CollegeHeader widget

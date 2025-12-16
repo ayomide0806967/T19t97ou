@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/tagged_text_input.dart';
+import 'icons/x_retweet_icon.dart';
 
 class XCommentSection extends StatefulWidget {
   const XCommentSection({
@@ -64,8 +65,17 @@ class _XCommentSectionState extends State<XCommentSection>
   Widget _buildPostActionRow(ThemeData theme) {
     final metrics = widget.metrics;
 
-    Widget action(IconData icon, {String? label}) {
-      return _XActionButton(icon: icon, label: label, onTap: () {});
+    Widget action(
+      IconData icon, {
+      String? label,
+      Widget? customIcon,
+    }) {
+      return _XActionButton(
+        icon: icon,
+        customIcon: customIcon,
+        label: label,
+        onTap: () {},
+      );
     }
 
     return Padding(
@@ -91,6 +101,7 @@ class _XCommentSectionState extends State<XCommentSection>
                     offset: const Offset(4, 0),
                     child: action(
                       Icons.repeat_rounded,
+                      customIcon: const XRetweetIconMinimal(size: 20),
                       label: metrics != null
                           ? _formatCount(metrics.reposts)
                           : null,
@@ -784,9 +795,6 @@ class _XCommentTileState extends State<_XCommentTile>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
-    final Color bubbleColor = isDark
-        ? Colors.white.withValues(alpha: 0.06)
-        : const Color(0xFFEDEDED);
     final Color textColor = isDark
         ? Colors.white.withValues(alpha: 0.95)
         : Colors.black.withValues(alpha: 0.9);
@@ -810,78 +818,94 @@ class _XCommentTileState extends State<_XCommentTile>
                   children: [
                     Container(
                       margin: const EdgeInsets.only(top: 4),
-                      padding: const EdgeInsets.fromLTRB(12, 8, 10, 6),
-                      decoration: BoxDecoration(
-                        color: bubbleColor,
-                        borderRadius: const BorderRadius.all(
-                          Radius.circular(18),
-                        ),
-                        border: Border.all(
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: isDark ? 0.22 : 0.08),
-                        ),
-                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            widget.comment.author,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: textColor.withValues(alpha: 0.9),
+                          Container(
+                            height: 1,
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: isDark ? 0.28 : 0.12,
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            widget.comment.body,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: textColor,
-                              height: 1.35,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                widget.comment.timeAgo,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  fontSize: 10,
-                                  color: metaTextColor,
+                          Padding(
+                            padding:
+                                const EdgeInsets.fromLTRB(12, 8, 10, 6),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  widget.comment.author,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color:
+                                        textColor.withValues(alpha: 0.9),
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 6),
-                              GestureDetector(
-                                onTap: widget.onLike,
-                                child: Row(
+                                const SizedBox(height: 4),
+                                Text(
+                                  widget.comment.body,
+                                  style:
+                                      theme.textTheme.bodyMedium?.copyWith(
+                                    color: textColor,
+                                    height: 1.35,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(
-                                      widget.comment.isLiked
-                                          ? Icons.favorite_rounded
-                                          : Icons.favorite_border_rounded,
-                                      size: 14,
-                                      color: widget.comment.isLiked
-                                          ? Colors.red
-                                          : metaTextColor,
-                                    ),
-                                    if (widget.comment.likes > 0) ...[
-                                      const SizedBox(width: 3),
-                                      Text(
-                                        _formatCount(widget.comment.likes),
-                                        style: theme.textTheme.bodySmall
-                                            ?.copyWith(
-                                          fontSize: 10,
-                                          color: metaTextColor,
-                                          fontWeight: FontWeight.w500,
-                                        ),
+                                    Text(
+                                      widget.comment.timeAgo,
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                        fontSize: 10,
+                                        color: metaTextColor,
                                       ),
-                                    ],
+                                    ),
+                                    const SizedBox(width: 6),
+                                    GestureDetector(
+                                      onTap: widget.onLike,
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            widget.comment.isLiked
+                                                ? Icons.favorite_rounded
+                                                : Icons
+                                                    .favorite_border_rounded,
+                                            size: 14,
+                                            color: widget.comment.isLiked
+                                                ? Colors.red
+                                                : metaTextColor,
+                                          ),
+                                          if (widget.comment.likes > 0) ...[
+                                            const SizedBox(width: 3),
+                                            Text(
+                                              _formatCount(
+                                                  widget.comment.likes),
+                                              style: theme
+                                                  .textTheme.bodySmall
+                                                  ?.copyWith(
+                                                fontSize: 10,
+                                                color: metaTextColor,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
                                   ],
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
+                          ),
+                          Container(
+                            height: 1,
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: isDark ? 0.28 : 0.12,
+                            ),
                           ),
                         ],
                       ),
@@ -938,12 +962,14 @@ class _XCommentTileState extends State<_XCommentTile>
 class _XActionButton extends StatefulWidget {
   const _XActionButton({
     required this.icon,
+    this.customIcon,
     this.label,
     required this.onTap,
     this.isActive = false,
   });
 
   final IconData icon;
+  final Widget? customIcon;
   final String? label;
   final VoidCallback onTap;
   final bool isActive;
@@ -993,6 +1019,13 @@ class _XActionButtonState extends State<_XActionButton>
     final verticalPadding = isMobile ? 8.0 : (isTablet ? 10.0 : 12.0);
     final minTapTarget = isMobile ? 48.0 : (isTablet ? 52.0 : 56.0);
 
+    final Widget iconWidget = widget.customIcon ??
+        Icon(
+          widget.icon,
+          size: iconSize,
+          color: baseColor,
+        );
+
     return GestureDetector(
       onTapDown: (_) => _controller.forward(),
       onTapUp: (_) {
@@ -1011,15 +1044,11 @@ class _XActionButtonState extends State<_XActionButton>
                 minHeight: minTapTarget,
               ),
               padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: verticalPadding),
-              child: Row(
+	              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    widget.icon,
-                    size: iconSize,
-                    color: baseColor,
-                  ),
+	                  iconWidget,
                   if (widget.label != null) ...[
                     SizedBox(width: isMobile ? 6.0 : 8.0),
                     Text(

@@ -115,18 +115,15 @@ class _TweetPostCardState extends State<TweetPostCard> {
     final normalizedCurrent = _withAtPrefix(widget.currentUserHandle);
     final label =
         (normalizedCurrent.isNotEmpty && normalizedBy == normalizedCurrent)
-            ? 'You reposted'
-            : '$normalizedBy reposted';
+        ? 'You reposted'
+        : '$normalizedBy reposted';
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const XRetweetIconMinimal(
-            size: 14,
-            color: Color(0xFF00BA7C),
-          ),
+          const XRetweetIconMinimal(size: 14, color: Color(0xFF00BA7C)),
           const SizedBox(width: 6),
           Text(
             label,
@@ -184,9 +181,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
     _showToast(toggled ? 'Reposted!' : 'Removed repost');
     setState(() {
       if (widget.post.originalId == null) {
-        _reposts = toggled
-            ? _reposts + 1
-            : (_reposts - 1).clamp(0, 1 << 30);
+        _reposts = toggled ? _reposts + 1 : (_reposts - 1).clamp(0, 1 << 30);
       }
     });
   }
@@ -226,10 +221,12 @@ class _TweetPostCardState extends State<TweetPostCard> {
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
         final bool isDark = theme.brightness == Brightness.dark;
-        final Color surface =
-            theme.colorScheme.surface.withValues(alpha: isDark ? 0.92 : 0.96);
-        final Color border =
-            Colors.white.withValues(alpha: isDark ? 0.12 : 0.25);
+        final Color surface = theme.colorScheme.surface.withValues(
+          alpha: isDark ? 0.92 : 0.96,
+        );
+        final Color border = Colors.white.withValues(
+          alpha: isDark ? 0.12 : 0.25,
+        );
 
         return SafeArea(
           child: Padding(
@@ -258,7 +255,8 @@ class _TweetPostCardState extends State<TweetPostCard> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           _ReinOptionTile(
-                            icon: Icons.repeat_rounded,
+                            icon: Icons
+                                .repeat_rounded, // legacy icon, superseded by XRetweetButton in the metrics row
                             label: 'Repost',
                             description: 'Share this post with your network',
                             onTap: () async {
@@ -338,31 +336,32 @@ class _TweetPostCardState extends State<TweetPostCard> {
     final Color? cardBackground = widget.backgroundColor;
     final bool usesLightCardOnDarkTheme =
         theme.brightness == Brightness.dark &&
-            cardBackground != null &&
-            cardBackground == cardBackground.withValues(alpha: 1.0) &&
-            ThemeData.estimateBrightnessForColor(cardBackground) ==
-                Brightness.light;
+        cardBackground != null &&
+        cardBackground == cardBackground.withValues(alpha: 1.0) &&
+        ThemeData.estimateBrightnessForColor(cardBackground) ==
+            Brightness.light;
     final Color primaryTextColor = usesLightCardOnDarkTheme
         ? AppTheme.textPrimary
         : theme.colorScheme.onSurface;
     final Color secondaryTextColor = usesLightCardOnDarkTheme
         ? AppTheme.textSecondary
         : (theme.textTheme.bodyMedium?.color ??
-            theme.colorScheme.onSurface.withValues(alpha: 0.7));
+              theme.colorScheme.onSurface.withValues(alpha: 0.7));
     final Color controlIconColor = usesLightCardOnDarkTheme
         ? AppTheme.textSecondary
         : AppTheme.textTertiary;
     final String displayHandle = widget.post.handle.isNotEmpty
         ? (widget.post.handle.startsWith('@')
-            ? widget.post.handle
-            : '@${widget.post.handle}')
+              ? widget.post.handle
+              : '@${widget.post.handle}')
         : '';
 
     // Build metric data
     bool isJustNow = widget.post.timeAgo.toLowerCase() == 'just now';
     int repliesCount = _replies;
-    int repostsCount =
-        widget.post.originalId == null ? _reposts : widget.post.reposts;
+    int repostsCount = widget.post.originalId == null
+        ? _reposts
+        : widget.post.reposts;
     int viewsCount = _views;
 
     if (isJustNow) {
@@ -379,7 +378,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
     );
     final rein = TweetMetricData(
       type: TweetMetricType.rein,
-      icon: Icons.repeat_rounded,
+      icon: Icons.repeat_rounded, // visual handled by XRetweetButton
       label: 'new retweet',
       count: repostsCount,
       isActive: repostedByUser,
@@ -440,20 +439,20 @@ class _TweetPostCardState extends State<TweetPostCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Flexible(
-                    child: Text(
-                      widget.post.author,
-                      maxLines: 1,
-                      softWrap: false,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: primaryTextColor,
+                      child: Text(
+                        widget.post.author,
+                        maxLines: 1,
+                        softWrap: false,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: primaryTextColor,
+                        ),
+                        textHeightBehavior: const TextHeightBehavior(
+                          applyHeightToFirstAscent: false,
+                        ),
                       ),
-                      textHeightBehavior: const TextHeightBehavior(
-                        applyHeightToFirstAscent: false,
-                      ),
-                    ),
                     ),
                   ],
                 ),
@@ -498,11 +497,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
             onTap: () => _showToast('Post options coming soon'),
             child: Padding(
               padding: const EdgeInsets.only(left: 4),
-              child: Icon(
-                Icons.more_horiz,
-                size: 18,
-                color: controlIconColor,
-              ),
+              child: Icon(Icons.more_horiz, size: 18, color: controlIconColor),
             ),
           ),
         ],
@@ -517,20 +512,20 @@ class _TweetPostCardState extends State<TweetPostCard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Flexible(
-                      child: Text(
-                        widget.post.author,
-                        maxLines: 1,
-                        softWrap: false,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: primaryTextColor,
-                        ),
-                        textHeightBehavior: const TextHeightBehavior(
-                          applyHeightToFirstAscent: false,
-                        ),
-                      ),
+                  child: Text(
+                    widget.post.author,
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: primaryTextColor,
+                    ),
+                    textHeightBehavior: const TextHeightBehavior(
+                      applyHeightToFirstAscent: false,
+                    ),
+                  ),
                 ),
                 if (displayHandle.isNotEmpty) ...[
                   const SizedBox(width: 6),
@@ -560,11 +555,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
             onTap: () => _showToast('Post options coming soon'),
             child: Padding(
               padding: const EdgeInsets.only(left: 4),
-              child: Icon(
-                Icons.more_horiz,
-                size: 18,
-                color: controlIconColor,
-              ),
+              child: Icon(Icons.more_horiz, size: 18, color: controlIconColor),
             ),
           ),
         ],
@@ -591,8 +582,9 @@ class _TweetPostCardState extends State<TweetPostCard> {
     );
 
     // Simple flag to enable demo media carousel for certain posts.
-    final bool hasDemoMedia =
-        widget.post.tags.any((t) => t.toLowerCase() == 'gallery');
+    final bool hasDemoMedia = widget.post.tags.any(
+      (t) => t.toLowerCase() == 'gallery',
+    );
 
     // Build the tweet body column for the standard (timeline) layout.
     final Widget contentColumn = Column(
@@ -646,10 +638,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ...header,
-                    contentHeader,
-                  ],
+                  children: [...header, contentHeader],
                 ),
               ),
             ],
@@ -702,10 +691,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
 
     // The content sits to the right of the avatar with simple padding — no card.
     Widget shell = const SizedBox.shrink();
-    shell = Padding(
-      padding: EdgeInsets.zero,
-      child: contentColumn,
-    );
+    shell = Padding(padding: EdgeInsets.zero, child: contentColumn);
 
     // No inner border here — we'll draw the top/bottom line at row level.
 
@@ -744,11 +730,13 @@ class _TweetPostCardState extends State<TweetPostCard> {
     //   Left group (A): reply, REPOST, like, view → spread evenly
     //   Right edge (B): share → compact on the far right
     final List<TweetMetricData> groupA = leftMetrics
-        .where((m) =>
-            m.type == TweetMetricType.reply ||
-            m.type == TweetMetricType.rein ||
-            m.type == TweetMetricType.like ||
-            m.type == TweetMetricType.view)
+        .where(
+          (m) =>
+              m.type == TweetMetricType.reply ||
+              m.type == TweetMetricType.rein ||
+              m.type == TweetMetricType.like ||
+              m.type == TweetMetricType.view,
+        )
         .toList();
     final double gapBetweenGroups = isCompact ? 12.0 : 16.0;
 
@@ -763,27 +751,20 @@ class _TweetPostCardState extends State<TweetPostCard> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 for (final m in groupA)
-                  _EdgeCell(
-                    child: _buildMetricButton(m, compact: isCompact),
-                  ),
+                  _EdgeCell(child: _buildMetricButton(m, compact: isCompact)),
               ],
             ),
           ),
           SizedBox(width: gapBetweenGroups),
           // Share stays pinned at extreme right in a tight cluster
-          _EdgeCell(
-            child: _buildMetricButton(share, compact: isCompact),
-          ),
+          _EdgeCell(child: _buildMetricButton(share, compact: isCompact)),
         ],
       ),
     );
 
     // Guard tiny rounding overflows on some device widths by adding
     // a subtle right padding that doesn't affect layout.
-    row = Padding(
-      padding: const EdgeInsets.only(right: 1),
-      child: row,
-    );
+    row = Padding(padding: const EdgeInsets.only(right: 1), child: row);
 
     if (!forceContrast) {
       return row;
@@ -820,9 +801,9 @@ class _TweetPostCardState extends State<TweetPostCard> {
       case TweetMetricType.view:
         onTap = () {
           _incrementView();
-          Navigator.of(context).push(
-            PostActivityScreen.route(post: widget.post),
-          );
+          Navigator.of(
+            context,
+          ).push(PostActivityScreen.route(post: widget.post));
         };
         break;
       case TweetMetricType.bookmark:
@@ -838,13 +819,15 @@ class _TweetPostCardState extends State<TweetPostCard> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final maxW = constraints.maxWidth;
-        final bool ultraTight = maxW.isFinite && maxW < 56; // ~ icon + tiny text
+        final bool ultraTight =
+            maxW.isFinite && maxW < 56; // ~ icon + tiny text
         final bool tight = maxW.isFinite && maxW < 80;
-        
+
         // Special-case: REPOST uses encapsulating arrow button
         if (data.type == TweetMetricType.rein) {
-          final int? nonZeroCount =
-              (data.count != null && data.count! > 0) ? data.count : null;
+          final int? nonZeroCount = (data.count != null && data.count! > 0)
+              ? data.count
+              : null;
           return XRetweetButton(
             label: data.label ?? 'REPOST',
             count: nonZeroCount,
@@ -855,10 +838,13 @@ class _TweetPostCardState extends State<TweetPostCard> {
             onLongPress: _handleReinPressed,
           );
         }
-        
+
         // Special-case: compress VIEW under very tight width (icon only)
         if (data.type == TweetMetricType.view && ultraTight) {
-          final compactView = TweetMetricData(type: data.type, icon: Icons.signal_cellular_alt_rounded);
+          final compactView = TweetMetricData(
+            type: data.type,
+            icon: Icons.signal_cellular_alt_rounded,
+          );
           return FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerRight,
@@ -867,21 +853,26 @@ class _TweetPostCardState extends State<TweetPostCard> {
         }
         // Special-case: COMMENT uses X-style comment icon button
         if (data.type == TweetMetricType.reply) {
-          final int? nonZeroCount =
-              (data.count != null && data.count! > 0) ? data.count : null;
-          return XCommentButton(
-            count: nonZeroCount,
-            onTap: onTap,
-          );
+          final int? nonZeroCount = (data.count != null && data.count! > 0)
+              ? data.count
+              : null;
+          return XCommentButton(count: nonZeroCount, onTap: onTap);
         }
         // For view with limited width, still allow scaling
         if (data.type == TweetMetricType.view) {
           if (ultraTight) {
-            final compactView = TweetMetricData(type: data.type, icon: Icons.signal_cellular_alt_rounded);
+            final compactView = TweetMetricData(
+              type: data.type,
+              icon: Icons.signal_cellular_alt_rounded,
+            );
             return FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerRight,
-              child: TweetMetric(data: compactView, onTap: onTap, compact: true),
+              child: TweetMetric(
+                data: compactView,
+                onTap: onTap,
+                compact: true,
+              ),
             );
           }
           return FittedBox(
@@ -1030,7 +1021,8 @@ class TweetMetric extends StatelessWidget {
     final double labelFontSize = compact ? 12.0 : 13.0;
     // Slightly smaller font for metric counts to de‑emphasize numbers.
     final double countFontSize = compact ? 10.0 : 11.0;
-    final double gap = compact ? 2.0 : 3.0;
+    // Keep counts visually close to icons in the main feed metrics row.
+    final double gap = compact ? 1.0 : 2.0;
 
     final Color activeColor = isRein
         ? Colors.green
@@ -1042,8 +1034,9 @@ class TweetMetric extends StatelessWidget {
     final Color textColor = isLike ? neutral : baseColor;
     final hasIcon = data.icon != null || data.type == TweetMetricType.view;
     // Treat 0 as "no count" so we don't render a visible "0".
-    final int? metricCount =
-        (data.count != null && data.count! > 0) ? data.count : null;
+    final int? metricCount = (data.count != null && data.count! > 0)
+        ? data.count
+        : null;
     final bool highlightRein = isRein && data.isActive;
     final String? displayLabel = data.label;
     final double reinFontSize = compact ? 13.5 : 14.5;
@@ -1052,10 +1045,13 @@ class TweetMetric extends StatelessWidget {
 
     // Special case: Reply button shown as a grey, thin bordered pill
     if (data.type == TweetMetricType.reply) {
-      final Color pillText = theme.colorScheme.onSurface.withValues(alpha: 0.45);
+      final Color pillText = theme.colorScheme.onSurface.withValues(
+        alpha: 0.45,
+      );
       final Color pillBorder = theme.dividerColor.withValues(alpha: 0.9);
-      final String? countLabel =
-          metricCount != null ? _formatMetric(metricCount) : null;
+      final String? countLabel = metricCount != null
+          ? _formatMetric(metricCount)
+          : null;
       final String labelText = data.label ?? 'COMMENT';
       final Widget pill = Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
@@ -1132,7 +1128,11 @@ class TweetMetric extends StatelessWidget {
             (() {
               Widget icon;
               if (data.type == TweetMetricType.view) {
-                icon = Icon(Icons.signal_cellular_alt_rounded, size: iconSize, color: iconColor);
+                icon = Icon(
+                  Icons.signal_cellular_alt_rounded,
+                  size: iconSize,
+                  color: iconColor,
+                );
               } else if (data.type == TweetMetricType.rein) {
                 icon = XRetweetIcon(size: iconSize, color: iconColor);
               } else {
@@ -1286,8 +1286,9 @@ class _TweetMediaCarouselState extends State<_TweetMediaCarousel> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
-    final Color border =
-        theme.dividerColor.withValues(alpha: isDark ? 0.4 : 0.24);
+    final Color border = theme.dividerColor.withValues(
+      alpha: isDark ? 0.4 : 0.24,
+    );
 
     const int itemCount = 3; // demo three-image carousel
 

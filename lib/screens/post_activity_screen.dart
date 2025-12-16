@@ -2,20 +2,17 @@ import 'package:flutter/material.dart';
 
 import '../models/activity_user.dart';
 import '../services/data_service.dart';
+import '../widgets/hexagon_avatar.dart';
+import '../widgets/icons/x_retweet_icon.dart';
 
 /// Post Activity Screen - Shows engagement stats and list of users who interacted
 class PostActivityScreen extends StatefulWidget {
-  const PostActivityScreen({
-    super.key,
-    required this.post,
-  });
+  const PostActivityScreen({super.key, required this.post});
 
   final PostModel post;
 
   static Route<void> route({required PostModel post}) {
-    return MaterialPageRoute(
-      builder: (_) => PostActivityScreen(post: post),
-    );
+    return MaterialPageRoute(builder: (_) => PostActivityScreen(post: post));
   }
 
   @override
@@ -61,113 +58,113 @@ class _PostActivityScreenState extends State<PostActivityScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final backgroundColor = isDark ? const Color(0xFF000000) : Colors.white;
-    final textColor = isDark ? Colors.white : Colors.black;
-    final subtleColor = textColor.withValues(alpha: 0.6);
-    final dividerColor = isDark
-        ? Colors.white.withValues(alpha: 0.08)
-        : Colors.black.withValues(alpha: 0.08);
+    final Color surface = theme.colorScheme.surface;
+    final Color onSurface = theme.colorScheme.onSurface;
+    final Color subtleColor = onSurface.withValues(alpha: 0.6);
+    final Color dividerColor = theme.dividerColor.withValues(
+      alpha: isDark ? 0.18 : 0.35,
+    );
 
     return Scaffold(
-      backgroundColor: backgroundColor,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header
-            _buildHeader(theme, textColor),
-            Divider(height: 1, color: dividerColor),
-            
-            // Scrollable content
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Author info row
-                    _buildAuthorRow(theme, textColor, subtleColor),
-                    Divider(height: 1, color: dividerColor),
-                    
-                    // Stats section
-                    _buildStatRow(
-                      theme,
-                      textColor,
-                      icon: Icons.favorite_border_rounded,
-                      iconColor: Colors.transparent,
-                      label: 'Likes',
-                      count: widget.post.likes,
-                    ),
-                    Divider(height: 1, color: dividerColor, indent: 56),
-                    _buildStatRow(
-                      theme,
-                      textColor,
-                      icon: Icons.repeat_rounded,
-                      iconColor: Colors.transparent,
-                      label: 'Reposts',
-                      count: widget.post.reposts,
-                    ),
-                    Divider(height: 1, color: dividerColor, indent: 56),
-                    _buildStatRow(
-                      theme,
-                      textColor,
-                      icon: Icons.chat_bubble_outline_rounded,
-                      iconColor: Colors.transparent,
-                      label: 'Quotes',
-                      count: widget.post.replies,
-                    ),
-                    Divider(height: 1, color: dividerColor),
-                    
-                    const SizedBox(height: 8),
-                    
-                    // Engaged users list
-                    ..._engagedUsers.map((user) => _buildUserTile(
-                      theme,
-                      user,
-                      textColor,
-                      subtleColor,
-                      dividerColor,
-                    )),
-                    
-                    const SizedBox(height: 24),
-                  ],
-                ),
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: const Text('Post activity'),
+        centerTitle: false,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        actions: [
+          TextButton(
+            onPressed: () {},
+            child: Text(
+              'Sort',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: subtleColor,
+                fontWeight: FontWeight.w600,
               ),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
-    );
-  }
-
-  Widget _buildHeader(ThemeData theme, Color textColor) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
-            child: Icon(
-              Icons.arrow_back,
-              size: 24,
-              color: textColor,
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildAuthorRow(theme, onSurface, subtleColor),
+                  const SizedBox(height: 12),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: dividerColor),
+                    ),
+                    child: Column(
+                      children: [
+                        _buildStatRow(
+                          theme,
+                          onSurface,
+                          leading: Icon(
+                            Icons.favorite_border_rounded,
+                            size: 20,
+                            color: onSurface.withValues(alpha: 0.7),
+                          ),
+                          label: 'Likes',
+                          count: widget.post.likes,
+                        ),
+                        Divider(height: 1, color: dividerColor, indent: 56),
+                        _buildStatRow(
+                          theme,
+                          onSurface,
+                          leading: XRetweetIcon(
+                            size: 20,
+                            color: onSurface.withValues(alpha: 0.7),
+                          ),
+                          label: 'Reposts',
+                          count: widget.post.reposts,
+                        ),
+                        Divider(height: 1, color: dividerColor, indent: 56),
+                        _buildStatRow(
+                          theme,
+                          onSurface,
+                          leading: Icon(
+                            Icons.format_quote_outlined,
+                            size: 20,
+                            color: onSurface.withValues(alpha: 0.7),
+                          ),
+                          label: 'Quotes',
+                          count: widget.post.replies,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
             ),
           ),
-          const SizedBox(width: 24),
-          Text(
-            'Post activity',
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: textColor,
+          SliverList.separated(
+            itemCount: _engagedUsers.length,
+            separatorBuilder: (_, index) => Padding(
+              padding: const EdgeInsets.only(left: 72),
+              child: Divider(height: 1, color: dividerColor),
+            ),
+            itemBuilder: (context, index) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: _buildUserTile(
+                theme,
+                _engagedUsers[index],
+                onSurface,
+                subtleColor,
+                dividerColor,
+              ),
             ),
           ),
-          const Spacer(),
-          Text(
-            'Sort',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: textColor,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 24)),
         ],
       ),
     );
@@ -175,94 +172,73 @@ class _PostActivityScreenState extends State<PostActivityScreen> {
 
   Widget _buildAuthorRow(ThemeData theme, Color textColor, Color subtleColor) {
     final initials = _getInitials(widget.post.author);
-    
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          // Avatar
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Center(
-              child: Text(
-                initials,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                ),
+
+    return Row(
+      children: [
+        // Avatar
+        HexagonAvatar(
+          size: 44,
+          backgroundColor: theme.colorScheme.surfaceContainerHighest,
+          borderColor: theme.colorScheme.primary.withValues(alpha: 0.35),
+          borderWidth: 1.5,
+          child: Center(
+            child: Text(
+              initials,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: textColor,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
-          const SizedBox(width: 12),
-          // Username + time
-          Expanded(
-            child: Row(
-              children: [
-                Flexible(
-                  child: Text(
-                    widget.post.handle.replaceAll('@', ''),
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: textColor,
-                    ),
-                    overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(width: 12),
+        // Username + time
+        Expanded(
+          child: Row(
+            children: [
+              Flexible(
+                child: Text(
+                  widget.post.handle.replaceAll('@', ''),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(width: 6),
-                Text(
-                  widget.post.timeAgo,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: subtleColor,
-                  ),
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                widget.post.timeAgo,
+                style: theme.textTheme.bodySmall?.copyWith(color: subtleColor),
+              ),
+            ],
           ),
-          // Reaction emojis
-          const Text('✅👍💫', style: TextStyle(fontSize: 16)),
-        ],
-      ),
+        ),
+        // Reaction emojis
+        Text('✅👍💫', style: theme.textTheme.bodyLarge?.copyWith(fontSize: 16)),
+      ],
     );
   }
 
   Widget _buildStatRow(
     ThemeData theme,
     Color textColor, {
-    required IconData icon,
-    required Color iconColor,
+    required Widget leading,
     required String label,
     required int count,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Row(
         children: [
-          SizedBox(
-            width: 40,
-            child: Center(
-              child: Icon(
-                icon,
-                size: 22,
-                color: textColor.withValues(alpha: 0.7),
-              ),
-            ),
-          ),
+          SizedBox(width: 40, child: Center(child: leading)),
           const SizedBox(width: 12),
           Text(
             label,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: textColor,
-              fontWeight: FontWeight.w400,
+              fontWeight: FontWeight.w500,
             ),
           ),
           const Spacer(),
@@ -287,202 +263,146 @@ class _PostActivityScreenState extends State<PostActivityScreen> {
   ) {
     final isFollowing = _followingState[user.username] ?? false;
     final bool isDark = theme.brightness == Brightness.dark;
-    
-    return Column(
+
+    final Color followBg = isFollowing
+        ? Colors.transparent
+        : (isDark ? Colors.white : Colors.black);
+    final Color followFg = isFollowing
+        ? (isDark ? Colors.white : Colors.black)
+        : (isDark ? Colors.black : Colors.white);
+    final BorderSide followBorder = BorderSide(
+      color: (isDark ? Colors.white : Colors.black).withValues(
+        alpha: isFollowing ? 0.28 : 1,
+      ),
+      width: 1,
+    );
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
+        // Avatar with optional badge
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            HexagonAvatar(
+              size: 44,
+              backgroundColor: theme.colorScheme.surfaceContainerHighest,
+              borderColor: theme.colorScheme.primary.withValues(alpha: 0.35),
+              borderWidth: 1.5,
+              child: Center(
+                child: Text(
+                  user.initials,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: textColor,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              right: -2,
+              bottom: -2,
+              child: Container(
+                width: 18,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: Colors.red,
+                  borderRadius: BorderRadius.circular(9),
+                  border: Border.all(
+                    color: theme.colorScheme.surface,
+                    width: 2,
+                  ),
+                ),
+                child: const Center(
+                  child: Icon(Icons.favorite, size: 10, color: Colors.white),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(width: 12),
+
+        // User info
+        Expanded(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Avatar with optional badge
-              Stack(
-                clipBehavior: Clip.none,
+              Row(
                 children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: user.avatarColors,
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
+                  Flexible(
+                    child: Text(
+                      user.username,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: textColor,
                       ),
-                      borderRadius: BorderRadius.circular(22),
-                    ),
-                    child: Center(
-                      child: Text(
-                        user.initials,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16,
-                        ),
-                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  // Badge (heart indicator)
-                  Positioned(
-                    right: -2,
-                    bottom: -2,
-                    child: Container(
-                      width: 18,
-                      height: 18,
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(9),
-                        border: Border.all(
-                          color: isDark ? Colors.black : Colors.white,
-                          width: 2,
-                        ),
-                      ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.favorite,
-                          size: 10,
-                          color: Colors.white,
-                        ),
-                      ),
+                  const SizedBox(width: 6),
+                  Text(
+                    user.timeAgo,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: subtleColor,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(width: 12),
-              
-              // User info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(height: 2),
+              Text(
+                user.displayName,
+                style: theme.textTheme.bodySmall?.copyWith(color: subtleColor),
+              ),
+              if (user.comment != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  user.comment!,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: textColor,
+                    height: 1.25,
+                  ),
+                ),
+              ],
+              if (user.followers > 0) ...[
+                const SizedBox(height: 8),
+                Row(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Row(
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  user.username,
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: textColor,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                user.timeAgo,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: subtleColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
                     Text(
-                      user.displayName,
+                      '${user.followers} followers',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: subtleColor,
                       ),
                     ),
-                    if (user.comment != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        user.comment!,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: textColor,
-                        ),
-                      ),
-                    ],
-                    if (user.followers > 0) ...[
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          // Stacked avatars
-                          SizedBox(
-                            width: 32,
-                            height: 18,
-                            child: Stack(
-                              children: [
-                                Positioned(
-                                  left: 0,
-                                  child: _miniAvatar(const Color(0xFF4ECDC4)),
-                                ),
-                                Positioned(
-                                  left: 10,
-                                  child: _miniAvatar(const Color(0xFFF093FB)),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            '${user.followers} followers',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: subtleColor,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
                   ],
                 ),
-              ),
-              
-              // Follow button
-              const SizedBox(width: 12),
-              GestureDetector(
-                onTap: () => _toggleFollow(user.username),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: isFollowing
-                        ? Colors.transparent
-                        : (isDark ? Colors.white : Colors.black),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: isFollowing ? 0.3 : 1)
-                          : Colors.black.withValues(alpha: isFollowing ? 0.3 : 1),
-                    ),
-                  ),
-                  child: Text(
-                    isFollowing ? 'Following' : 'Follow',
-                    style: TextStyle(
-                      color: isFollowing
-                          ? (isDark ? Colors.white : Colors.black)
-                          : (isDark ? Colors.black : Colors.white),
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-              ),
+              ],
             ],
           ),
         ),
-        Divider(height: 1, color: dividerColor, indent: 72),
-      ],
-    );
-  }
 
-  Widget _miniAvatar(Color color) {
-    return Container(
-      width: 18,
-      height: 18,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(9),
-        border: Border.all(
-          color: Theme.of(context).brightness == Brightness.dark
-              ? Colors.black
-              : Colors.white,
-          width: 1.5,
+        const SizedBox(width: 12),
+        GestureDetector(
+          onTap: () => _toggleFollow(user.username),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: followBg,
+              borderRadius: BorderRadius.circular(999),
+              border: Border.fromBorderSide(followBorder),
+            ),
+            child: Text(
+              isFollowing ? 'Following' : 'Follow',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: followFg,
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
 

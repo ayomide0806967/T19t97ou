@@ -3,11 +3,7 @@ import 'package:flutter/material.dart';
 /// X/Twitter-style comment/reply icon.
 /// A rounded chat bubble with a small tail on the bottom-left.
 class XCommentIcon extends StatelessWidget {
-  const XCommentIcon({
-    super.key,
-    this.size = 18,
-    this.color,
-  });
+  const XCommentIcon({super.key, this.size = 18, this.color});
 
   final double size;
   final Color? color;
@@ -19,7 +15,10 @@ class XCommentIcon extends StatelessWidget {
       height: size,
       child: CustomPaint(
         painter: _XCommentPainter(
-          color: color ?? Theme.of(context).iconTheme.color ?? const Color(0xFF536471),
+          color:
+              color ??
+              Theme.of(context).iconTheme.color ??
+              const Color(0xFF536471),
         ),
       ),
     );
@@ -46,14 +45,13 @@ class _XCommentPainter extends CustomPainter {
 
     // Dimensions for the bubble
     final double padding = sw;
-    final double bubbleWidth = s - padding * 2;
     final double bubbleHeight = s * 0.72;
     final double cornerRadius = s * 0.22;
     final double tailSize = s * 0.15;
 
     // Create the bubble path
     final path = Path();
-    
+
     // Starting from bottom-left, just after the tail
     final double left = padding;
     final double top = padding;
@@ -62,44 +60,44 @@ class _XCommentPainter extends CustomPainter {
 
     // Top-left corner
     path.moveTo(left + cornerRadius, top);
-    
+
     // Top edge
     path.lineTo(right - cornerRadius, top);
-    
+
     // Top-right corner
     path.arcToPoint(
       Offset(right, top + cornerRadius),
       radius: Radius.circular(cornerRadius),
     );
-    
+
     // Right edge
     path.lineTo(right, bottom - cornerRadius);
-    
+
     // Bottom-right corner
     path.arcToPoint(
       Offset(right - cornerRadius, bottom),
       radius: Radius.circular(cornerRadius),
     );
-    
+
     // Bottom edge (with tail gap)
     path.lineTo(left + tailSize * 2.5, bottom);
-    
+
     // Tail (pointing down-left)
     path.lineTo(left + tailSize * 0.5, bottom + tailSize);
     path.lineTo(left + tailSize * 1.2, bottom);
-    
+
     // Continue bottom edge
     path.lineTo(left + cornerRadius, bottom);
-    
+
     // Bottom-left corner
     path.arcToPoint(
       Offset(left, bottom - cornerRadius),
       radius: Radius.circular(cornerRadius),
     );
-    
+
     // Left edge
     path.lineTo(left, top + cornerRadius);
-    
+
     // Top-left corner (closing)
     path.arcToPoint(
       Offset(left + cornerRadius, top),
@@ -144,9 +142,10 @@ class _XCommentButtonState extends State<XCommentButton>
       duration: const Duration(milliseconds: 150),
       vsync: this,
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.95,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -157,8 +156,6 @@ class _XCommentButtonState extends State<XCommentButton>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     // Blue when active, grey otherwise (X uses blue for replies)
     final Color primaryColor = widget.isActive
         ? const Color(0xFF1D9BF0) // X blue when active
@@ -173,10 +170,8 @@ class _XCommentButtonState extends State<XCommentButton>
       onTapCancel: () => _controller.reverse(),
       child: AnimatedBuilder(
         animation: _scaleAnimation,
-        builder: (context, child) => Transform.scale(
-          scale: _scaleAnimation.value,
-          child: child,
-        ),
+        builder: (context, child) =>
+            Transform.scale(scale: _scaleAnimation.value, child: child),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeOutCubic,
@@ -184,12 +179,9 @@ class _XCommentButtonState extends State<XCommentButton>
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              XCommentIcon(
-                size: 16,
-                color: primaryColor,
-              ),
+              XCommentIcon(size: 16, color: primaryColor),
               if (widget.count != null && widget.count! > 0) ...[
-                const SizedBox(width: 4),
+                const SizedBox(width: 1),
                 Text(
                   _formatCount(widget.count!),
                   style: TextStyle(

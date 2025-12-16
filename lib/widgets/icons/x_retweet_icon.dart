@@ -3,11 +3,7 @@ import 'package:flutter/material.dart';
 /// Twitter/X-style retweet icon (two arrows forming a loop).
 /// Drawn with a CustomPainter so it scales cleanly at any size.
 class XRetweetIcon extends StatelessWidget {
-  const XRetweetIcon({
-    super.key,
-    this.size = 18,
-    this.color,
-  });
+  const XRetweetIcon({super.key, this.size = 18, this.color});
 
   final double size;
   final Color? color;
@@ -19,7 +15,10 @@ class XRetweetIcon extends StatelessWidget {
       height: size,
       child: CustomPaint(
         painter: _TwitterRetweetPainter(
-          color: color ?? Theme.of(context).iconTheme.color ?? const Color(0xFF536471),
+          color:
+              color ??
+              Theme.of(context).iconTheme.color ??
+              const Color(0xFF536471),
         ),
       ),
     );
@@ -53,7 +52,7 @@ class XRetweetButton extends StatefulWidget {
   State<XRetweetButton> createState() => _XRetweetButtonState();
 }
 
-class _XRetweetButtonState extends State<XRetweetButton> 
+class _XRetweetButtonState extends State<XRetweetButton>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
@@ -65,9 +64,10 @@ class _XRetweetButtonState extends State<XRetweetButton>
       duration: const Duration(milliseconds: 150),
       vsync: this,
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.95,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -79,10 +79,10 @@ class _XRetweetButtonState extends State<XRetweetButton>
   @override
   Widget build(BuildContext context) {
     // Green when active/reposted, grey otherwise
-    final Color primaryColor = widget.isActive 
+    final Color primaryColor = widget.isActive
         ? const Color(0xFF00BA7C) // Vibrant green when reposted
         : (widget.color ?? const Color(0xFF71767B)); // Grey when not reposted
-    
+
     final Color bgColor = Colors.transparent;
 
     return Semantics(
@@ -112,10 +112,8 @@ class _XRetweetButtonState extends State<XRetweetButton>
               },
         child: AnimatedBuilder(
           animation: _scaleAnimation,
-          builder: (context, child) => Transform.scale(
-            scale: _scaleAnimation.value,
-            child: child,
-          ),
+          builder: (context, child) =>
+              Transform.scale(scale: _scaleAnimation.value, child: child),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeOutCubic,
@@ -123,10 +121,7 @@ class _XRetweetButtonState extends State<XRetweetButton>
             decoration: BoxDecoration(
               color: bgColor,
               borderRadius: BorderRadius.zero,
-              border: Border.all(
-                color: Colors.transparent,
-                width: 1.5,
-              ),
+              border: Border.all(color: Colors.transparent, width: 1.5),
             ),
             child: ExcludeSemantics(
               child: Row(
@@ -134,7 +129,7 @@ class _XRetweetButtonState extends State<XRetweetButton>
                 children: [
                   XRetweetIcon(size: widget.iconSize, color: primaryColor),
                   if (widget.count != null) ...[
-                    const SizedBox(width: 9),
+                    const SizedBox(width: 1),
                     Text(
                       _formatCount(widget.count!),
                       style: TextStyle(
@@ -162,13 +157,13 @@ class _XRetweetButtonState extends State<XRetweetButton>
 
 class _TwitterRetweetPainter extends CustomPainter {
   _TwitterRetweetPainter({required this.color});
-  
+
   final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
     final double s = size.shortestSide;
-    final double sw = s * 0.06; // lighter shaft weight
+    final double sw = s * 0.07; // slightly heavier stroke for better visibility
 
     final Paint stroke = Paint()
       ..color = color
@@ -176,10 +171,6 @@ class _TwitterRetweetPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
       ..style = PaintingStyle.stroke;
-
-    final Paint fill = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
 
     // Two separate bent arrows with an even more visible gap between them
     final double margin = s * 0.10;
@@ -189,8 +180,9 @@ class _TwitterRetweetPainter extends CustomPainter {
     final double rightX = s - margin;
     final double cornerR = s * 0.14;
     final double arrowSize = s * 0.18;
-    final double headSize = arrowSize * 1.0; // smaller chevron head, still cleanly centered
-    final double gapOffset = s * 0.18; // Reduced vertical gap between arrows
+    // Slightly shorter but visually wider chevron head
+    final double headSize = arrowSize * 0.8;
+    final double gapOffset = s * 0.14; // Reduced vertical gap between arrows
     // Horizontal shaft geometry so the curve and shaft meet the arrowheads centrally.
     final double bodyTopStart = leftX + cornerR;
     // Shaft ends at the center of the head base, leaving equal space above/below.
@@ -224,7 +216,8 @@ class _TwitterRetweetPainter extends CustomPainter {
     canvas.drawPath(arrow1, stroke);
 
     // Right-pointing arrowhead (top arrow) rendered as a stroked chevron "<"
-    final double headHalfHeight = headSize * 0.5;
+    final double headHalfHeight =
+        headSize * 0.85; // taller chevron arms for more presence
     final double shaftEndTop = bodyTopEnd;
     final double tipLeftTopMain = shaftEndTop - headSize;
     final Path headRight = Path()
@@ -293,8 +286,13 @@ class XRetweetIconMinimal extends StatelessWidget {
       height: size,
       child: CustomPaint(
         painter: _MinimalRetweetPainter(
-          color: color ?? Theme.of(context).iconTheme.color ?? const Color(0xFF536471),
-          strokeWidth: strokeWidth ?? size * 0.07, // lighter default shaft weight
+          color:
+              color ??
+              Theme.of(context).iconTheme.color ??
+              const Color(0xFF536471),
+          strokeWidth:
+              strokeWidth ??
+              size * 0.08, // slightly heavier stroke for better visibility
         ),
       ),
     );
@@ -303,28 +301,21 @@ class XRetweetIconMinimal extends StatelessWidget {
 
 /// Minimal, clean retweet icon matching X/Twitter style
 class _MinimalRetweetPainter extends CustomPainter {
-  _MinimalRetweetPainter({
-    required this.color,
-    required this.strokeWidth,
-  });
-  
+  _MinimalRetweetPainter({required this.color, required this.strokeWidth});
+
   final Color color;
   final double strokeWidth;
 
   @override
   void paint(Canvas canvas, Size size) {
     final double s = size.width;
-    
+
     final paint = Paint()
       ..color = color
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
       ..style = PaintingStyle.stroke;
-
-    final fillPaint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
 
     // Two separate bent arrows with gap between them
     final double margin = s * 0.10;
@@ -334,8 +325,9 @@ class _MinimalRetweetPainter extends CustomPainter {
     final double rightX = s - margin;
     final double cornerR = s * 0.14;
     final double arrowSize = s * 0.18;
-    final double headSize = arrowSize * 1.0; // smaller chevron head, still cleanly centered
-    final double gapOffset = s * 0.18; // Reduced vertical gap (match main icon)
+    // Slightly shorter but visually wider chevron head
+    final double headSize = arrowSize * 0.8;
+    final double gapOffset = s * 0.14; // Reduced vertical gap (match main icon)
 
     // Arrow 1: goes up-left, runs mostly straight, then eases into a curve only near the head
     final double bodyTopStart = leftX + cornerR;
@@ -357,7 +349,7 @@ class _MinimalRetweetPainter extends CustomPainter {
     canvas.drawPath(arrow1, paint);
 
     // Right arrowhead rendered as stroked chevron "<"
-    final double headHalfHeight = headSize * 0.5;
+    final double headHalfHeight = headSize * 0.85;
     final double shaftEndTop = bodyTopEnd;
     final double tipLeftTop = shaftEndTop - headSize;
     final Path headRight = Path()
@@ -398,6 +390,6 @@ class _MinimalRetweetPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_MinimalRetweetPainter old) => 
+  bool shouldRepaint(_MinimalRetweetPainter old) =>
       old.color != color || old.strokeWidth != strokeWidth;
 }
