@@ -794,24 +794,67 @@ class _ClassesExperience extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Text(
-                  'Your classes',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+            Text(
+              'Your classes',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(
+                  color: Colors.black.withValues(alpha: 0.06),
                 ),
-                const Spacer(),
-                InkWell(
-                  onTap: () => _handleCreateClass(context),
-                  borderRadius: BorderRadius.circular(999),
-                  child: const _ClassHeaderChip(
-                    icon: Icons.add_rounded,
-                    label: 'Create class',
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 18,
+                    offset: const Offset(0, 10),
                   ),
-                ),
-              ],
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Create a class',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Start a new class space for your learners.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.black.withValues(alpha: 0.55),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  ElevatedButton.icon(
+                    onPressed: () => _handleCreateClass(context),
+                    icon: const Icon(Icons.add_rounded, size: 22),
+                    label: const Text('Create a class'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF075E54),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 26,
+                        vertical: 14,
+                      ),
+                      shape: const StadiumBorder(),
+                      elevation: 3,
+                      textStyle: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 16),
             // Grid layout for class cards
