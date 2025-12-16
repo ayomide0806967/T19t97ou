@@ -840,8 +840,8 @@ class _ClassesExperience extends StatelessWidget {
                     icon: const Icon(Icons.add_rounded, size: 22),
                     label: const Text('Create a class'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF075E54),
-                      foregroundColor: Colors.white,
+                      backgroundColor: const Color(0xFF7DD3E8),
+                      foregroundColor: Colors.black87,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 26,
                         vertical: 14,
