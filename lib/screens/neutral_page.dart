@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'create_class_screen.dart';
 import 'ios_messages_screen.dart';
-import 'quiz_create_screen.dart';
+import 'quiz_dashboard_screen.dart';
 
 class NeutralPage extends StatelessWidget {
   const NeutralPage({super.key});
@@ -39,8 +39,8 @@ class NeutralPage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             _HubCard(
-              title: 'Create new class',
-              subtitle: 'Set up a new class space.',
+              title: 'Go to class',
+              subtitle: 'Open your class space.',
               icon: Icons.class_outlined,
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const CreateClassScreen()),
@@ -48,11 +48,11 @@ class NeutralPage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             _HubCard(
-              title: 'Create new quiz',
-              subtitle: 'Launch the step-by-step builder for a fresh quiz.',
+              title: 'Quiz dashboard',
+              subtitle: 'Review drafts, quizzes, and performance summaries.',
               icon: Icons.create_outlined,
               onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const QuizCreateScreen()),
+                MaterialPageRoute(builder: (_) => const QuizDashboardScreen()),
               ),
             ),
             const SizedBox(height: 18),
