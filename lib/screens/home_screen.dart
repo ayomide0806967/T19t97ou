@@ -38,6 +38,8 @@ class _HomeScreenState extends State<HomeScreen>
   final PageController _feedPageController = PageController();
   late final AnimationController _logoRefreshController;
   bool _isRefreshingFeed = false;
+  double _rightSwipeOverscroll = 0;
+  bool _didTriggerQuickControlSwipe = false;
   SimpleAuthService get _authService => SimpleAuthService();
   String get _currentUserHandle {
     final email = _authService.currentUserEmail;
@@ -207,21 +209,46 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
         ],
-        body: PageView(
-          controller: _feedPageController,
-          onPageChanged: (index) {
-            if (mounted) {
-              setState(() => _selectedFeedTabIndex = index);
+        body: NotificationListener<ScrollNotification>(
+          onNotification: (notification) {
+            if (_selectedFeedTabIndex == 0) {
+              if (notification is OverscrollNotification &&
+                  notification.overscroll < 0) {
+                _rightSwipeOverscroll += -notification.overscroll;
+                if (!_didTriggerQuickControlSwipe &&
+                    _rightSwipeOverscroll > 24) {
+                  _didTriggerQuickControlSwipe = true;
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) _showQuickControlPanel();
+                  });
+                }
+              }
+
+              if (notification is ScrollEndNotification) {
+                _rightSwipeOverscroll = 0;
+                _didTriggerQuickControlSwipe = false;
+              }
             }
+            return false;
           },
-          children: [
-            _buildFeedList(
-              context,
-              _sortedTrending(baseTimeline),
-              currentUserHandle,
-            ),
-            _buildFeedList(context, baseTimeline, currentUserHandle),
-          ],
+          child: PageView(
+            controller: _feedPageController,
+            onPageChanged: (index) {
+              if (mounted) {
+                setState(() => _selectedFeedTabIndex = index);
+              }
+              _rightSwipeOverscroll = 0;
+              _didTriggerQuickControlSwipe = false;
+            },
+            children: [
+              _buildFeedList(
+                context,
+                _sortedTrending(baseTimeline),
+                currentUserHandle,
+              ),
+              _buildFeedList(context, baseTimeline, currentUserHandle),
+            ],
+          ),
         ),
       ),
       floatingActionButton: Padding(
