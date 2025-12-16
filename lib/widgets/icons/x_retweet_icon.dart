@@ -168,7 +168,7 @@ class _TwitterRetweetPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final double s = size.shortestSide;
-    final double sw = s * 0.06; // lighter shaft weight
+    final double sw = s * 0.07; // slightly heavier stroke for better visibility
 
     final Paint stroke = Paint()
       ..color = color
@@ -189,8 +189,9 @@ class _TwitterRetweetPainter extends CustomPainter {
     final double rightX = s - margin;
     final double cornerR = s * 0.14;
     final double arrowSize = s * 0.18;
-    final double headSize = arrowSize * 1.0; // smaller chevron head, still cleanly centered
-    final double gapOffset = s * 0.18; // Reduced vertical gap between arrows
+    // Slightly shorter but visually wider chevron head
+    final double headSize = arrowSize * 0.8;
+    final double gapOffset = s * 0.14; // Reduced vertical gap between arrows
     // Horizontal shaft geometry so the curve and shaft meet the arrowheads centrally.
     final double bodyTopStart = leftX + cornerR;
     // Shaft ends at the center of the head base, leaving equal space above/below.
@@ -224,7 +225,7 @@ class _TwitterRetweetPainter extends CustomPainter {
     canvas.drawPath(arrow1, stroke);
 
     // Right-pointing arrowhead (top arrow) rendered as a stroked chevron "<"
-    final double headHalfHeight = headSize * 0.5;
+    final double headHalfHeight = headSize * 0.85; // taller chevron arms for more presence
     final double shaftEndTop = bodyTopEnd;
     final double tipLeftTopMain = shaftEndTop - headSize;
     final Path headRight = Path()
@@ -294,7 +295,7 @@ class XRetweetIconMinimal extends StatelessWidget {
       child: CustomPaint(
         painter: _MinimalRetweetPainter(
           color: color ?? Theme.of(context).iconTheme.color ?? const Color(0xFF536471),
-          strokeWidth: strokeWidth ?? size * 0.07, // lighter default shaft weight
+          strokeWidth: strokeWidth ?? size * 0.08, // slightly heavier stroke for better visibility
         ),
       ),
     );
@@ -334,8 +335,9 @@ class _MinimalRetweetPainter extends CustomPainter {
     final double rightX = s - margin;
     final double cornerR = s * 0.14;
     final double arrowSize = s * 0.18;
-    final double headSize = arrowSize * 1.0; // smaller chevron head, still cleanly centered
-    final double gapOffset = s * 0.18; // Reduced vertical gap (match main icon)
+    // Slightly shorter but visually wider chevron head
+    final double headSize = arrowSize * 0.8;
+    final double gapOffset = s * 0.14; // Reduced vertical gap (match main icon)
 
     // Arrow 1: goes up-left, runs mostly straight, then eases into a curve only near the head
     final double bodyTopStart = leftX + cornerR;
@@ -357,7 +359,7 @@ class _MinimalRetweetPainter extends CustomPainter {
     canvas.drawPath(arrow1, paint);
 
     // Right arrowhead rendered as stroked chevron "<"
-    final double headHalfHeight = headSize * 0.5;
+    final double headHalfHeight = headSize * 0.85;
     final double shaftEndTop = bodyTopEnd;
     final double tipLeftTop = shaftEndTop - headSize;
     final Path headRight = Path()
