@@ -172,7 +172,9 @@ Route<void> messageRepliesRouteFromPost({
 
 /// Minimalist iOS-style messages inbox page.
 class IosMinimalistMessagePage extends StatefulWidget {
-  const IosMinimalistMessagePage({super.key});
+  const IosMinimalistMessagePage({super.key, this.openInboxOnStart = false});
+
+  final bool openInboxOnStart;
 
   @override
   State<IosMinimalistMessagePage> createState() =>
@@ -188,6 +190,17 @@ class _IosMinimalistMessagePageState extends State<IosMinimalistMessagePage> {
   void initState() {
     super.initState();
     _classesScrollController.addListener(_handleClassesScroll);
+    if (widget.openInboxOnStart) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final filtered = _filteredConversations();
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => _InboxPage(conversations: filtered),
+          ),
+        );
+      });
+    }
   }
 
   @override

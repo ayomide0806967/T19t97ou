@@ -30,7 +30,11 @@ class MessagesHubScreen extends StatelessWidget {
               subtitle: 'Open your conversations and class channels.',
               icon: Icons.mail_outline_rounded,
               onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const IosMinimalistMessagePage()),
+                MaterialPageRoute(
+                  builder: (_) => const IosMinimalistMessagePage(
+                    openInboxOnStart: true,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -141,4 +145,3 @@ class _HubCard extends StatelessWidget {
     );
   }
 }
-
