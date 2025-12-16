@@ -17,7 +17,7 @@ class NeutralPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: surface,
       appBar: AppBar(
-        title: const Text('Messages'),
+        title: const Text('Neutral page'),
         backgroundColor: surface,
         elevation: 0,
       ),
