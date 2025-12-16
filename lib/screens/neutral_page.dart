@@ -313,7 +313,7 @@ class _EducationArtworkPainter extends CustomPainter {
         ),
       ),
     )..layout(maxWidth: size.width);
-    tp.paint(canvas, Offset(size.width * 0.16, size.height * 0.12));
+    tp.paint(canvas, Offset(size.width * 0.16, size.height * 0.20));
   }
 
   @override
