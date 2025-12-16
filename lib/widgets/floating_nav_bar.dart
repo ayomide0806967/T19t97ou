@@ -63,8 +63,8 @@ class FloatingNavBar extends StatelessWidget {
                 children: List.generate(destinations.length, (index) {
                   final destination = destinations[index];
                   final bool isActive = currentIndex == index;
-                  final bool isCenter = _hasCenterButton &&
-                      index == _centerIndex;
+                  final bool isCenter =
+                      _hasCenterButton && index == _centerIndex;
 
                   return Expanded(
                     child: GestureDetector(
@@ -107,15 +107,6 @@ class FloatingNavBar extends StatelessWidget {
                     ),
                   );
                 }),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              width: 120,
-              height: 3,
-              decoration: BoxDecoration(
-                color: indicatorColor,
-                borderRadius: BorderRadius.circular(999),
               ),
             ),
           ],

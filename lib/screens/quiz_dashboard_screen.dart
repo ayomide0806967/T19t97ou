@@ -184,8 +184,13 @@ class _DashboardHero extends StatelessWidget {
                                   horizontal: 28,
                                   vertical: 14,
                                 ),
+                                elevation: 3,
+                                shadowColor: Colors.black.withValues(alpha: 0.25),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
+                                  side: BorderSide(
+                                    color: bannerText.withValues(alpha: 0.6),
+                                  ),
                                 ),
                                 textStyle: theme.textTheme.labelLarge?.copyWith(
                                   fontWeight: FontWeight.w700,
@@ -213,9 +218,9 @@ class _DashboardHero extends StatelessWidget {
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: accentSoft.withValues(alpha: 0.16),
+                        color: accentSoft.withValues(alpha: 0.05),
                         border: Border.all(
-                          color: accentSoft.withValues(alpha: 0.5),
+                          color: accentSoft.withValues(alpha: 0.20),
                         ),
                       ),
                       child: Icon(
@@ -564,7 +569,7 @@ class _DashboardQuickCard extends StatelessWidget {
                     color: accent,
                   ),
                   child: Icon(
-                    icon,
+                    Icons.play_arrow_rounded,
                     color: iconColor,
                     size: 22,
                   ),

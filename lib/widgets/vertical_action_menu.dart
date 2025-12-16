@@ -173,8 +173,8 @@ class _MenuTile extends StatelessWidget {
       ),
       title: Text(
         label,
-        style: theme.textTheme.bodyLarge?.copyWith(
-          fontWeight: FontWeight.w600,
+        style: theme.textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.w700,
           color: theme.colorScheme.onSurface,
         ),
       ),

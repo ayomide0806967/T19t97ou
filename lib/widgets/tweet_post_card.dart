@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
@@ -95,6 +96,51 @@ class _TweetPostCardState extends State<TweetPostCard> {
     });
   }
 
+  String _withAtPrefix(String handle) {
+    final trimmed = handle.trim();
+    if (trimmed.isEmpty) return trimmed;
+    return trimmed.startsWith('@') ? trimmed : '@$trimmed';
+  }
+
+  Widget _buildRepostBanner({
+    required ThemeData theme,
+    required Color textColor,
+  }) {
+    final repostedBy = widget.post.repostedBy;
+    if (repostedBy == null || repostedBy.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final normalizedBy = _withAtPrefix(repostedBy);
+    final normalizedCurrent = _withAtPrefix(widget.currentUserHandle);
+    final label =
+        (normalizedCurrent.isNotEmpty && normalizedBy == normalizedCurrent)
+            ? 'You reposted'
+            : '$normalizedBy reposted';
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const XRetweetIconMinimal(
+            size: 14,
+            color: Color(0xFF00BA7C),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: textColor.withValues(alpha: 0.85),
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _ensureRepostForReply() async {
     final handle = widget.currentUserHandle;
     if (handle.isEmpty) {
@@ -126,7 +172,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
   Future<void> _performReinstitute() async {
     final handle = widget.currentUserHandle;
     if (handle.isEmpty) {
-      _showToast('Sign in to re-in.');
+      _showToast('Sign in to repost.');
       return;
     }
     final targetId = widget.post.originalId ?? widget.post.id;
@@ -135,7 +181,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
       userHandle: handle,
     );
     if (!mounted) return;
-    _showToast(toggled ? 'Re-instituted!' : 'Removed re-institution');
+    _showToast(toggled ? 'Reposted!' : 'Removed repost');
     setState(() {
       if (widget.post.originalId == null) {
         _reposts = toggled
@@ -146,7 +192,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
   }
 
   void _handleReinPressed() {
-    _showReinOptions();
+    unawaited(_showReinOptions());
   }
 
   // Replies are updated from thread screen on return
@@ -213,7 +259,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
                         children: [
                           _ReinOptionTile(
                             icon: Icons.repeat_rounded,
-                            label: 'Re-institute',
+                            label: 'Repost',
                             description: 'Share this post with your network',
                             onTap: () async {
                               Navigator.of(sheetContext).pop();
@@ -334,7 +380,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
     final rein = TweetMetricData(
       type: TweetMetricType.rein,
       icon: Icons.repeat_rounded,
-      label: 'REPOST',
+      label: 'new retweet',
       count: repostsCount,
       isActive: repostedByUser,
     );
@@ -363,6 +409,11 @@ class _TweetPostCardState extends State<TweetPostCard> {
     final isCompact = (screenW / items) < 80;
 
     final List<Widget> header = [];
+    if (widget.showRepostBanner && widget.post.repostedBy != null) {
+      header.add(
+        _buildRepostBanner(theme: theme, textColor: secondaryTextColor),
+      );
+    }
     if (widget.replyContext != null) {
       header.add(
         Padding(
@@ -371,7 +422,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
         ),
       );
     }
-    // Repost banner suppressed; modern reply tag handles context.
+    // Repost banner is optional (enabled per screen).
 
     // Build header content (author row) without the avatar.
     final Widget contentHeader;
@@ -761,7 +812,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
         };
         break;
       case TweetMetricType.rein:
-        onTap = _handleReinPressed;
+        onTap = () => unawaited(_performReinstitute());
         break;
       case TweetMetricType.like:
         onTap = _toggleLike;
@@ -798,7 +849,10 @@ class _TweetPostCardState extends State<TweetPostCard> {
             label: data.label ?? 'REPOST',
             count: nonZeroCount,
             isActive: data.isActive,
+            countFontSize: compact ? 12 : 13,
+            iconSize: compact ? 21 : 23,
             onTap: onTap,
+            onLongPress: _handleReinPressed,
           );
         }
         

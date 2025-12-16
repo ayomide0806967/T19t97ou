@@ -5,6 +5,7 @@ import '../widgets/analytics_progress_arc.dart';
 import '../widgets/vertical_action_menu.dart';
 import 'quiz_answers_screen.dart';
 import 'quiz_leaderboard_screen.dart';
+import 'quiz_create_screen.dart';
 
 class QuizResultsScreen extends StatelessWidget {
   const QuizResultsScreen({super.key});
@@ -23,14 +24,87 @@ class QuizResultsScreen extends StatelessWidget {
       ),
       body: ListView.builder(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-        itemCount: results.length,
+        itemCount: results.length + 2,
         itemBuilder: (context, index) {
-          final result = results[index];
+          if (index == 0) {
+            return _MyQuizzesHeader();
+          }
+          if (index == 1) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(
+                'Previous quizzes',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            );
+          }
+          final result = results[index - 2];
           return _ResultCard(
             result: result,
-            index: index + 1,
+            index: index - 1,
           );
         },
+      ),
+    );
+  }
+}
+
+class _MyQuizzesHeader extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 18),
+      child: Card(
+        elevation: 1.5,
+        color: theme.cardColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Create a new quiz',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Start a fresh quiz for your learners.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 46,
+                child: FilledButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const QuizCreateScreen(),
+                      ),
+                    );
+                  },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF075E54),
+                    foregroundColor: Colors.white,
+                    shape: const StadiumBorder(),
+                    elevation: 2,
+                  ),
+                  icon: const Icon(Icons.add_rounded, size: 20),
+                  label: const Text('Create a quiz'),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

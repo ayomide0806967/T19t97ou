@@ -5439,6 +5439,7 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                                         Text(
                                           '$_reposts',
                                           style: theme.textTheme.bodySmall?.copyWith(
+                                            fontSize: 10,
                                             color: _saved ? Colors.green : meta,
                                             fontWeight: FontWeight.w600,
                                           ),
@@ -5469,6 +5470,7 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                                   Text(
                                     '$_reposts',
                                     style: theme.textTheme.bodySmall?.copyWith(
+                                      fontSize: 10,
                                       color: meta,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -5724,6 +5726,7 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                                             style: theme
                                                 .textTheme.bodySmall
                                                 ?.copyWith(
+                                              fontSize: 10,
                                               color: _saved
                                                   ? Colors.green
                                                   : meta,
@@ -5763,11 +5766,12 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
                                           ),
                                         ),
                                         SizedBox(width: gap),
-                                        Text(
-                                          '$_reposts',
-                                          style: theme
-                                              .textTheme.bodySmall
-                                              ?.copyWith(
+                                       Text(
+                                         '$_reposts',
+                                         style: theme
+                                             .textTheme.bodySmall
+                                             ?.copyWith(
+                                            fontSize: 10,
                                             color: meta,
                                             fontWeight:
                                                 FontWeight.w600,

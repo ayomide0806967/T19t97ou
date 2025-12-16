@@ -12,6 +12,7 @@ import '../theme/app_theme.dart';
 import '../widgets/hexagon_avatar.dart';
 import '../services/class_service.dart';
 import '../widgets/brand_mark.dart';
+import '../widgets/swiss_bank_icon.dart';
 import '../widgets/floating_nav_bar.dart';
 import 'compose_screen.dart';
 import 'class_note_stepper_screen.dart';
@@ -19,9 +20,12 @@ import '../widgets/tweet_post_card.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
 import 'ios_messages_screen.dart';
-import 'trending_screen.dart';
 import 'notifications_screen.dart';
-import 'quiz_hub_screen.dart';
+import 'quiz_dashboard_screen.dart';
+import 'create_class_screen.dart';
+import 'trending_screen.dart';
+
+const Color _xBlue = Color(0xFF1D9BF0);
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -32,8 +36,13 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final GlobalKey _composeFabKey = GlobalKey();
+  bool _isFabMenuOpen = false;
   int _selectedBottomNavIndex = 0;
   double _horizontalDragDistance = 0;
+  double _leftSwipeDistance = 0;
+  int _selectedFeedTabIndex = 0;
+  final PageController _feedPageController = PageController();
   SimpleAuthService get _authService => SimpleAuthService();
   String get _currentUserHandle {
     final email = _authService.currentUserEmail;
@@ -55,154 +64,180 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final dataService = context.watch<DataService>();
-    final posts = dataService.timelinePosts;
+    final baseTimeline = dataService.timelinePosts;
+    // Tab 0: For You (trending-style sort), Tab 1: Following (chronological)
+    final posts = _selectedFeedTabIndex == 0
+        ? _sortedTrending(baseTimeline)
+        : baseTimeline;
     final initials = _initialsFrom(_authService.currentUserEmail);
     final currentUserHandle = _currentUserHandle;
 
-    return GestureDetector(
-      behavior: HitTestBehavior.translucent,
-      onHorizontalDragStart: _handleHorizontalDragStart,
-      onHorizontalDragUpdate: _handleHorizontalDragUpdate,
-      onHorizontalDragEnd: _handleHorizontalDragEnd,
-      child: Scaffold(
-        key: _scaffoldKey,
-        body: CustomScrollView(
-          slivers: [
-            SliverAppBar(
-              floating: true,
-              snap: true,
-              elevation: 0,
-              automaticallyImplyLeading: false,
-              leading: const Padding(
-                padding: EdgeInsets.only(left: 12),
-                child: Icon(
-                  Icons.search_rounded,
-                  size: 24,
-                  color: Color(0xFF9CA3AF),
-                ),
+    return Scaffold(
+      key: _scaffoldKey,
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) => [
+          SliverAppBar(
+            floating: true,
+            snap: true,
+            elevation: 0,
+            automaticallyImplyLeading: false,
+            leading: Padding(
+              padding: const EdgeInsets.only(left: 12),
+              child: IconButton(
+                icon: const _TwoLineMenuIcon(),
+                splashRadius: 22,
+                onPressed: _showQuickControlPanel,
               ),
-              backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
-              shadowColor: Colors.black.withValues(alpha: 0.05),
-              centerTitle: true,
-              title: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const BrandMark(size: 24),
-                  const SizedBox(width: 10),
-                  Text(
-                    'Institution',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.2,
+            ),
+            backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+            shadowColor: Colors.black.withValues(alpha: 0.05),
+            centerTitle: true,
+            title: const SwissBankIcon(size: 30),
+            actions: [
+              RepaintBoundary(
+                child: IconButton(
+                  tooltip: 'Profile',
+                  icon: HexagonAvatar(
+                    size: 40,
+                    backgroundColor:
+                        theme.colorScheme.surfaceContainerHighest,
+                    borderColor: theme.colorScheme.primary.withValues(
+                      alpha: 0.35,
+                    ),
+                    borderWidth: 1.5,
+                    child: Center(
+                      child: Text(
+                        initials,
+                        style: theme.textTheme.labelLarge,
+                      ),
                     ),
                   ),
-                ],
-              ),
-              actions: [
-                RepaintBoundary(
-                  child: IconButton(
-                    tooltip: 'Profile',
-                    icon: HexagonAvatar(
-                      size: 40,
-                      backgroundColor:
-                          theme.colorScheme.surfaceContainerHighest,
-                      borderColor: theme.colorScheme.primary.withValues(
-                        alpha: 0.35,
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const ProfileScreen(),
                       ),
-                      borderWidth: 1.5,
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 4,
+                bottom: 0,
+              ),
                       child: Center(
-                        child: Text(
-                          initials,
-                          style: theme.textTheme.labelLarge,
-                        ),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 720),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _FeedTabBar(
+                                selectedIndex: _selectedFeedTabIndex,
+                                onChanged: (index) {
+                                  if (mounted) {
+                                    setState(() => _selectedFeedTabIndex = index);
+                                    _feedPageController.animateToPage(
+                              index,
+                              duration: const Duration(milliseconds: 260),
+                              curve: Curves.easeOutCubic,
+                            );
+                          }
+                        },
                       ),
-                    ),
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => const ProfileScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(width: 8),
-              ],
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  // Pull first tweet closer to the stories rail
-                  vertical: 12,
-                ),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 720),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _StoryRail(currentUserHandle: currentUserHandle),
-                        const SizedBox(height: 8),
-                      ],
-                    ),
+                      _StoryRail(currentUserHandle: currentUserHandle),
+                    ],
                   ),
                 ),
               ),
             ),
-            SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final post = posts[index];
-                return RepaintBoundary(
-                  child: Builder(builder: (context) {
-                    final theme = Theme.of(context);
-                    final bool isDark = theme.brightness == Brightness.dark;
-                    // Softer divider like X
-                    final Color line = theme.colorScheme.onSurface
-                        .withValues(alpha: isDark ? 0.12 : 0.06);
-
-                    final Border border = Border(
-                      top: index == 0
-                          ? BorderSide(color: line, width: 0.6)
-                          : BorderSide.none,
-                      bottom: BorderSide(color: line, width: 0.6),
-                    );
-
-                    return Container(
-                      padding: EdgeInsets.only(
-                        top: index == 0 ? 8 : 14,
-                        bottom: 14,
-                      ),
-                      decoration: BoxDecoration(border: border),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Center(
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 720),
-                            child: _PostCard(
-                              post: post,
-                              currentUserHandle: currentUserHandle,
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
-                );
-              }, childCount: posts.length),
-            ),
-            const SliverToBoxAdapter(
-              child: SizedBox(height: 100), // Extra padding at bottom
-            ),
+          ),
+        ],
+        body: PageView(
+          controller: _feedPageController,
+          onPageChanged: (index) {
+            if (mounted) {
+              setState(() => _selectedFeedTabIndex = index);
+            }
+          },
+          children: [
+            _buildFeedList(context, _sortedTrending(baseTimeline),
+                currentUserHandle),
+            _buildFeedList(context, baseTimeline, currentUserHandle),
           ],
         ),
-        floatingActionButton: Padding(
-          padding: const EdgeInsets.only(bottom: 12),
+      ),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: KeyedSubtree(
+          key: _composeFabKey,
           child: _HexagonComposeButton(
-            onTap: _openQuickComposer,
+            onTap: _showFabMenu,
+            showPlus: _isFabMenuOpen,
           ),
         ),
-        bottomNavigationBar: _buildBottomNavigationBar(),
+      ),
+      bottomNavigationBar: _buildBottomNavigationBar(),
+    );
+  }
+
+  Widget _buildFeedList(
+    BuildContext context,
+    List<PostModel> posts,
+    String currentUserHandle, {
+    Key? key,
+  }) {
+    final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final Color line = theme.colorScheme.onSurface
+        .withValues(alpha: isDark ? 0.12 : 0.06);
+
+    final List<Widget> children = <Widget>[];
+    for (int index = 0; index < posts.length; index++) {
+      final post = posts[index];
+      final Border border = Border(
+        top: index == 0
+            ? BorderSide.none
+            : BorderSide(color: line, width: 0.6),
+        bottom: BorderSide(color: line, width: 0.6),
+      );
+      children.add(
+        RepaintBoundary(
+          child: Container(
+            padding: EdgeInsets.only(
+              top: index == 0 ? 0 : 14,
+              bottom: 14,
+            ),
+            decoration: BoxDecoration(border: border),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 720),
+                  child: _PostCard(
+                    post: post,
+                    currentUserHandle: currentUserHandle,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return KeyedSubtree(
+      key: key,
+      child: ListView(
+        physics: const BouncingScrollPhysics(),
+        padding: EdgeInsets.zero,
+        children: children,
       ),
     );
   }
@@ -282,32 +317,98 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _handleHorizontalDragStart(DragStartDetails details) {
-    _horizontalDragDistance = 0;
-  }
+  void _handleHorizontalDragStart(DragStartDetails details) {}
 
-  void _handleHorizontalDragUpdate(DragUpdateDetails details) {
-    final dx = details.delta.dx;
-    final dy = details.delta.dy.abs();
-    if (dx > 0 && dx.abs() > dy) {
-      _horizontalDragDistance += dx;
-    } else if (dx < 0) {
-      _horizontalDragDistance = 0;
-    }
-  }
+  void _handleHorizontalDragUpdate(DragUpdateDetails details) {}
 
-  void _handleHorizontalDragEnd(DragEndDetails details) {
-    final velocity = details.primaryVelocity ?? 0;
-    if (_horizontalDragDistance > 80 || velocity > 600) {
-      _showQuickControlPanel();
-    }
-    _horizontalDragDistance = 0;
-  }
+  void _handleHorizontalDragEnd(DragEndDetails details) {}
 
   Future<void> _openQuickComposer() async {
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const ComposeScreen()),
     );
+  }
+
+  void _showFabMenu() async {
+    if (_isFabMenuOpen) return;
+
+    final renderObject = _composeFabKey.currentContext?.findRenderObject();
+    if (renderObject is! RenderBox) return;
+
+    final Offset topLeft = renderObject.localToGlobal(Offset.zero);
+    final Size size = renderObject.size;
+    final Rect fabRect = topLeft & size;
+
+    final Size screenSize = MediaQuery.sizeOf(context);
+    final double right = screenSize.width - fabRect.right;
+    final double bottom = screenSize.height - fabRect.bottom;
+
+    if (mounted) {
+      setState(() => _isFabMenuOpen = true);
+    }
+
+    final navigator = Navigator.of(context);
+    await showGeneralDialog<void>(
+      context: context,
+      barrierLabel: 'Compose menu',
+      barrierDismissible: true,
+      barrierColor: Colors.transparent,
+      // Route itself has no animation; overlay animates internally on entry only.
+      transitionDuration: Duration.zero,
+      pageBuilder: (dialogContext, animation, secondaryAnimation) {
+        void close() => Navigator.of(dialogContext).pop();
+
+        return _ComposeFabMenuOverlay(
+          anchorRight: right,
+          anchorBottom: bottom,
+          onClose: close,
+          actions: [
+            _ComposeFabAction(
+              label: 'Go Class',
+              icon: Icons.school_rounded,
+              animationOrder: 2,
+              onTap: () {
+                close();
+                navigator.push(
+                  MaterialPageRoute(
+                    builder: (_) => const IosMinimalistMessagePage(),
+                  ),
+                );
+              },
+            ),
+            _ComposeFabAction(
+              label: 'Quizzes',
+              icon: Icons.quiz_outlined,
+              animationOrder: 1,
+              onTap: () {
+                close();
+                navigator.push(
+                  MaterialPageRoute(
+                    builder: (_) => const QuizDashboardScreen(),
+                  ),
+                );
+              },
+            ),
+            _ComposeFabAction(
+              label: 'Photos',
+              icon: Icons.photo_outlined,
+              animationOrder: 0,
+              onTap: () {
+                close();
+                _openQuickComposer();
+              },
+            ),
+          ],
+          onCompose: () {
+            close();
+            _openQuickComposer();
+          },
+        );
+      },
+    );
+
+    if (!mounted) return;
+    setState(() => _isFabMenuOpen = false);
   }
 
   void _showQuickControlPanel() {
@@ -353,19 +454,7 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         color: isDark ? AppTheme.darkSurface : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-          BoxShadow(
-            color: isDark ? AppTheme.darkSurface : Colors.white,
-            blurRadius: 0,
-            offset: const Offset(0, -2),
-            spreadRadius: 1,
-          ),
-        ],
+        boxShadow: const [],
       ),
       child: Material(
         color: Colors.transparent,
@@ -418,16 +507,6 @@ class _HomeScreenState extends State<HomeScreen> {
                               : const Color(0xFF2D3748),
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '@productlead • ${_authService.currentUserEmail?.toLowerCase() ?? 'user@institution.edu'}',
-                        style: TextStyle(
-                          color: isDark
-                              ? AppTheme.darkTextSecondary
-                              : const Color(0xFF718096),
-                          fontSize: 12,
                         ),
                       ),
                     ],
@@ -596,6 +675,129 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+  
+  List<PostModel> _sortedTrending(List<PostModel> posts) {
+    final sorted = List<PostModel>.from(posts);
+    int score(PostModel p) => p.likes + (p.reposts * 2) + (p.views ~/ 100);
+    sorted.sort((a, b) => score(b).compareTo(score(a)));
+    return sorted;
+  }
+}
+
+class _FeedTabBar extends StatelessWidget {
+  const _FeedTabBar({
+    required this.selectedIndex,
+    required this.onChanged,
+  });
+
+  final int selectedIndex;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final Color divider =
+        theme.dividerColor.withValues(alpha: isDark ? 0.4 : 0.25);
+    final Color accent = theme.colorScheme.primary;
+
+    Widget buildTab(String label, int index) {
+      final bool isSelected = selectedIndex == index;
+      final TextStyle baseStyle = theme.textTheme.titleMedium ??
+          const TextStyle(fontSize: 18, fontWeight: FontWeight.w600);
+
+      return Expanded(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(4),
+          onTap: () {
+            if (!isSelected) {
+              onChanged(index);
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOutCubic,
+                  style: baseStyle.copyWith(
+                    fontWeight:
+                        isSelected ? FontWeight.w800 : FontWeight.w500,
+                    color: theme.colorScheme.onSurface.withValues(
+                      alpha: isSelected ? 0.98 : 0.65,
+                    ),
+                  ),
+                  child: Text(label),
+                ),
+                const SizedBox(height: 6),
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutCubic,
+                  height: 3,
+                  width: double.infinity,
+                  margin: const EdgeInsets.symmetric(horizontal: 24),
+                  decoration: BoxDecoration(
+                    color: isSelected ? accent : Colors.transparent,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: divider, width: 1),
+        ),
+      ),
+      child: Row(
+        children: [
+          buildTab('For You', 0),
+          buildTab('Following', 1),
+        ],
+      ),
+    );
+  }
+}
+
+class _TwoLineMenuIcon extends StatelessWidget {
+  const _TwoLineMenuIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: const [
+          _MenuLine(),
+          SizedBox(height: 6),
+          _MenuLine(),
+        ],
+      ),
+    );
+  }
+}
+
+class _MenuLine extends StatelessWidget {
+  const _MenuLine();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 20,
+      height: 3,
+      decoration: BoxDecoration(
+        color: const Color(0xFF9CA3AF),
+        borderRadius: BorderRadius.circular(999),
+      ),
+    );
+  }
 }
 
 class _QuickControlPanel extends StatefulWidget {
@@ -622,6 +824,7 @@ class _QuickControlPanel extends StatefulWidget {
 class _QuickControlPanelState extends State<_QuickControlPanel> {
   late final List<_QuickControlItem> _items;
   late final List<bool> _activeStates;
+  int _selectedTopTab = 0;
 
   Future<void> _showComingSoon(String feature) async {
     final messenger = ScaffoldMessenger.of(context);
@@ -649,35 +852,46 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
     super.initState();
     _items = [
       _QuickControlItem(
-        icon: Icons.home_outlined,
-        label: 'Home Feed',
+        icon: Icons.school_rounded,
+        label: 'Class',
         onPressed: () async {
           Navigator.of(context).pop();
-          widget.onNavigateHome();
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const IosMinimalistMessagePage(),
+            ),
+          );
         },
       ),
       _QuickControlItem(
         icon: Icons.mode_edit_outline_rounded,
-        label: 'Compose',
+        label: 'Post',
         onPressed: () async {
           Navigator.of(context).pop();
           widget.onCompose();
         },
       ),
       _QuickControlItem(
-        icon: Icons.person_outline_rounded,
-        label: 'Profile',
+        icon: Icons.quiz_outlined,
+        label: 'Quiz',
         onPressed: () async {
           Navigator.of(context).pop();
-          widget.onProfile();
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const QuizDashboardScreen(),
+            ),
+          );
         },
       ),
-      _QuickControlItem.togglable(
+      _QuickControlItem(
         icon: Icons.dark_mode_rounded,
         label: 'Dark Theme',
-        initialValue: widget.appSettings.isDarkMode,
-        onToggle: (value) async {
-          await widget.appSettings.toggleDarkMode(value);
+        onPressed: () async {
+          final next = !widget.appSettings.isDarkMode;
+          await widget.appSettings.toggleDarkMode(next);
+          setState(() {
+            _activeStates[3] = next;
+          });
         },
       ),
       _QuickControlItem(
@@ -698,48 +912,29 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
         },
       ),
       _QuickControlItem(
-        icon: Icons.school_outlined,
-        label: 'Colleges',
-        onPressed: () async => _showComingSoon('Colleges'),
-      ),
-      _QuickControlItem(
-        icon: Icons.local_fire_department_outlined,
-        label: 'Trending',
+        icon: Icons.search_rounded,
+        label: 'Search',
         onPressed: () async {
           Navigator.of(context).pop();
           await Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => const TrendingScreen(),
-            ),
-          );
-        },
-      ),
-      _QuickControlItem(
-        icon: Icons.note_alt_outlined,
-        label: 'Notes',
-        onPressed: () async => _showComingSoon('Notes'),
-      ),
-      _QuickControlItem(
-        icon: Icons.quiz_outlined,
-        label: 'Quiz',
-        onPressed: () async {
-          Navigator.of(context).pop();
-          await Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => const QuizHubScreen(),
+              builder: (_) => TrendingScreen(),
             ),
           );
         },
       ),
       _QuickControlItem(
         icon: Icons.quiz_outlined,
-        label: 'Exam Prep',
-        onPressed: () async => _showComingSoon('Exam prep'),
-      ),
-      _QuickControlItem(
-        icon: Icons.settings_outlined,
         label: 'Settings',
         onPressed: () async => _showComingSoon('Settings'),
+      ),
+      _QuickControlItem(
+        icon: Icons.person_outline_rounded,
+        label: 'Profile',
+        onPressed: () async {
+          Navigator.of(context).pop();
+          widget.onProfile();
+        },
       ),
     ];
 
@@ -750,6 +945,7 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
   Widget build(BuildContext context) {
     final double sheetHeight = MediaQuery.of(context).size.height * 0.5;
     final theme = widget.theme;
+    final bool isDark = theme.brightness == Brightness.dark;
 
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 1, end: 0),
@@ -768,55 +964,58 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
           child: BackdropFilter(
             filter: ui.ImageFilter.blur(sigmaX: 24, sigmaY: 24),
             child: Container(
-              height: sheetHeight,
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
               decoration: BoxDecoration(
-                color: theme.cardColor.withValues(alpha: 0.75),
+                color: Colors.white.withValues(
+                  alpha: isDark ? 0.10 : 0.16,
+                ),
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(28),
                   topRight: Radius.circular(28),
                 ),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.22)),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.26),
+                ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.15),
-                    blurRadius: 24,
-                    offset: const Offset(0, -4),
+                    color: Colors.black.withValues(alpha: 0.10),
+                    blurRadius: 18,
+                    offset: const Offset(0, -3),
                   ),
                 ],
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.onSurface.withValues(
-                          alpha: 0.15,
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.15,
+                          ),
+                          borderRadius: BorderRadius.circular(2),
                         ),
-                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Quick controls',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
+                    const SizedBox(height: 12),
+                    _buildQuickControlGrid(),
+                    const SizedBox(height: 12),
+                    Center(
+                      child: Text(
+                        'IN INSTITUTION',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.4,
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      child: _buildQuickControlGrid(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  widget.userCard,
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -828,17 +1027,7 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
   Future<void> _handleItemInteraction(int index) async {
     final item = _items[index];
     final isActive = _activeStates[index];
-    if (item.isTogglable) {
-      setState(() {
-        _activeStates[index] = !isActive;
-      });
-      final handler = item.onToggle;
-      if (handler != null) {
-        await handler(_activeStates[index]);
-      }
-    } else {
-      await item.onPressed?.call();
-    }
+    await item.onPressed?.call();
   }
 
   Widget _buildQuickControlGrid() {
@@ -875,13 +1064,102 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
 
       gridRows.add(
         Padding(
-          padding: EdgeInsets.only(bottom: row == rows - 1 ? 0 : 16),
+          padding: EdgeInsets.only(bottom: row == rows - 1 ? 0 : 10),
           child: Row(children: cells),
         ),
       );
     }
 
     return Column(children: gridRows);
+  }
+  
+  Widget _buildTopBar(ThemeData theme) {
+    final bool isDark = theme.brightness == Brightness.dark;
+    final Color border =
+        theme.dividerColor.withValues(alpha: isDark ? 0.45 : 0.25);
+    final Color indicator = theme.colorScheme.primary;
+
+    Widget buildTab({
+      required String label,
+      required int index,
+      required VoidCallback onTap,
+    }) {
+      final bool selected = _selectedTopTab == index;
+      final TextStyle baseStyle =
+          theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600) ??
+              const TextStyle(fontSize: 14, fontWeight: FontWeight.w600);
+
+      return Expanded(
+        child: InkWell(
+          onTap: () {
+            setState(() => _selectedTopTab = index);
+            onTap();
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: baseStyle.copyWith(
+                    color: selected
+                        ? indicator
+                        : theme.colorScheme.onSurface.withValues(
+                              alpha: 0.7,
+                            ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOutCubic,
+                  height: 3,
+                  width: 40,
+                  decoration: BoxDecoration(
+                    color: selected ? indicator : Colors.transparent,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: border, width: 1),
+        ),
+      ),
+      child: Row(
+        children: [
+          buildTab(
+            label: 'Home feed',
+            index: 0,
+            onTap: () {
+              Navigator.of(context).pop();
+              widget.onNavigateHome();
+            },
+          ),
+          buildTab(
+            label: 'Class',
+            index: 1,
+            onTap: () async {
+              Navigator.of(context).pop();
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const CreateClassScreen(),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -890,17 +1168,9 @@ class _QuickControlItem {
     required this.icon,
     required this.label,
     this.onPressed,
-  }) : isTogglable = false,
-       onToggle = null,
-       initialValue = false;
-
-  const _QuickControlItem.togglable({
-    required this.icon,
-    required this.label,
-    required this.initialValue,
-    this.onToggle,
-  }) : isTogglable = true,
-       onPressed = null;
+  })  : isTogglable = false,
+        onToggle = null,
+        initialValue = false;
 
   final IconData icon;
   final String label;
@@ -945,46 +1215,38 @@ class _QuickControlButton extends StatelessWidget {
       border: Border.all(color: isActive ? activeBorder : baseBorder, width: 1),
     );
 
+    final bool isThemeTile = item.label == 'Dark Theme';
+    final String displayLabel = isThemeTile
+        ? (isDark ? 'White mode' : 'Dark mode')
+        : item.label;
+    final IconData displayIcon = isThemeTile
+        ? (isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded)
+        : item.icon;
+
     final TextStyle labelStyle =
         theme.textTheme.bodyMedium?.copyWith(
           fontWeight: FontWeight.w600,
-          fontSize: 13,
+          fontSize: 11,
           color: theme.colorScheme.onSurface.withValues(alpha: 0.82),
         ) ??
-        const TextStyle(fontSize: 13, fontWeight: FontWeight.w600);
+        const TextStyle(fontSize: 11, fontWeight: FontWeight.w600);
 
-    final Widget content = item.isTogglable
-        ? Row(
-            children: [
-              Expanded(
-                child: Text(
-                  item.label,
-                  style: labelStyle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              Transform.scale(
-                scale: 0.82,
-                alignment: Alignment.centerRight,
-                child: CupertinoSwitch(
-                  value: isActive,
-                  activeTrackColor: theme.colorScheme.primary,
-                  onChanged: (_) => onPressed?.call(),
-                ),
-              ),
-            ],
-          )
-        : Column(
+    final Widget content = Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                item.icon,
+                displayIcon,
                 size: 20,
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.72),
               ),
               const SizedBox(height: 8),
-              Text(item.label, textAlign: TextAlign.center, style: labelStyle),
+              Text(
+                displayLabel,
+                textAlign: TextAlign.center,
+                style: labelStyle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ],
           );
 
@@ -999,8 +1261,8 @@ class _QuickControlButton extends StatelessWidget {
           duration: const Duration(milliseconds: 220),
           curve: Curves.easeOutCubic,
           padding: EdgeInsets.symmetric(
-            horizontal: item.isTogglable ? 12 : 14,
-            vertical: item.isTogglable ? 10 : 16,
+            horizontal: 14,
+            vertical: 16,
           ),
           decoration: decoration,
           child: content,
@@ -1342,10 +1604,241 @@ class _ComposerFooterIcon extends StatelessWidget {
 }
 */
 
+class _ComposeFabAction {
+  const _ComposeFabAction({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    this.showPlus = false,
+    this.animationOrder = 0,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool showPlus;
+  final int animationOrder;
+}
+
+class _ComposeFabMenuOverlay extends StatefulWidget {
+  const _ComposeFabMenuOverlay({
+    required this.anchorRight,
+    required this.anchorBottom,
+    required this.onClose,
+    required this.onCompose,
+    required this.actions,
+  });
+
+  final double anchorRight;
+  final double anchorBottom;
+  final VoidCallback onClose;
+  final VoidCallback onCompose;
+  final List<_ComposeFabAction> actions;
+
+  @override
+  State<_ComposeFabMenuOverlay> createState() =>
+      _ComposeFabMenuOverlayState();
+}
+
+class _ComposeFabMenuOverlayState extends State<_ComposeFabMenuOverlay>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+    _animation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+    );
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        final double t = _animation.value;
+        return Material(
+          type: MaterialType.transparency,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: widget.onClose,
+                  child: BackdropFilter(
+                    filter: ui.ImageFilter.blur(
+                      sigmaX: 2 * t,
+                      sigmaY: 2 * t,
+                    ),
+                    child: Container(
+                      color: Colors.white.withValues(alpha: 0.94 * t),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                right: widget.anchorRight,
+                bottom: widget.anchorBottom,
+                child: _ComposeFabMenu(
+                  animation: _animation,
+                  onClose: widget.onClose,
+                  onCompose: widget.onCompose,
+                  actions: widget.actions,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ComposeFabMenu extends StatelessWidget {
+  const _ComposeFabMenu({
+    required this.animation,
+    required this.onClose,
+    required this.onCompose,
+    required this.actions,
+  });
+
+  final Animation<double> animation;
+  final VoidCallback onClose;
+  final VoidCallback onCompose;
+  final List<_ComposeFabAction> actions;
+
+  @override
+  Widget build(BuildContext context) {
+    const double itemGap = 18;
+    final theme = Theme.of(context);
+    final Animation<double> buttonScale = Tween<double>(
+      begin: 0.8,
+      end: 1.0,
+    ).animate(
+      CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutBack,
+        reverseCurve: Curves.easeInCubic,
+      ),
+    );
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        for (int index = 0; index < actions.length; index++) ...[
+          _ComposeFabStaggeredEntry(
+            animation: animation,
+            index: actions[index].animationOrder,
+            child: _FabMenuItem(
+              label: actions[index].label,
+              icon: actions[index].icon,
+              showPlus: actions[index].showPlus,
+              onTap: actions[index].onTap,
+            ),
+          ),
+          if (index != actions.length - 1) const SizedBox(height: itemGap),
+        ],
+        const SizedBox(height: 14),
+        _ComposeFabStaggeredEntry(
+          animation: animation,
+          index: 0,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Transform.translate(
+                offset: const Offset(0, -10),
+                child: Text(
+                  'Post',
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: Colors.black,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              ScaleTransition(
+                scale: buttonScale,
+                child: _HexagonComposeButton(
+                  onTap: onCompose,
+                  showPlus: true,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ComposeFabStaggeredEntry extends StatelessWidget {
+  const _ComposeFabStaggeredEntry({
+    required this.animation,
+    required this.index,
+    required this.child,
+  });
+
+  final Animation<double> animation;
+  final int index;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    // Stagger each item clearly: 0 -> Photos, 1 -> Quizzes, 2 -> Go Class.
+    final double start = 0.10 + (index * 0.18);
+    final double end = (start + 0.40).clamp(0.0, 1.0);
+    final Animation<double> entry = CurvedAnimation(
+      parent: animation,
+      curve: Interval(start, end, curve: Curves.easeOutCubic),
+      // On dismiss, jump quickly from visible to hidden (no staggered fade).
+      reverseCurve: Threshold(0.999),
+    );
+
+    return FadeTransition(
+      opacity: entry,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          // Slight upward + outward sweep
+          begin: const Offset(0.08, 0.20),
+          end: Offset.zero,
+        ).animate(entry),
+        child: RotationTransition(
+          // Fan-like swing from the side into place
+          turns: Tween<double>(
+            begin: 0.5, // half‑turn fan motion
+            end: 0.0,
+          ).animate(entry),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
 class _HexagonComposeButton extends StatelessWidget {
-  const _HexagonComposeButton({required this.onTap});
+  const _HexagonComposeButton({
+    required this.onTap,
+    this.showPlus = false,
+  });
 
   final VoidCallback onTap;
+  final bool showPlus;
 
   @override
   Widget build(BuildContext context) {
@@ -1375,15 +1868,117 @@ class _HexagonComposeButton extends StatelessWidget {
                 ),
               ],
             ),
-            child: const Center(
-              child: Icon(
-                Icons.edit_rounded,
-                color: Colors.white,
-                size: 22,
-              ),
+            child: Center(
+              child: showPlus
+                  ? Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        const Icon(
+                          Icons.edit_rounded,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                        Transform.translate(
+                          offset: const Offset(-8, -6),
+                          child: const Icon(
+                            Icons.add_rounded,
+                            color: Colors.white,
+                            size: 14,
+                          ),
+                        ),
+                      ],
+                    )
+                  : const Icon(
+                      Icons.edit_rounded,
+                      color: Colors.white,
+                      size: 22,
+                    ),
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _FabMenuItem extends StatelessWidget {
+  const _FabMenuItem({
+    required this.label,
+    required this.icon,
+    this.showPlus = false,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool showPlus;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    // Keep popup labels black in both light and dark,
+    // to match the design of the overlay.
+    const Color labelColor = Colors.black;
+    final Color iconColor = isDark ? Colors.white : Colors.black;
+    final Color chipColor =
+        isDark ? theme.colorScheme.surface : Colors.white;
+    // Stronger black shadow for popup icons in both modes.
+    final Color chipShadowColor = Colors.black.withValues(
+      alpha: isDark ? 0.85 : 0.5,
+    );
+    return GestureDetector(
+      onTap: onTap,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            label,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: labelColor,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(width: 24),
+          Material(
+            color: chipColor,
+            shape: const CircleBorder(),
+            elevation: 12,
+            shadowColor: chipShadowColor,
+            child: SizedBox(
+              width: 44,
+              height: 44,
+              child: Center(
+                child: showPlus
+                    ? Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Icon(
+                            Icons.edit_rounded,
+                            color: iconColor,
+                            size: 24,
+                          ),
+                          Transform.translate(
+                            offset: Offset(-8, -6),
+                            child: Icon(
+                              Icons.add_rounded,
+                              color: iconColor,
+                              size: 14,
+                            ),
+                          ),
+                        ],
+                      )
+                    : Icon(
+                        icon,
+                        size: 24,
+                        color: iconColor,
+                      ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1399,12 +1994,12 @@ class _StoryRail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final classes = ClassService.userColleges(currentUserHandle);
-    final List<_Story> stories = [
-      const _Story('Trending'),
-      const _Story('Notes'),
-      ...classes.map((c) => _Story(c.name)),
-    ];
+    final List<_Story> stories = classes.map((c) => _Story(c.name)).toList();
     final theme = Theme.of(context);
+
+    if (stories.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
     return SizedBox(
       height: 112,
@@ -1420,29 +2015,13 @@ class _StoryRail extends StatelessWidget {
           separatorBuilder: (_, __) => const SizedBox(width: 16),
           itemBuilder: (context, index) {
             final story = stories[index];
-            final bool isTrending = story.label == 'Trending';
-            final bool isNotes = story.label == 'Notes';
-            final Color borderColor = isTrending
-                ? AppTheme.accent
-                : theme.colorScheme.primary.withValues(alpha: 0.25);
-            final Color background = isTrending
-                ? AppTheme.accent.withValues(alpha: 0.9)
-                : Theme.of(context).colorScheme.surface;
+            final Color borderColor =
+                theme.colorScheme.primary.withValues(alpha: 0.25);
+            final Color background = Theme.of(context).colorScheme.surface;
 
             return GestureDetector(
               onTap: () {
                 HapticFeedback.lightImpact();
-                if (isTrending) {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const TrendingScreen()),
-                  );
-                } else if (isNotes) {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const ClassNoteStepperScreen(),
-                    ),
-                  );
-                }
               },
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -1451,44 +2030,25 @@ class _StoryRail extends StatelessWidget {
                     size: 56,
                     backgroundColor: background,
                     borderColor: borderColor,
-                    borderWidth: isTrending ? 2 : 1.1,
+                    borderWidth: 1.1,
                     child: Center(
                       child: Text(
                         story.initials,
                         style: theme.textTheme.labelLarge?.copyWith(
-                          color: isTrending ? Colors.white : AppTheme.textPrimary,
+                          color: AppTheme.textPrimary,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
                   ),
-                  if (isTrending)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Container(
-                        width: 20,
-                        height: 20,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: AppTheme.accent,
-                            width: 1.5,
-                          ),
-                        ),
-                        child: const Icon(Icons.trending_up, color: AppTheme.accent, size: 14),
-                      ),
-                    ),
                   const SizedBox(height: 6),
                   SizedBox(
                     width: 70,
                     child: Text(
                       story.label,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: isTrending ? FontWeight.w600 : FontWeight.w500,
-                        color: isTrending
-                            ? AppTheme.accent
-                            : AppTheme.textSecondary,
+                        fontWeight: FontWeight.w500,
+                        color: AppTheme.textSecondary,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -1518,6 +2078,7 @@ class _PostCard extends StatelessWidget {
     return TweetPostCard(
       post: post,
       currentUserHandle: currentUserHandle,
+      showRepostBanner: true,
       onReply: (_) {
         Navigator.of(context).push(
           messageRepliesRouteFromPost(
@@ -1559,6 +2120,3 @@ class _Story {
     return letters.substring(0, 1).toUpperCase();
   }
 }
-
-// Stories are now built dynamically from ClassService and include a leading
-// 'Trending' tile that opens the Trending page.
