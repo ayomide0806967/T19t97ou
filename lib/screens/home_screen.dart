@@ -39,8 +39,6 @@ class _HomeScreenState extends State<HomeScreen>
   final PageController _feedPageController = PageController();
   late final AnimationController _logoRefreshController;
   bool _isRefreshingFeed = false;
-  double _rightSwipeOverscroll = 0;
-  bool _didTriggerQuickControlSwipe = false;
   SimpleAuthService get _authService => SimpleAuthService();
   String get _currentUserHandle {
     final email = _authService.currentUserEmail;
@@ -102,6 +100,7 @@ class _HomeScreenState extends State<HomeScreen>
     return Scaffold(
       key: _scaffoldKey,
       body: NestedScrollView(
+        physics: const ClampingScrollPhysics(),
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
           SliverAppBar(
             floating: true,
@@ -215,46 +214,21 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
         ],
-        body: NotificationListener<ScrollNotification>(
-          onNotification: (notification) {
-            if (_selectedFeedTabIndex == 0) {
-              if (notification is OverscrollNotification &&
-                  notification.overscroll < 0) {
-                _rightSwipeOverscroll += -notification.overscroll;
-                if (!_didTriggerQuickControlSwipe &&
-                    _rightSwipeOverscroll > 24) {
-                  _didTriggerQuickControlSwipe = true;
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (mounted) _showQuickControlPanel();
-                  });
-                }
-              }
-
-              if (notification is ScrollEndNotification) {
-                _rightSwipeOverscroll = 0;
-                _didTriggerQuickControlSwipe = false;
-              }
+        body: PageView(
+          controller: _feedPageController,
+          onPageChanged: (index) {
+            if (mounted) {
+              setState(() => _selectedFeedTabIndex = index);
             }
-            return false;
           },
-          child: PageView(
-            controller: _feedPageController,
-            onPageChanged: (index) {
-              if (mounted) {
-                setState(() => _selectedFeedTabIndex = index);
-              }
-              _rightSwipeOverscroll = 0;
-              _didTriggerQuickControlSwipe = false;
-            },
-            children: [
-              _buildFeedList(
-                context,
-                _sortedTrending(baseTimeline),
-                currentUserHandle,
-              ),
-              _buildFeedList(context, baseTimeline, currentUserHandle),
-            ],
-          ),
+          children: [
+            _buildFeedList(
+              context,
+              _sortedTrending(baseTimeline),
+              currentUserHandle,
+            ),
+            _buildFeedList(context, baseTimeline, currentUserHandle),
+          ],
         ),
       ),
       floatingActionButton: Padding(
@@ -316,10 +290,12 @@ class _HomeScreenState extends State<HomeScreen>
       key: key,
       child: RefreshIndicator(
         color: Colors.black,
-        notificationPredicate: (notification) => notification.depth == 1,
+        notificationPredicate: (_) => true,
         onRefresh: _handlePullToRefresh,
         child: ListView(
-          physics: const BouncingScrollPhysics(),
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: ClampingScrollPhysics(),
+          ),
           padding: const EdgeInsets.only(top: 10),
           children: children,
         ),
@@ -758,10 +734,9 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   List<PostModel> _sortedTrending(List<PostModel> posts) {
-    final sorted = List<PostModel>.from(posts);
-    int score(PostModel p) => p.likes + (p.reposts * 2) + (p.views ~/ 100);
-    sorted.sort((a, b) => score(b).compareTo(score(a)));
-    return sorted;
+    // Keep the "For You" feed in the same order as the base timeline
+    // so newly created posts appear at the top of the main feed.
+    return List<PostModel>.from(posts);
   }
 
   void _showToast(String message) {

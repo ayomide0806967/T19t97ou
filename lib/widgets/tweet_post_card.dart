@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
@@ -64,6 +65,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
 
   bool _liked = false;
   bool _bookmarked = false;
+  OverlayEntry? _toastEntry;
 
   int _generateViewCount(int base) {
     final safeBase = base < 0 ? 0 : base;
@@ -81,6 +83,13 @@ class _TweetPostCardState extends State<TweetPostCard> {
       _likes = widget.post.likes;
       _views = widget.post.views;
     }
+  }
+
+  @override
+  void dispose() {
+    _toastEntry?.remove();
+    _toastEntry = null;
+    super.dispose();
   }
 
   void _toggleLike() {
@@ -198,24 +207,59 @@ class _TweetPostCardState extends State<TweetPostCard> {
 
   void _showToast(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(color: Colors.white),
+    _toastEntry?.remove();
+    _toastEntry = null;
+
+    final overlay = Overlay.maybeOf(context, rootOverlay: true);
+    if (overlay == null) return;
+
+    final theme = Theme.of(context);
+    final entry = OverlayEntry(
+      builder: (ctx) => SafeArea(
+        bottom: false,
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Material(
+              color: Colors.black87,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 320),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  child: Text(
+                    message,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
-        backgroundColor: Colors.black87,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        duration: const Duration(milliseconds: 1200),
       ),
     );
+
+    _toastEntry = entry;
+    overlay.insert(entry);
+
+    Future<void>.delayed(const Duration(milliseconds: 1200), () {
+      if (!mounted) return;
+      if (_toastEntry == entry) {
+        entry.remove();
+        _toastEntry = null;
+      }
+    });
   }
 
   Future<void> _showReinOptions() async {
     final theme = Theme.of(context);
+    final bool repostedByUser = _userHasReposted(context.read<DataService>());
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -257,8 +301,10 @@ class _TweetPostCardState extends State<TweetPostCard> {
                           _ReinOptionTile(
                             icon: Icons
                                 .repeat_rounded, // legacy icon, superseded by XRetweetButton in the metrics row
-                            label: 'Repost',
-                            description: 'Share this post with your network',
+                            label: repostedByUser ? 'Undo repost' : 'Repost',
+                            description: repostedByUser
+                                ? 'Remove your repost'
+                                : 'Share this post with your network',
                             onTap: () async {
                               Navigator.of(sheetContext).pop();
                               await _performReinstitute();
@@ -585,9 +631,10 @@ class _TweetPostCardState extends State<TweetPostCard> {
     final bool hasDemoMedia = widget.post.tags.any(
       (t) => t.toLowerCase() == 'gallery',
     );
+    final bool hasMedia = widget.post.mediaPaths.isNotEmpty;
 
     // Build the tweet body column for the standard (timeline) layout.
-    final Widget contentColumn = Column(
+    final Widget tappableContentColumn = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ...header,
@@ -601,6 +648,10 @@ class _TweetPostCardState extends State<TweetPostCard> {
               applyHeightToFirstAscent: false,
             ),
           ),
+        if (hasMedia) ...[
+          const SizedBox(height: 10),
+          _PostMediaGrid(paths: widget.post.mediaPaths),
+        ],
         if (hasDemoMedia) ...[
           const SizedBox(height: 10),
           _TweetMediaCarousel(),
@@ -609,25 +660,30 @@ class _TweetPostCardState extends State<TweetPostCard> {
           const SizedBox(height: 6),
           QuotePreview(snapshot: widget.post.quoted!),
         ],
-        // Action row (reply/repost/like/view/share)
-        if (widget.showActions) ...[
-          const SizedBox(height: 4),
-          _buildMetricsRow(
-            theme: theme,
-            leftMetrics: leftMetrics,
-            share: share,
-            isCompact: isCompact,
-            onSurfaceColor: primaryTextColor,
-            forceContrast: usesLightCardOnDarkTheme,
-          ),
-        ],
       ],
     );
+
+    final Widget metricsSection = !widget.showActions
+        ? const SizedBox.shrink()
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 4),
+              _buildMetricsRow(
+                theme: theme,
+                leftMetrics: leftMetrics,
+                share: share,
+                isCompact: isCompact,
+                onSurfaceColor: primaryTextColor,
+                forceContrast: usesLightCardOnDarkTheme,
+              ),
+            ],
+          );
 
     // Special full-width header layout used on the thread/comments page:
     // avatar + name row on top, tweet body running full width beneath.
     if (widget.fullWidthHeader) {
-      Widget fullWidth = Column(
+      Widget fullWidthHeaderContent = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -652,6 +708,10 @@ class _TweetPostCardState extends State<TweetPostCard> {
                 applyHeightToFirstAscent: false,
               ),
             ),
+          if (hasMedia) ...[
+            const SizedBox(height: 10),
+            _PostMediaGrid(paths: widget.post.mediaPaths),
+          ],
           if (hasDemoMedia) ...[
             const SizedBox(height: 10),
             _TweetMediaCarousel(),
@@ -660,52 +720,58 @@ class _TweetPostCardState extends State<TweetPostCard> {
             const SizedBox(height: 6),
             QuotePreview(snapshot: widget.post.quoted!),
           ],
-          if (widget.showActions) ...[
-            const SizedBox(height: 4),
-            _buildMetricsRow(
-              theme: theme,
-              leftMetrics: leftMetrics,
-              share: share,
-              isCompact: isCompact,
-              onSurfaceColor: primaryTextColor,
-              forceContrast: usesLightCardOnDarkTheme,
-            ),
-          ],
         ],
       );
 
-      if (widget.onTap != null) {
-        fullWidth = Material(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.zero,
-          child: InkWell(
-            borderRadius: BorderRadius.zero,
-            onTap: widget.onTap,
-            child: fullWidth,
-          ),
-        );
-      }
+      Widget fullWidth = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (widget.onTap != null)
+            Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.zero,
+              child: InkWell(
+                borderRadius: BorderRadius.zero,
+                onTap: widget.onTap,
+                child: fullWidthHeaderContent,
+              ),
+            )
+          else
+            fullWidthHeaderContent,
+          metricsSection,
+        ],
+      );
 
       return fullWidth;
     }
 
     // The content sits to the right of the avatar with simple padding — no card.
-    Widget shell = const SizedBox.shrink();
-    shell = Padding(padding: EdgeInsets.zero, child: contentColumn);
-
-    // No inner border here — we'll draw the top/bottom line at row level.
+    Widget shellContent = tappableContentColumn;
 
     if (widget.onTap != null) {
-      shell = Material(
+      shellContent = Material(
         color: Colors.transparent,
         borderRadius: BorderRadius.zero,
         child: InkWell(
           borderRadius: BorderRadius.zero,
           onTap: widget.onTap,
-          child: shell,
+          child: shellContent,
         ),
       );
     }
+
+    Widget shell = Padding(
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          shellContent,
+          metricsSection,
+        ],
+      ),
+    );
+
+    // No inner border here — we'll draw the top/bottom line at row level.
 
     final row = Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -793,7 +859,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
         };
         break;
       case TweetMetricType.rein:
-        onTap = () => unawaited(_performReinstitute());
+        onTap = _handleReinPressed;
         break;
       case TweetMetricType.like:
         onTap = _toggleLike;
@@ -1427,6 +1493,141 @@ class QuotePreview extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _PostMediaGrid extends StatelessWidget {
+  const _PostMediaGrid({required this.paths});
+
+  final List<String> paths;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final border = Border.all(
+      color: theme.dividerColor.withValues(alpha: isDark ? 0.3 : 0.2),
+      width: 0.8,
+    );
+
+    final cleaned = paths.where((p) => p.trim().isNotEmpty).toList();
+    if (cleaned.isEmpty) return const SizedBox.shrink();
+
+    Widget tile(String path, int index) {
+      return GestureDetector(
+        onTap: () {
+          Navigator.of(context).push(
+            PageRouteBuilder<void>(
+              barrierColor: Colors.black,
+              opaque: true,
+              transitionDuration: Duration.zero,
+              reverseTransitionDuration: Duration.zero,
+              pageBuilder: (_, __, ___) => _FullScreenMediaViewer(
+                paths: cleaned,
+                initialIndex: index,
+              ),
+            ),
+          );
+        },
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            decoration: BoxDecoration(border: border),
+            child: Image.file(
+              File(path),
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
+                alignment: Alignment.center,
+                child: Icon(
+                  Icons.broken_image_outlined,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (cleaned.length == 1) {
+      // Single image: tall portrait-style card similar to Instagram.
+      return AspectRatio(
+        aspectRatio: 3 / 4,
+        child: tile(cleaned.first, 0),
+      );
+    }
+
+    // Multiple images: horizontal carousel with the next image peeking in,
+    // similar to Instagram's multi-photo posts.
+    final PageController controller = PageController(viewportFraction: 0.75);
+
+    return SizedBox(
+      width: double.infinity,
+      height: 230,
+      child: PageView.builder(
+        itemCount: cleaned.length,
+        controller: controller,
+        padEnds: false,
+        itemBuilder: (context, index) {
+          final path = cleaned[index];
+          return Padding(
+            padding: EdgeInsets.only(
+              right: index == cleaned.length - 1 ? 0 : 8,
+            ),
+            child: tile(path, index),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _FullScreenMediaViewer extends StatelessWidget {
+  const _FullScreenMediaViewer({
+    required this.paths,
+    required this.initialIndex,
+  });
+
+  final List<String> paths;
+  final int initialIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = PageController(initialPage: initialIndex);
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            PageView.builder(
+              controller: controller,
+              itemCount: paths.length,
+              itemBuilder: (context, index) {
+                final path = paths[index];
+                return Center(
+                  child: InteractiveViewer(
+                    child: Image.file(
+                      File(path),
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                );
+              },
+            ),
+            Positioned(
+              top: 16,
+              left: 16,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

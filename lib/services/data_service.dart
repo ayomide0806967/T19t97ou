@@ -46,6 +46,7 @@ class PostModel {
     required this.timeAgo,
     required this.body,
     this.tags = const <String>[],
+    this.mediaPaths = const <String>[],
     this.replies = 0,
     this.reposts = 0,
     this.likes = 0,
@@ -62,6 +63,7 @@ class PostModel {
   final String timeAgo;
   final String body;
   final List<String> tags;
+  final List<String> mediaPaths;
   final int replies;
   final int reposts;
   final int likes;
@@ -78,6 +80,7 @@ class PostModel {
     'timeAgo': timeAgo,
     'body': body,
     'tags': tags,
+    'mediaPaths': mediaPaths,
     'replies': replies,
     'reposts': reposts,
     'likes': likes,
@@ -95,6 +98,8 @@ class PostModel {
     timeAgo: json['timeAgo'] as String,
     body: json['body'] as String,
     tags: (json['tags'] as List?)?.cast<String>() ?? const <String>[],
+    mediaPaths:
+        (json['mediaPaths'] as List?)?.cast<String>() ?? const <String>[],
     replies: (json['replies'] as num?)?.toInt() ?? 0,
     reposts: (json['reposts'] as num?)?.toInt() ?? 0,
     likes: (json['likes'] as num?)?.toInt() ?? 0,
@@ -114,6 +119,7 @@ class PostModel {
     String? timeAgo,
     String? body,
     List<String>? tags,
+    List<String>? mediaPaths,
     int? replies,
     int? reposts,
     int? likes,
@@ -129,6 +135,7 @@ class PostModel {
     timeAgo: timeAgo ?? this.timeAgo,
     body: body ?? this.body,
     tags: tags ?? this.tags,
+    mediaPaths: mediaPaths ?? this.mediaPaths,
     replies: replies ?? this.replies,
     reposts: reposts ?? this.reposts,
     likes: likes ?? this.likes,
@@ -175,6 +182,7 @@ class DataService extends ChangeNotifier {
     required String handle,
     required String body,
     List<String> tags = const <String>[],
+    List<String> mediaPaths = const <String>[],
   }) async {
     final post = PostModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -183,6 +191,7 @@ class DataService extends ChangeNotifier {
       timeAgo: 'just now',
       body: body,
       tags: tags,
+      mediaPaths: mediaPaths,
       views: 120 + _random.nextInt(880),
       repostedBy: null,
       originalId: null,
@@ -496,16 +505,9 @@ class DataService extends ChangeNotifier {
   }
 
   // Global timeline rules:
-  // - Exclude class/topic posts (tag starts with 'topic_') from appearing
-  //   on the global feed unless they are explicitly reposted.
-  // - Include reposts so users can intentionally push items to the timeline.
   List<PostModel> get timelinePosts {
-    return _posts.where((post) {
-      final bool isRetweet = post.repostedBy != null;
-      final bool isClassTopic = post.tags.any((t) => t.startsWith('topic_'));
-      if (isClassTopic) return isRetweet; // show class items only when reposted
-      return true; // show all other items (originals and retweets)
-    }).toList();
+    // Show all posts in reverse chronological order (newest first).
+    return List<PostModel>.from(_posts);
   }
 
   List<PostModel> postsForHandle(String handle) => _posts
