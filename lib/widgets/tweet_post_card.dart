@@ -15,6 +15,8 @@ import '../screens/quote_screen.dart';
 import 'icons/x_retweet_icon.dart';
 import 'icons/x_comment_icon.dart';
 import '../screens/post_activity_screen.dart';
+import '../screens/profile_screen.dart';
+import '../constants/toast_durations.dart';
 
 class TweetPostCard extends StatefulWidget {
   const TweetPostCard({
@@ -31,6 +33,8 @@ class TweetPostCard extends StatefulWidget {
     this.showActions = true,
     this.fullWidthHeader = false,
     this.showTimeInHeader = true,
+    this.toastDuration = ToastDurations.standard,
+    this.showRepostToast = true,
   });
 
   final PostModel post;
@@ -48,6 +52,8 @@ class TweetPostCard extends StatefulWidget {
   final bool fullWidthHeader;
   // Controls whether the header meta row shows the time (e.g. "· 14h").
   final bool showTimeInHeader;
+  final Duration toastDuration;
+  final bool showRepostToast;
 
   @override
   State<TweetPostCard> createState() => _TweetPostCardState();
@@ -178,7 +184,9 @@ class _TweetPostCardState extends State<TweetPostCard> {
   Future<void> _performReinstitute() async {
     final handle = widget.currentUserHandle;
     if (handle.isEmpty) {
-      _showToast('Sign in to repost.');
+      if (widget.showRepostToast) {
+        _showToast('Sign in to repost.');
+      }
       return;
     }
     final targetId = widget.post.originalId ?? widget.post.id;
@@ -187,7 +195,9 @@ class _TweetPostCardState extends State<TweetPostCard> {
       userHandle: handle,
     );
     if (!mounted) return;
-    _showToast(toggled ? 'Reposted!' : 'Removed repost');
+    if (widget.showRepostToast) {
+      _showToast(toggled ? 'Reposted!' : 'Removed repost');
+    }
     setState(() {
       if (widget.post.originalId == null) {
         _reposts = toggled ? _reposts + 1 : (_reposts - 1).clamp(0, 1 << 30);
@@ -248,7 +258,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
     _toastEntry = entry;
     overlay.insert(entry);
 
-    Future<void>.delayed(const Duration(milliseconds: 1200), () {
+    Future<void>.delayed(widget.toastDuration, () {
       if (!mounted) return;
       if (_toastEntry == entry) {
         entry.remove();
@@ -610,18 +620,41 @@ class _TweetPostCardState extends State<TweetPostCard> {
 
     // Final timeline row layout: avatar on left, content card on right.
     final double avatarGap = 6; // slightly tighter gap
-    final Widget avatar = HexagonAvatar(
-      size: 48,
-      backgroundColor: theme.colorScheme.surfaceContainerHighest,
-      borderColor: theme.colorScheme.primary.withValues(alpha: 0.35),
-      borderWidth: 1.5,
-      child: Center(
-        child: Text(
-          _initialsFrom(widget.post.author),
-          style: theme.textTheme.labelLarge?.copyWith(
-            color: primaryTextColor,
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
+    final String handleForProfile = () {
+      if (widget.post.handle.isNotEmpty) return widget.post.handle;
+      if (widget.post.repostedBy != null &&
+          widget.post.repostedBy!.isNotEmpty) {
+        return widget.post.repostedBy!;
+      }
+      return widget.currentUserHandle;
+    }();
+
+    final Widget avatar = InkWell(
+      customBorder: const CircleBorder(),
+      onTap: () {
+        final String normalizedHandle = handleForProfile.startsWith('@')
+            ? handleForProfile
+            : '@${handleForProfile}';
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) =>
+                ProfileScreen(handleOverride: normalizedHandle, readOnly: true),
+          ),
+        );
+      },
+      child: HexagonAvatar(
+        size: 48,
+        backgroundColor: theme.colorScheme.surfaceContainerHighest,
+        borderColor: theme.colorScheme.primary.withValues(alpha: 0.35),
+        borderWidth: 1.5,
+        child: Center(
+          child: Text(
+            _initialsFrom(widget.post.author),
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: primaryTextColor,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ),

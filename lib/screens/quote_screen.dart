@@ -356,7 +356,6 @@ class _QuoteScreenState extends State<QuoteScreen> {
 
     if (!mounted) return;
     Navigator.pop(context);
-    _showToast('Quote posted successfully!');
   }
 
   void _showToast(String message) {

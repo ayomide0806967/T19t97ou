@@ -103,6 +103,7 @@ class _SwissBankPainter extends CustomPainter {
     final progress = refreshProgress?.value;
     if (progress == null) return;
 
+    // Trace across all stroke segments so the dot runs "inside" the logo lines.
     final Path trace = Path()
       ..addPath(roof, Offset.zero)
       ..moveTo(w * 0.12, baseY)

@@ -2,12 +2,14 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../models/class_note.dart';
+import '../quiz_create_screen.dart';
 
 class TeacherNoteCreationScreen extends StatefulWidget {
   const TeacherNoteCreationScreen({
     super.key,
     required this.topic,
     required this.subtitle,
+    this.attachQuizForNote = false,
     this.initialSections = const <ClassNoteSection>[],
     this.initialCreatedAt,
     this.initialCommentCount = 0,
@@ -15,6 +17,7 @@ class TeacherNoteCreationScreen extends StatefulWidget {
 
   final String topic;
   final String subtitle;
+  final bool attachQuizForNote;
   final List<ClassNoteSection> initialSections;
   final DateTime? initialCreatedAt;
   final int initialCommentCount;
@@ -590,21 +593,48 @@ class _TeacherNoteCreationScreenState extends State<TeacherNoteCreationScreen> {
                       ),
                     
                     const SizedBox(height: 24),
-                    
-                    // Publish button
+
+                    // Publish + optional Add quiz button
                     Padding(
                       padding: const EdgeInsets.only(left: 36),
-                      child: FilledButton(
-                        onPressed: _sections.isEmpty ? null : _finish,
-                        style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFF075E54),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 14,
+                      child: Row(
+                        children: [
+                          if (widget.attachQuizForNote) ...[
+                            OutlinedButton.icon(
+                              onPressed: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => const QuizCreateScreen(),
+                                  ),
+                                );
+                              },
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                              ),
+                              icon: const Icon(Icons.quiz_outlined, size: 20),
+                              label: const Text('Add quiz'),
+                            ),
+                            const SizedBox(width: 12),
+                          ],
+                          FilledButton(
+                            onPressed: _sections.isEmpty ? null : _finish,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: const Color(0xFF075E54),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 14,
+                              ),
+                            ),
+                            child: const Text('Publish'),
                           ),
-                        ),
-                        child: const Text('Publish'),
+                        ],
                       ),
                     ),
                     

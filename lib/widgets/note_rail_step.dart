@@ -2,6 +2,14 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../models/class_note.dart';
 
+enum NoteStepBackgroundMode {
+  auto,
+  whatsapp,
+  offwhite,
+  white,
+  black,
+}
+
 /// Displays a completed note step in the stepper rail.
 /// Matches the monochrome design of Create Class screen.
 class NoteRailStep extends StatelessWidget {
@@ -13,6 +21,8 @@ class NoteRailStep extends StatelessWidget {
     required this.isActive,
     required this.isRevealed,
     required this.onTap,
+    required this.backgroundMode,
+    this.onDoubleTap,
   });
 
   final int index;
@@ -21,21 +31,42 @@ class NoteRailStep extends StatelessWidget {
   final bool isActive;
   final bool isRevealed;
   final VoidCallback onTap;
+  final NoteStepBackgroundMode backgroundMode;
+  final VoidCallback? onDoubleTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
     final onSurface = theme.colorScheme.onSurface;
     final subtle = onSurface.withValues(
-      alpha: theme.brightness == Brightness.dark ? 0.6 : 0.55,
+      alpha: isDark ? 0.6 : 0.55,
     );
     // Use the WhatsApp-style bubble for text steps, but keep image-only
     // steps on a neutral surface so the images stand out without tint.
     const Color whatsappBubble = Color(0xFFDCF8C6);
     final bool hasImages = section.imagePaths.isNotEmpty;
-    final Color panelColor = hasImages
-        ? theme.colorScheme.surface
-        : (isActive ? whatsappBubble : theme.colorScheme.surface);
+    final Color offwhite = isDark ? theme.colorScheme.surface : const Color(0xFFF5F5F5);
+    final Color pureWhite = isDark ? theme.colorScheme.surface : Colors.white;
+
+    final Color panelColor = switch (backgroundMode) {
+      NoteStepBackgroundMode.auto => hasImages
+          ? theme.colorScheme.surface
+          : (isActive ? whatsappBubble : theme.colorScheme.surface),
+      NoteStepBackgroundMode.whatsapp => whatsappBubble,
+      NoteStepBackgroundMode.offwhite => offwhite,
+      NoteStepBackgroundMode.white => pureWhite,
+      NoteStepBackgroundMode.black => Colors.black,
+    };
+
+    final bool isDarkPanel = panelColor.computeLuminance() < 0.28;
+    final Color contentColor = isDarkPanel ? Colors.white : Colors.black87;
+    final Color metaColor = isDarkPanel
+        ? Colors.white.withValues(alpha: 0.75)
+        : Colors.black.withValues(alpha: 0.55);
+    final Color borderColor = isDarkPanel
+        ? Colors.white.withValues(alpha: 0.28)
+        : theme.dividerColor.withValues(alpha: 0.25);
 
     return Padding(
       padding: EdgeInsets.only(
@@ -43,6 +74,7 @@ class NoteRailStep extends StatelessWidget {
       ),
       child: InkWell(
         onTap: onTap,
+        onDoubleTap: onDoubleTap,
         splashColor: Colors.transparent,
         highlightColor: Colors.transparent,
         borderRadius: BorderRadius.circular(16),
@@ -62,6 +94,7 @@ class NoteRailStep extends StatelessWidget {
                     ),
                   GestureDetector(
                     onTap: onTap,
+                    onDoubleTap: onDoubleTap,
                     child: Container(
                       width: 24,
                       height: 24,
@@ -105,7 +138,7 @@ class NoteRailStep extends StatelessWidget {
                   color: panelColor,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: theme.dividerColor.withValues(alpha: 0.25),
+                    color: borderColor,
                   ),
                 ),
                 child: Column(
@@ -115,7 +148,7 @@ class NoteRailStep extends StatelessWidget {
                       section.title,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
-                        color: onSurface,
+                        color: contentColor,
                         fontSize: 15,
                       ),
                     ),
@@ -124,7 +157,7 @@ class NoteRailStep extends StatelessWidget {
                       Text(
                         section.subtitle,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: subtle,
+                          color: metaColor,
                           fontSize: 14,
                           fontFamily: 'Roboto',
                         ),
@@ -184,12 +217,17 @@ class NoteRailStep extends StatelessWidget {
                                 child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('•  '),
+                                    Text(
+                                      '•  ',
+                                      style: theme.textTheme.bodyMedium?.copyWith(
+                                        color: contentColor,
+                                      ),
+                                    ),
                                     Expanded(
                                       child: Text(
                                         b,
                                         style: theme.textTheme.bodyMedium?.copyWith(
-                                          color: onSurface,
+                                          color: contentColor,
                                           height: 1.4,
                                           fontSize: 15,
                                           fontFamily: 'Roboto',

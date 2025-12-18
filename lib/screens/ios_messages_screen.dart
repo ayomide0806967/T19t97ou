@@ -1490,6 +1490,8 @@ Future<String?> _promptForInviteCode(BuildContext context) async {
   final result = await showDialog<String>(
     context: context,
     builder: (ctx) => AlertDialog(
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.white,
       title: Text(S.enterInviteCode),
       content: TextField(
         controller: controller,
@@ -3302,6 +3304,8 @@ Mock exam briefing extended update: please review chapters one through five, pra
                           const SizedBox(width: 8),
                           FilledButton.tonalIcon(
                             style: FilledButton.styleFrom(
+                              backgroundColor: _whatsAppDarkGreen,
+                              foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 14,
                                 vertical: 8,
@@ -3319,6 +3323,7 @@ Mock exam briefing extended update: please review chapters one through five, pra
                               if (!context.mounted) return;
                               showModalBottomSheet<void>(
                                 context: context,
+                                backgroundColor: Colors.white,
                                 shape: const RoundedRectangleBorder(
                                   borderRadius: BorderRadius.vertical(
                                     top: Radius.circular(20),
@@ -4089,6 +4094,7 @@ class _LectureSetupPage extends StatelessWidget {
                             builder: (_) => TeacherNoteCreationScreen(
                               topic: topic,
                               subtitle: tutor.isNotEmpty ? tutor : course,
+                              attachQuizForNote: settings.attachQuizForNote,
                             ),
                           ),
                         );
@@ -4131,6 +4137,7 @@ class _LectureSetupFormState extends State<_LectureSetupForm> {
   int _step = 0; // 0 = details, 1 = privacy
   bool _privateLecture = false;
   bool _requirePin = false;
+  bool _attachQuizForNote = false;
   DateTime? _autoArchiveAt;
 
   @override
@@ -4276,6 +4283,7 @@ class _LectureSetupFormState extends State<_LectureSetupForm> {
       requirePin: _requirePin,
       pinCode: _requirePin ? _pinController.text.trim() : null,
       autoArchiveAt: _autoArchiveAt,
+      attachQuizForNote: _attachQuizForNote,
     );
     widget.onSubmit(course, tutor, topic, settings);
   }
@@ -4444,6 +4452,12 @@ class _LectureSetupFormState extends State<_LectureSetupForm> {
                     label: 'Require PIN to access',
                     value: _requirePin,
                     onChanged: (v) => setState(() => _requirePin = v),
+                    monochrome: true,
+                  ),
+                  SettingSwitchRow(
+                    label: 'Add quiz for note',
+                    value: _attachQuizForNote,
+                    onChanged: (v) => setState(() => _attachQuizForNote = v),
                     monochrome: true,
                   ),
                   if (_requirePin) ...[
@@ -5000,11 +5014,13 @@ class _TopicSettings {
     this.requirePin = false,
     this.pinCode,
     this.autoArchiveAt,
+    this.attachQuizForNote = false,
   });
   final bool privateLecture;
   final bool requirePin;
   final String? pinCode;
   final DateTime? autoArchiveAt;
+  final bool attachQuizForNote;
 }
 
 // Replaced by SettingSwitchRow in widgets/setting_switch_row.dart

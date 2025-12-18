@@ -6,10 +6,22 @@ import 'package:provider/provider.dart';
 import '../services/simple_auth_service.dart';
 import '../services/data_service.dart';
 import '../widgets/tweet_post_card.dart';
-import 'ios_messages_screen.dart' show messageRepliesRouteFromPost;
+import '../theme/app_theme.dart';
+import '../constants/toast_durations.dart';
+import 'edit_profile_screen.dart';
+import 'settings_screen.dart';
+import 'ios_messages_screen.dart'
+    show messageRepliesRouteFromPost, IosMinimalistMessagePage;
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  const ProfileScreen({
+    super.key,
+    this.handleOverride,
+    this.readOnly = false,
+  });
+
+  final String? handleOverride;
+  final bool readOnly;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -19,8 +31,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int _selectedTab = 0;
   Uint8List? _headerImage;
   Uint8List? _profileImage;
+  String? _nameOverride;
+  String? _bioOverride;
   final ImagePicker _picker = ImagePicker();
   SimpleAuthService get _authService => SimpleAuthService();
+  bool _isRefreshing = false;
+  bool _isFollowingOther = false;
+  bool _notifyThreads = true;
+  bool _notifyReplies = true;
+  bool _pushNotificationsEnabled = false;
 
   void _showToast(String message) {
     if (!mounted) return;
@@ -37,12 +56,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: Colors.black,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        duration: const Duration(milliseconds: 1500),
+        duration: ToastDurations.standard,
       ),
     );
   }
 
+  void _showHeaderToast(String message) {
+    if (!mounted) return;
+    final overlay = Overlay.maybeOf(context, rootOverlay: true);
+    if (overlay == null) return;
+    final theme = Theme.of(context);
+
+    final entry = OverlayEntry(
+      builder: (ctx) => SafeArea(
+        bottom: false,
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Material(
+              color: Colors.black87,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 320),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  child: Text(
+                    message,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(entry);
+    Future<void>.delayed(ToastDurations.standard, () {
+      if (!mounted) return;
+      entry.remove();
+    });
+  }
+
   Future<void> _handlePickProfileImage() async {
+    if (widget.readOnly) return;
     final XFile? file = await _picker.pickImage(
       source: ImageSource.gallery,
       imageQuality: 85,
@@ -277,11 +343,93 @@ class _ProfileScreenState extends State<ProfileScreen> {
             elevation: 0,
             title: title != null ? Text(title) : null,
           ),
-          body: Center(
-            child: InteractiveViewer(
-              minScale: 0.5,
-              maxScale: 5,
-              child: Image(image: image, fit: BoxFit.contain),
+          body: InteractiveViewer(
+            constrained: false,
+            minScale: 1.0,
+            maxScale: 6.0,
+            child: Center(
+              child: Image(image: image, fit: BoxFit.none),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openFullPlaceholder({
+    required Widget child,
+    String? title,
+  }) async {
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            title: title != null ? Text(title) : null,
+          ),
+          body: Center(child: child),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openProfilePhotoDirect() async {
+    if (_profileImage != null) {
+      return _openFullImage(
+        image: MemoryImage(_profileImage!),
+        title: 'Profile photo',
+      );
+    }
+    final initials = _initialsFrom(widget.handleOverride ?? _currentUserHandle);
+    return _openFullPlaceholder(
+      title: 'Profile photo',
+      child: Container(
+        width: 260,
+        height: 260,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          initials,
+          style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openHeaderPhotoDirect() async {
+    if (_headerImage != null) {
+      return _openFullImage(
+        image: MemoryImage(_headerImage!),
+        title: 'Cover photo',
+      );
+    }
+    return _openFullPlaceholder(
+      title: 'Cover photo',
+      child: Container(
+        width: double.infinity,
+        constraints: const BoxConstraints(maxWidth: 720),
+        margin: const EdgeInsets.symmetric(horizontal: 24),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const AspectRatio(
+          aspectRatio: 16 / 9,
+          child: Center(
+            child: Icon(
+              Icons.wallpaper_outlined,
+              color: Colors.white70,
+              size: 72,
             ),
           ),
         ),
@@ -290,6 +438,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _handleChangeHeader() async {
+    if (widget.readOnly) return;
     final theme = Theme.of(context);
     final action = await showModalBottomSheet<_HeaderAction>(
       context: context,
@@ -359,21 +508,85 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  String get _currentUserHandle {
+  Future<void> _handlePullToRefresh() async {
+    if (_isRefreshing) return;
+    setState(() => _isRefreshing = true);
+    try {
+      HapticFeedback.lightImpact();
+      await context.read<DataService>().load();
+      await Future<void>.delayed(const Duration(milliseconds: 450));
+    } finally {
+      if (mounted) {
+        setState(() => _isRefreshing = false);
+      }
+    }
+  }
+
+  Future<void> _handleMessageUser() async {
+    if (!widget.readOnly) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const IosMinimalistMessagePage()),
+    );
+  }
+
+  void _handleToggleFollow() {
+    if (!widget.readOnly) return;
+    final displayName =
+        _nameOverride ?? _displayNameFromHandle(_currentUserHandle);
+    setState(() {
+      _isFollowingOther = !_isFollowingOther;
+    });
+    _showHeaderToast(
+      _isFollowingOther
+          ? 'You are now following $displayName'
+          : 'You unfollowed $displayName',
+    );
+  }
+
+  String get _authHandle {
     final email = _authService.currentUserEmail;
     if (email == null || email.isEmpty) {
       return '@yourprofile';
     }
-    final normalized = email
+    String normalized = email
         .split('@')
         .first
         .replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '')
         .toLowerCase();
+    if (normalized.length > 12) {
+      normalized = normalized.substring(0, 12);
+    }
     if (normalized.isEmpty) {
       return '@yourprofile';
     }
     return '@$normalized';
   }
+
+  String get _currentUserHandle {
+    final override = widget.handleOverride;
+    if (override != null && override.isNotEmpty) {
+      return override;
+    }
+    return _authHandle;
+  }
+
+  String _displayNameFromHandle(String handle) {
+    final base = handle.replaceFirst(RegExp('^@'), '');
+    if (base.isEmpty) return 'Profile';
+    final parts = base.split(RegExp(r'[_\.]'));
+    String name = parts
+        .where((p) => p.isNotEmpty)
+        .map((p) => p[0].toUpperCase() + p.substring(1))
+        .join(' ');
+    if (name.length > 13) {
+      name = name.substring(0, 13);
+    }
+    return name;
+  }
+
+  String get _bioText =>
+      _bioOverride ??
+      'Guiding nursing and midwifery teams through safe practice, exam preparation, and compassionate leadership across our teaching hospital.';
 
   @override
   Widget build(BuildContext context) {
@@ -381,18 +594,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final dataService = context.watch<DataService>();
     final currentUserHandle = _currentUserHandle;
     final email = _authService.currentUserEmail ?? 'user@institution.edu';
-    final initials = _initialsFrom(email);
+    final initials =
+        _initialsFrom(widget.handleOverride ?? email);
     final posts = dataService.postsForHandle(currentUserHandle);
     final replies = dataService.repliesForHandle(currentUserHandle);
     final bookmarks = posts.where((post) => post.bookmarks > 0).toList();
 
+    final displayName = widget.readOnly
+        ? _displayNameFromHandle(currentUserHandle)
+        : (_nameOverride ?? _displayNameFromHandle(currentUserHandle));
+
     final List<PostModel> visiblePosts;
     switch (_selectedTab) {
       case 1:
-        visiblePosts = replies;
+        visiblePosts = bookmarks;
         break;
       case 2:
-        visiblePosts = bookmarks;
+        visiblePosts = replies;
         break;
       default:
         visiblePosts = posts;
@@ -400,80 +618,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final emptyMessage = () {
       if (_selectedTab == 0) return "You haven't posted yet.";
-      if (_selectedTab == 1) return 'No replies yet.';
-      return 'No bookmarks yet.';
+      if (_selectedTab == 1) return 'No classes yet.';
+      return 'No replies yet.';
     }();
 
-    void handleEditProfile() {
-      showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: theme.colorScheme.surface,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    void handleEditProfile() async {
+      if (widget.readOnly) return;
+      final result = await Navigator.of(context).push<EditProfileResult>(
+        MaterialPageRoute(
+          builder: (_) => EditProfileScreen(
+            initialName: displayName,
+            initialBio: _bioText,
+            initials: initials,
+            initialHeaderImage: _headerImage,
+            initialProfileImage: _profileImage,
+          ),
         ),
-        builder: (context) {
-          final localTheme = Theme.of(context);
-          return Padding(
-            padding: EdgeInsets.only(
-              left: 20,
-              right: 20,
-              top: 24,
-              bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Edit Profile',
-                  style: localTheme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                TextFormField(
-                  initialValue: 'Alex Rivera',
-                  decoration: const InputDecoration(labelText: 'Full name'),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  initialValue: '@productlead',
-                  decoration: const InputDecoration(labelText: 'Handle'),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  initialValue:
-                      'Guiding nursing and midwifery teams through safe practice, exam preparation, and compassionate leadership.',
-                  decoration: const InputDecoration(labelText: 'Bio'),
-                  maxLines: 3,
-                ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      _showToast('Profile changes saved (coming soon)');
-                    },
-                    child: const Text('Save changes'),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
       );
+
+      if (!mounted || result == null) return;
+      setState(() {
+        _headerImage = result.headerImage;
+        _profileImage = result.profileImage;
+        _nameOverride = result.name.isEmpty ? null : result.name;
+        _bioOverride = result.bio.isEmpty ? null : result.bio;
+      });
+      _showToast('Profile changes saved (coming soon)');
     }
 
     void handleShareProfile() {
-      final sanitizedHandle = _currentUserHandle.startsWith('@')
-          ? _currentUserHandle.substring(1)
-          : _currentUserHandle;
+      final sanitizedHandle = currentUserHandle.startsWith('@')
+          ? currentUserHandle.substring(1)
+          : currentUserHandle;
       Clipboard.setData(
         ClipboardData(text: 'https://academicnightingale.app/$sanitizedHandle'),
       );
       _showToast('Profile link copied to clipboard');
+    }
+
+    void handleNotifications() {
+      _openNotificationsSheet(handle: currentUserHandle);
+    }
+
+    void handleMore() {
+      _openProfileMoreSheet(
+        handle: currentUserHandle,
+        showSettings: !widget.readOnly,
+        onCopyLink: handleShareProfile,
+      );
     }
 
     // Removed legacy local handleChangeHeader (replaced with _handleChangeHeader)
@@ -482,118 +674,554 @@ class _ProfileScreenState extends State<ProfileScreen> {
       appBar: null,
       body: SafeArea(
         top: false,
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            SliverToBoxAdapter(
-              child: _ProfileHeader(
-                headerImage: _headerImage,
-                profileImage: _profileImage,
-                initials: initials,
-                onProfileImageTap: _showProfilePhotoViewer,
-                onHeaderTap: _showHeaderImageViewer,
-                onChangeCover: _handleChangeHeader,
-                onEditProfile: handleEditProfile,
-                onShareProfile: handleShareProfile,
-                activityLevelLabel: 'Novice',
-                activityProgress: 0.5,
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-              sliver: SliverToBoxAdapter(
-                child: _ProfileTabs(
-                  selectedIndex: _selectedTab,
-                  onChanged: (index) {
-                    setState(() => _selectedTab = index);
-                  },
+        child: RefreshIndicator(
+          color: Colors.black,
+          onRefresh: _handlePullToRefresh,
+          child: CustomScrollView(
+            physics: const ClampingScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(
+                child: _ProfileHeader(
+                  headerImage: _headerImage,
+                  profileImage: _profileImage,
+                  initials: initials,
+                  displayName: displayName,
+                  handle: currentUserHandle,
+                  bio: _bioText,
+                  readOnly: widget.readOnly,
+                  onProfileImageTap: widget.readOnly
+                      ? _openProfilePhotoDirect
+                      : _showProfilePhotoViewer,
+                  onHeaderTap: widget.readOnly
+                      ? _openHeaderPhotoDirect
+                      : _showHeaderImageViewer,
+                  onChangeCover: _handleChangeHeader,
+                  onEditProfile: handleEditProfile,
+                  onMessage: _handleMessageUser,
+                  onToggleFollow: _handleToggleFollow,
+                  isFollowingOther: _isFollowingOther,
+                  onNotifications: handleNotifications,
+                  onMore: handleMore,
+                  activityLevelLabel: 'Novice',
+                  activityProgress: 0.5,
                 ),
               ),
-            ),
-            if (visiblePosts.isEmpty)
               SliverPadding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 48,
-                ),
+                // Minimal vertical padding so the first tweet's divider
+                // line touches the tabs.
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
                 sliver: SliverToBoxAdapter(
-                  child: Center(
-                    child: Text(
-                      emptyMessage,
-                      style: theme.textTheme.bodyMedium,
+                  child: _ProfileTabs(
+                    selectedIndex: _selectedTab,
+                    onChanged: (index) {
+                      setState(() => _selectedTab = index);
+                    },
+                  ),
+                ),
+              ),
+              if (visiblePosts.isEmpty)
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 48,
+                  ),
+                  sliver: SliverToBoxAdapter(
+                    child: Center(
+                      child: Text(
+                        emptyMessage,
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    ),
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 0),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final post = visiblePosts[index];
+                        final theme = Theme.of(context);
+                        final bool isDark =
+                            theme.brightness == Brightness.dark;
+                        final Color line = theme.colorScheme.onSurface
+                            .withValues(alpha: isDark ? 0.12 : 0.06);
+
+                        final Border border = Border(
+                          top: index == 0
+                              ? BorderSide(color: line, width: 0.6)
+                              : BorderSide.none,
+                          bottom: BorderSide(color: line, width: 0.6),
+                        );
+
+                        return Container(
+                          padding: EdgeInsets.only(
+                            top: index == 0 ? 8 : 14,
+                            bottom: 14,
+                          ),
+                          decoration: BoxDecoration(border: border),
+                          child: Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 12),
+                            child: Center(
+                              child: ConstrainedBox(
+                                constraints:
+                                    const BoxConstraints(maxWidth: 720),
+                                child: TweetPostCard(
+                                  key: ValueKey(post.id),
+                                  post: post,
+                                  currentUserHandle: currentUserHandle,
+                                  showRepostToast: false,
+                                  onReply: (_) {
+                                    Navigator.of(context).push(
+                                      messageRepliesRouteFromPost(
+                                        post: post,
+                                        currentUserHandle:
+                                            currentUserHandle,
+                                      ),
+                                    );
+                                  },
+                                  onTap: () {
+                                    Navigator.of(context).push(
+                                      messageRepliesRouteFromPost(
+                                        post: post,
+                                        currentUserHandle:
+                                            currentUserHandle,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                      childCount: visiblePosts.length,
                     ),
                   ),
                 ),
-              )
-            else
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 0),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final post = visiblePosts[index];
-                      final theme = Theme.of(context);
-                      final bool isDark =
-                          theme.brightness == Brightness.dark;
-                      final Color line = theme.colorScheme.onSurface
-                          .withValues(alpha: isDark ? 0.12 : 0.06);
+              const SliverToBoxAdapter(child: SizedBox(height: 24)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-                      final Border border = Border(
-                        top: index == 0
-                            ? BorderSide(color: line, width: 0.6)
-                            : BorderSide.none,
-                        bottom: BorderSide(color: line, width: 0.6),
-                      );
+  Future<void> _openNotificationsSheet({required String handle}) async {
+    final String label = handle.startsWith('@') ? handle.substring(1) : handle;
 
-                      return Container(
-                        padding: EdgeInsets.only(
-                          top: index == 0 ? 8 : 14,
-                          bottom: 14,
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: false,
+      showDragHandle: false,
+      backgroundColor: Theme.of(context).brightness == Brightness.dark
+          ? Theme.of(context).colorScheme.surface
+          : const Color(0xFFF2F2F2),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        final theme = Theme.of(sheetContext);
+        final isDark = theme.brightness == Brightness.dark;
+        final sheetSurface = isDark ? theme.colorScheme.surface : Colors.white;
+        final onSurface = theme.colorScheme.onSurface;
+        final subtle = onSurface.withValues(
+          alpha: isDark ? 0.62 : 0.58,
+        );
+
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final boxBorder = Border.all(
+              color: theme.dividerColor.withValues(alpha: isDark ? 0.22 : 0.18),
+              width: 1,
+            );
+
+            Widget optionRow({
+              required String title,
+              required bool selected,
+              required VoidCallback onTap,
+            }) {
+              return ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                title: Text(
+                  title,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: onSurface,
+                  ),
+                ),
+                trailing: selected
+                    ? Container(
+                        width: 26,
+                        height: 26,
+                        decoration: BoxDecoration(
+                          color: onSurface,
+                          shape: BoxShape.circle,
                         ),
-                        decoration: BoxDecoration(border: border),
-                        child: Padding(
-                          padding:
-                              const EdgeInsets.symmetric(horizontal: 12),
-                          child: Center(
-                            child: ConstrainedBox(
-                              constraints:
-                                  const BoxConstraints(maxWidth: 720),
-                              child: TweetPostCard(
-                                key: ValueKey(post.id),
-                                post: post,
-                                currentUserHandle: currentUserHandle,
-                                onReply: (_) {
-                                  Navigator.of(context).push(
-                                    messageRepliesRouteFromPost(
-                                      post: post,
-                                      currentUserHandle:
-                                          currentUserHandle,
+                        alignment: Alignment.center,
+                        child: Icon(
+                          Icons.check_rounded,
+                          size: 18,
+                          color: sheetSurface,
+                        ),
+                      )
+                    : Container(
+                        width: 26,
+                        height: 26,
+                        decoration: BoxDecoration(
+                          color: Colors.transparent,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: onSurface.withValues(
+                              alpha: isDark ? 0.35 : 0.28,
+                            ),
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                onTap: onTap,
+              );
+            }
+
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10, bottom: 6),
+                      child: Container(
+                        width: 46,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.22)
+                              : const Color(0xFFBDBDBD),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: sheetSurface,
+                          borderRadius: BorderRadius.circular(18),
+                          border: boxBorder,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            optionRow(
+                              title: 'Threads',
+                              selected: _notifyThreads,
+                              onTap: () => setModalState(() {
+                                _notifyThreads = !_notifyThreads;
+                              }),
+                            ),
+                            Divider(
+                              height: 1,
+                              thickness: 1.5,
+                              indent: 16,
+                              endIndent: 16,
+                              color: theme.dividerColor.withValues(
+                                alpha: isDark ? 0.28 : 0.34,
+                              ),
+                            ),
+                            optionRow(
+                              title: 'Replies',
+                              selected: _notifyReplies,
+                              onTap: () => setModalState(() {
+                                _notifyReplies = !_notifyReplies;
+                              }),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: sheetSurface,
+                          borderRadius: BorderRadius.circular(18),
+                          border: boxBorder,
+                        ),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                          ),
+                          title: Text(
+                            'Push notifications',
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: onSurface,
+                            ),
+                          ),
+                          trailing: Semantics(
+                            button: true,
+                            toggled: _pushNotificationsEnabled,
+                            label: 'Push notifications',
+                            child: InkWell(
+                              onTap: () => setModalState(() {
+                                _pushNotificationsEnabled =
+                                    !_pushNotificationsEnabled;
+                              }),
+                              borderRadius: BorderRadius.circular(999),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 160),
+                                curve: Curves.easeOut,
+                                width: 54,
+                                height: 32,
+                                padding: const EdgeInsets.all(3),
+                                decoration: BoxDecoration(
+                                  color: _pushNotificationsEnabled
+                                      ? Colors.black
+                                      : (isDark
+                                          ? const Color(0xFF4A4A4A)
+                                          : const Color(0xFFBDBDBD)),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: AnimatedAlign(
+                                  duration: const Duration(milliseconds: 160),
+                                  curve: Curves.easeOut,
+                                  alignment: _pushNotificationsEnabled
+                                      ? Alignment.centerRight
+                                      : Alignment.centerLeft,
+                                  child: Container(
+                                    width: 26,
+                                    height: 26,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
                                     ),
-                                  );
-                                },
-                                onTap: () {
-                                  Navigator.of(context).push(
-                                    messageRepliesRouteFromPost(
-                                      post: post,
-                                      currentUserHandle:
-                                          currentUserHandle,
-                                    ),
-                                  );
-                                },
+                                  ),
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      );
-                    },
-                    childCount: visiblePosts.length,
-                  ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          "You'll get activity notifications for $label.",
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: subtle,
+                            height: 1.3,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            const SliverToBoxAdapter(child: SizedBox(height: 24)),
-          ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _openProfileMoreSheet({
+    required String handle,
+    required bool showSettings,
+    required VoidCallback onCopyLink,
+  }) async {
+    final String label = handle.startsWith('@') ? handle.substring(1) : handle;
+    final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final Color sheetBg =
+        isDark ? theme.colorScheme.surface : const Color(0xFFF2F2F2);
+    final Color sheetSurface = isDark ? theme.colorScheme.surface : Colors.white;
+    final Color onSurface = theme.colorScheme.onSurface;
+    final Border boxBorder = Border.all(
+      color: theme.dividerColor.withValues(alpha: isDark ? 0.22 : 0.18),
+      width: 1,
+    );
+
+    Widget handleRow({
+      required BuildContext context,
+      required String title,
+      required IconData icon,
+      Color? textColor,
+      Color? iconColor,
+      VoidCallback? onTap,
+    }) {
+      return ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 18),
+        title: Text(
+          title,
+          style: theme.textTheme.bodyLarge?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: textColor ?? onSurface,
+          ),
         ),
+        trailing: Icon(icon, color: iconColor ?? onSurface),
+        onTap: onTap == null
+            ? null
+            : () {
+                Navigator.of(context).pop();
+                onTap();
+              },
+      );
+    }
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: false,
+      showDragHandle: false,
+      backgroundColor: sheetBg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
+      builder: (sheetContext) {
+        final divider = Divider(
+          height: 1,
+          thickness: 1.2,
+          indent: 18,
+          endIndent: 18,
+          color: theme.dividerColor.withValues(alpha: isDark ? 0.22 : 0.32),
+        );
+
+        return SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 10, bottom: 6),
+                  child: Container(
+                    width: 46,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.22)
+                          : const Color(0xFFBDBDBD),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: sheetSurface,
+                      borderRadius: BorderRadius.circular(18),
+                      border: boxBorder,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        handleRow(
+                          context: sheetContext,
+                          title: 'QR Code',
+                          icon: Icons.qr_code_2_rounded,
+                          onTap: () => _showToast('QR code coming soon'),
+                        ),
+                        divider,
+                        handleRow(
+                          context: sheetContext,
+                          title: 'Copy profile link',
+                          icon: Icons.link_rounded,
+                          onTap: onCopyLink,
+                        ),
+                        divider,
+                        handleRow(
+                          context: sheetContext,
+                          title: 'Share to',
+                          icon: Icons.ios_share_rounded,
+                          onTap: () => _showToast('Share sheet coming soon'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (showSettings)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: sheetSurface,
+                        borderRadius: BorderRadius.circular(18),
+                        border: boxBorder,
+                      ),
+                      child: handleRow(
+                        context: sheetContext,
+                        title: 'Settings',
+                        icon: Icons.settings_outlined,
+                        onTap: () {
+                          if (!mounted) return;
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const SettingsScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: sheetSurface,
+                        borderRadius: BorderRadius.circular(18),
+                        border: boxBorder,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          handleRow(
+                            context: sheetContext,
+                            title: 'Block',
+                            icon: Icons.block_rounded,
+                            textColor: Colors.red,
+                            iconColor: Colors.red,
+                            onTap: () =>
+                                _showToast('Blocked $label (coming soon)'),
+                          ),
+                          divider,
+                          handleRow(
+                            context: sheetContext,
+                            title: 'Report',
+                            icon: Icons.report_gmailerrorred_outlined,
+                            textColor: Colors.red,
+                            iconColor: Colors.red,
+                            onTap: () =>
+                                _showToast('Report $label (coming soon)'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: sheetSurface,
+                        borderRadius: BorderRadius.circular(18),
+                        border: boxBorder,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Removed extra safety-actions card; block/report are above.
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -603,11 +1231,19 @@ class _ProfileHeader extends StatelessWidget {
     required this.headerImage,
     required this.profileImage,
     required this.initials,
+    required this.displayName,
+    required this.handle,
+    required this.bio,
+    required this.readOnly,
     required this.onProfileImageTap,
     required this.onHeaderTap,
     required this.onChangeCover,
     required this.onEditProfile,
-    required this.onShareProfile,
+    required this.onMessage,
+    required this.onToggleFollow,
+    required this.isFollowingOther,
+    required this.onNotifications,
+    required this.onMore,
     required this.activityLevelLabel,
     required this.activityProgress,
   });
@@ -615,11 +1251,19 @@ class _ProfileHeader extends StatelessWidget {
   final Uint8List? headerImage;
   final Uint8List? profileImage;
   final String initials;
+  final String displayName;
+  final String handle;
+  final String bio;
+  final bool readOnly;
   final VoidCallback onProfileImageTap;
   final VoidCallback onHeaderTap;
   final VoidCallback onChangeCover;
   final VoidCallback onEditProfile;
-  final VoidCallback onShareProfile;
+  final VoidCallback onMessage;
+  final VoidCallback onToggleFollow;
+  final bool isFollowingOther;
+  final VoidCallback onNotifications;
+  final VoidCallback onMore;
   final String activityLevelLabel;
   final double activityProgress;
 
@@ -629,9 +1273,6 @@ class _ProfileHeader extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final onSurface = theme.colorScheme.onSurface;
     final subtle = onSurface.withValues(alpha: isDark ? 0.7 : 0.58);
-    final outlineColor = theme.dividerColor.withValues(
-      alpha: isDark ? 0.4 : 0.28,
-    );
     final coverPlaceholderColor = theme.colorScheme.surfaceContainerHigh
         .withValues(alpha: isDark ? 0.32 : 0.6);
 
@@ -675,23 +1316,45 @@ class _ProfileHeader extends StatelessWidget {
                   ),
                 ),
               ),
-              // Change cover button
+              // Header actions (no camera icon)
               Positioned(
                 top: 12 + MediaQuery.of(context).padding.top,
                 right: 12,
-                child: IconButton(
-                  onPressed: onChangeCover,
-                  tooltip: 'Change cover photo',
-                  icon: const Icon(Icons.wallpaper_outlined),
-                  iconSize: 22,
-                  style: IconButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    backgroundColor: Colors.black.withValues(alpha: 0.28),
-                    padding: const EdgeInsets.all(10),
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (readOnly) ...[
+                      IconButton(
+                        onPressed: onNotifications,
+                        tooltip: 'Notifications',
+                        icon: const Icon(Icons.notifications_none_outlined),
+                        iconSize: 22,
+                        style: IconButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          backgroundColor: Colors.black.withValues(alpha: 0.28),
+                          padding: const EdgeInsets.all(10),
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    IconButton(
+                      onPressed: onMore,
+                      tooltip: 'More',
+                      icon: const Icon(Icons.more_horiz_rounded),
+                      iconSize: 22,
+                      style: IconButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        backgroundColor: Colors.black.withValues(alpha: 0.28),
+                        padding: const EdgeInsets.all(10),
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(12)),
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
               // Rectangular avatar overlapping the cover by half (fully hittestable)
@@ -701,15 +1364,11 @@ class _ProfileHeader extends StatelessWidget {
                 child: GestureDetector(
                   onTap: onProfileImageTap,
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(8),
                     child: Container(
                       width: avatarSize,
                       height: avatarSize,
                       decoration: BoxDecoration(
-                        color: isDark
-                            ? Colors.black.withValues(alpha: 0.12)
-                            : Colors.white,
-                        border: Border.all(color: Colors.white, width: 3),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.2),
@@ -722,6 +1381,11 @@ class _ProfileHeader extends StatelessWidget {
                                 image: MemoryImage(profileImage!),
                                 fit: BoxFit.cover,
                               )
+                            : null,
+                        color: profileImage == null
+                            ? (isDark
+                                ? Colors.black.withValues(alpha: 0.12)
+                                : Colors.white)
                             : null,
                       ),
                       alignment: Alignment.center,
@@ -739,6 +1403,111 @@ class _ProfileHeader extends StatelessWidget {
                   ),
                 ),
               ),
+              if (!readOnly)
+                Positioned(
+                  right: 16,
+                  bottom: -4,
+                  child: OutlinedButton(
+                    onPressed: onEditProfile,
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 8,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      side: const BorderSide(color: Colors.black),
+                      foregroundColor: Colors.white,
+                      backgroundColor: Colors.black,
+                    ),
+                    child: const Text('Edit profile'),
+                  ),
+                )
+              else
+                Positioned(
+                  right: 16,
+                  bottom: -6,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: onMessage,
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          visualDensity: VisualDensity.compact,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          side: BorderSide(
+                            color: onSurface.withValues(alpha: 0.25),
+                          ),
+                          foregroundColor: onSurface,
+                          backgroundColor:
+                              theme.colorScheme.surface.withValues(
+                            alpha: isDark ? 0.8 : 0.9,
+                          ),
+                        ),
+                        icon: const Icon(Icons.mail_outline_rounded, size: 16),
+                        label: const Text(
+                          'Message',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Builder(
+                        builder: (context) {
+                          final bool isFollowing = isFollowingOther;
+                          final Color followBg = isFollowing
+                              ? Colors.transparent
+                              : (isDark ? Colors.white : Colors.black);
+                          final Color followFg = isFollowing
+                              ? (isDark ? Colors.white : Colors.black)
+                              : (isDark ? Colors.black : Colors.white);
+                          final BorderSide followBorder = BorderSide(
+                            color:
+                                (isDark ? Colors.white : Colors.black)
+                                    .withValues(
+                              alpha: isFollowing ? 0.28 : 1,
+                            ),
+                            width: 1,
+                          );
+
+                          return OutlinedButton(
+                            onPressed: onToggleFollow,
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              visualDensity: VisualDensity.compact,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              side: followBorder,
+                              foregroundColor: followFg,
+                              backgroundColor: followBg,
+                            ),
+                            child: Text(
+                              isFollowing ? 'Following' : 'Follow',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
             ],
           ),
         ),
@@ -749,22 +1518,32 @@ class _ProfileHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Alex Rivera',
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  color: onSurface,
-                  fontSize: 28,
+                displayName,
+                style: AppTheme.tweetBody(onSurface).copyWith(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.02,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? onSurface
+                      : Colors.black,
                 ),
               ),
               const SizedBox(height: 6),
               Text(
-                '@productlead',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: subtle,
-                  fontSize: 13,
-                ),
+                handle,
+                style: AppTheme.tweetBody(subtle),
               ),
               const SizedBox(height: 12),
-              // Followers and counts directly under name
+              Text(
+                bio,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: onSurface,
+                  height: 1.45,
+                  fontSize: 13.5,
+                ),
+              ),
+              const SizedBox(height: 14),
+              // Followers and counts under bio
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -777,49 +1556,7 @@ class _ProfileHeader extends StatelessWidget {
                   _ProfileLevelStat(
                     label: activityLevelLabel,
                     progress: activityProgress,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Text(
-                'Guiding nursing and midwifery teams through safe practice, exam preparation, and compassionate leadership across our teaching hospital.',
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: onSurface,
-                  height: 1.45,
-                  fontSize: 13.5,
-                ),
-              ),
-              const SizedBox(height: 18),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: onEditProfile,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        backgroundColor: onSurface,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: const Text('Edit Profile'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: onShareProfile,
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        side: BorderSide(color: outlineColor),
-                        foregroundColor: onSurface,
-                      ),
-                      child: const Text('Share Profile'),
-                    ),
+                    interactive: !readOnly,
                   ),
                 ],
               ),
@@ -862,10 +1599,15 @@ class _ProfileStat extends StatelessWidget {
 }
 
 class _ProfileLevelStat extends StatelessWidget {
-  const _ProfileLevelStat({required this.label, required this.progress});
+  const _ProfileLevelStat({
+    required this.label,
+    required this.progress,
+    this.interactive = true,
+  });
 
   final String label;
   final double progress; // 0..1
+  final bool interactive;
 
   @override
   Widget build(BuildContext context) {
@@ -878,7 +1620,7 @@ class _ProfileLevelStat extends StatelessWidget {
     // Color-coded indicator fills the grey track as progress grows
     final Color barFg = _progressColor(theme, clamped);
     return InkWell(
-      onTap: () => _openLevelDetails(context),
+      onTap: interactive ? () => _openLevelDetails(context) : null,
       borderRadius: BorderRadius.circular(8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1417,7 +2159,7 @@ class _ProfileTabs extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onChanged;
 
-  static const _tabs = ['Moments', 'Replies', 'Bookmarks'];
+  static const _tabs = ['Posts', 'Classes', 'Replies'];
 
   @override
   Widget build(BuildContext context) {

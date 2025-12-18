@@ -1,14 +1,19 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/data_service.dart';
 import '../services/simple_auth_service.dart';
+import '../state/app_settings.dart';
 import '../theme/app_theme.dart';
 import '../widgets/floating_nav_bar.dart';
 import '../widgets/tweet_post_card.dart';
 import 'compose_screen.dart';
+import 'ios_messages_screen.dart';
 import 'neutral_page.dart';
 import 'notifications_screen.dart';
 import 'profile_screen.dart';
+import 'quiz_dashboard_screen.dart';
 
 class TrendingScreen extends StatefulWidget {
   const TrendingScreen({super.key});
@@ -45,11 +50,14 @@ class _TrendingScreenState extends State<TrendingScreen> {
   String _deriveHandle(SimpleAuthService auth) {
     final email = auth.currentUserEmail;
     if (email == null || email.isEmpty) return '@yourprofile';
-    final normalized = email
+    String normalized = email
         .split('@')
         .first
         .replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '')
         .toLowerCase();
+    if (normalized.length > 12) {
+      normalized = normalized.substring(0, 12);
+    }
     return normalized.isEmpty ? '@yourprofile' : '@$normalized';
   }
 
@@ -96,58 +104,37 @@ class _TrendingScreenState extends State<TrendingScreen> {
 
   Future<void> _showQuickControls() async {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final Color subtle = theme.colorScheme.onSurface.withValues(
-      alpha: isDark ? 0.75 : 0.65,
-    );
+    final navigator = Navigator.of(context);
+    final appSettings = context.read<AppSettings>();
 
-    await showModalBottomSheet<void>(
+    showModalBottomSheet<void>(
       context: context,
-      showDragHandle: true,
-      backgroundColor: theme.colorScheme.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.arrow_upward_rounded),
-                  title: const Text('Back to top'),
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    _scrollController.animateTo(
-                      0,
-                      duration: const Duration(milliseconds: 280),
-                      curve: Curves.easeOut,
-                    );
-                  },
-                ),
-                if (_query.trim().isNotEmpty)
-                  ListTile(
-                    leading: const Icon(Icons.clear_rounded),
-                    title: const Text('Clear search'),
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      _searchController.clear();
-                    },
-                  ),
-                ListTile(
-                  leading: Icon(Icons.arrow_back_rounded, color: subtle),
-                  title: Text(
-                    'Back',
-                    style: theme.textTheme.bodyLarge?.copyWith(color: subtle),
-                  ),
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    Navigator.of(this.context).maybePop();
-                  },
-                ),
-              ],
-            ),
-          ),
+        return _TrendingQuickControlPanel(
+          theme: theme,
+          appSettings: appSettings,
+          onCompose: () async {
+            await navigator.push(
+              MaterialPageRoute(builder: (_) => const ComposeScreen()),
+            );
+          },
+          onProfile: () {
+            navigator.push(
+              MaterialPageRoute(builder: (_) => const ProfileScreen()),
+            );
+          },
+          onBackToTop: () {
+            _scrollController.animateTo(
+              0,
+              duration: const Duration(milliseconds: 280),
+              curve: Curves.easeOut,
+            );
+          },
+          onClearSearch: () {
+            _searchController.clear();
+          },
         );
       },
     );
@@ -245,205 +232,220 @@ class _TrendingScreenState extends State<TrendingScreen> {
         ),
         centerTitle: false,
       ),
-      body: CustomScrollView(
-        controller: _scrollController,
-        slivers: [
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 6, 20, 12),
-              child: _TrendingSearchBar(
-                controller: _searchController,
-                hintText: 'Search IN INSTITUTION',
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
-              child: Column(
-                children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Top topics',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: theme.colorScheme.onSurface,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  if (topicItems.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      child: Text(
-                        'No topics found.',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
-                        ),
-                      ),
-                    )
-                  else
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        const double gap = 8;
-                        final int itemCount = topicItems.length;
-                        final double itemWidth =
-                            (constraints.maxWidth - (gap * 2)) / 3;
-
-                        final List<Widget> rows = <Widget>[];
-
-                        for (int i = 0; i < itemCount; i += 3) {
-                          rows.add(
-                            Row(
-                              children: [
-                                for (int j = 0; j < 3; j++)
-                                  if (i + j < itemCount)
-                                    Expanded(
-                                      child: Padding(
-                                        padding: EdgeInsets.only(
-                                          right: j < 2 ? gap : 0,
-                                        ),
-                                        child: SizedBox(
-                                          width: itemWidth,
-                                          child: _TopicChip(
-                                            topic: topicItems[i + j].topic,
-                                            count: topicItems[i + j].count,
-                                          ),
-                                        ),
-                                      ),
-                                    )
-                                  else
-                                    const Expanded(child: SizedBox()),
-                              ],
-                            ),
-                          );
-
-                          if (i + 3 < itemCount) {
-                            rows.add(
-                              Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 6),
-                                child: Divider(
-                                  height: 1,
-                                  thickness: 1.2,
-                                  color: theme.dividerColor.withValues(
-                                    alpha: isDark ? 0.65 : 0.45,
-                                  ),
-                                ),
-                              ),
-                            );
-                          }
-                        }
-
-                        return Column(children: rows);
-                      },
-                    ),
-                ],
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: _SectionDivider(
-              color: theme.dividerColor.withValues(alpha: isDark ? 0.30 : 0.22),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-              child: _SectionHeader(
-                title: 'Top posts',
-                subtitle: 'Most engagement across the app',
-              ),
-            ),
-          ),
-          if (visiblePosts.isEmpty)
-            const SliverToBoxAdapter(
+      body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onHorizontalDragEnd: (details) {
+          // A swipe from left to right (positive velocity) should
+          // navigate back to the home feed.
+          if (details.primaryVelocity != null &&
+              details.primaryVelocity! > 0) {
+            Navigator.of(context).maybePop();
+          }
+        },
+        child: CustomScrollView(
+          controller: _scrollController,
+          slivers: [
+            SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.fromLTRB(20, 12, 20, 0),
-                child: _TrendingEmptyState(),
-              ),
-            )
-          else
-            SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final post = topPosts[index];
-                  final bool isLast = index == topPosts.length - 1;
-                  return Column(
-                    children: [
-                      Padding(
-                        padding: EdgeInsets.fromLTRB(
-                          20,
-                          index == 0 ? 0 : 12,
-                          20,
-                          12,
-                        ),
-                        child: TweetPostCard(
-                          post: post,
-                          currentUserHandle: currentUserHandle,
-                          backgroundColor: theme.cardColor,
-                        ),
-                      ),
-                      if (!isLast)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: Divider(
-                            height: 1,
-                            thickness: 1,
-                            color: theme.dividerColor.withValues(
-                              alpha: isDark ? 0.30 : 0.22,
-                            ),
-                          ),
-                        ),
-                    ],
-                  );
-                },
-                childCount: topPosts.length,
+                padding: const EdgeInsets.fromLTRB(20, 6, 20, 12),
+                child: _TrendingSearchBar(
+                  controller: _searchController,
+                  hintText: 'Search IN INSTITUTION',
+                ),
               ),
             ),
-          SliverToBoxAdapter(
-            child: _SectionDivider(
-              color: theme.dividerColor.withValues(alpha: isDark ? 0.30 : 0.22),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-              child: _SectionHeader(
-                title: 'Who to follow',
-                subtitle: 'Creators with active discussions',
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-              child: _SectionCard(
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
                 child: Column(
                   children: [
-                    if (visibleWhoToFollow.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 18,
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Top topics',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: theme.colorScheme.onSurface,
                         ),
-                        child: _WhoToFollowEmpty(),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    if (topicItems.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Text(
+                          'No topics found.',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurface
+                                .withValues(alpha: 0.65),
+                          ),
+                        ),
                       )
                     else
-                      for (int i = 0; i < visibleWhoToFollow.length; i++)
-                        _FollowRow(
-                          author: visibleWhoToFollow[i].author,
-                          handle: visibleWhoToFollow[i].handle,
-                          showDivider: i != visibleWhoToFollow.length - 1,
-                        ),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          const double gap = 8;
+                          final int itemCount = topicItems.length;
+                          final double itemWidth =
+                              (constraints.maxWidth - (gap * 2)) / 3;
+
+                          final List<Widget> rows = <Widget>[];
+
+                          for (int i = 0; i < itemCount; i += 3) {
+                            rows.add(
+                              Row(
+                                children: [
+                                  for (int j = 0; j < 3; j++)
+                                    if (i + j < itemCount)
+                                      Expanded(
+                                        child: Padding(
+                                          padding: EdgeInsets.only(
+                                            right: j < 2 ? gap : 0,
+                                          ),
+                                          child: SizedBox(
+                                            width: itemWidth,
+                                            child: _TopicChip(
+                                              topic: topicItems[i + j].topic,
+                                              count: topicItems[i + j].count,
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                    else
+                                      const Expanded(child: SizedBox()),
+                                ],
+                              ),
+                            );
+
+                            if (i + 3 < itemCount) {
+                              rows.add(
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 6),
+                                  child: Divider(
+                                    height: 1,
+                                    thickness: 1.2,
+                                    color: theme.dividerColor.withValues(
+                                      alpha: isDark ? 0.65 : 0.45,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
+                          }
+
+                          return Column(children: rows);
+                        },
+                      ),
                   ],
                 ),
               ),
             ),
-          ),
-          const SliverToBoxAdapter(child: SizedBox(height: 24)),
-        ],
+            SliverToBoxAdapter(
+              child: _SectionDivider(
+                color:
+                    theme.dividerColor.withValues(alpha: isDark ? 0.30 : 0.22),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                child: _SectionHeader(
+                  title: 'Top posts',
+                  subtitle: 'Most engagement across the app',
+                ),
+              ),
+            ),
+            if (visiblePosts.isEmpty)
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(20, 12, 20, 0),
+                  child: _TrendingEmptyState(),
+                ),
+              )
+            else
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final post = topPosts[index];
+                    final bool isLast = index == topPosts.length - 1;
+                    return Column(
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.fromLTRB(
+                            20,
+                            index == 0 ? 0 : 12,
+                            20,
+                            12,
+                          ),
+                          child: TweetPostCard(
+                            post: post,
+                            currentUserHandle: currentUserHandle,
+                            backgroundColor: theme.cardColor,
+                          ),
+                        ),
+                        if (!isLast)
+                          Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 20),
+                            child: Divider(
+                              height: 1,
+                              thickness: 1,
+                              color: theme.dividerColor.withValues(
+                                alpha: isDark ? 0.30 : 0.22,
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                  childCount: topPosts.length,
+                ),
+              ),
+            SliverToBoxAdapter(
+              child: _SectionDivider(
+                color:
+                    theme.dividerColor.withValues(alpha: isDark ? 0.30 : 0.22),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                child: _SectionHeader(
+                  title: 'Who to follow',
+                  subtitle: 'Creators with active discussions',
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                child: _SectionCard(
+                  child: Column(
+                    children: [
+                      if (visibleWhoToFollow.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 18,
+                          ),
+                          child: _WhoToFollowEmpty(),
+                        )
+                      else
+                        for (int i = 0; i < visibleWhoToFollow.length; i++)
+                          _FollowRow(
+                            author: visibleWhoToFollow[i].author,
+                            handle: visibleWhoToFollow[i].handle,
+                            showDivider: i != visibleWhoToFollow.length - 1,
+                          ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+          ],
+        ),
       ),
       bottomNavigationBar: _buildBottomNavigationBar(),
     );
@@ -1021,6 +1023,341 @@ class _QuickControlIcon extends StatelessWidget {
           const SizedBox(height: 6),
           _QuickControlLine(color: color),
         ],
+      ),
+    );
+  }
+}
+
+class _TrendingQuickControlPanel extends StatefulWidget {
+  const _TrendingQuickControlPanel({
+    required this.theme,
+    required this.appSettings,
+    required this.onCompose,
+    required this.onProfile,
+    required this.onBackToTop,
+    required this.onClearSearch,
+  });
+
+  final ThemeData theme;
+  final AppSettings appSettings;
+  final VoidCallback onCompose;
+  final VoidCallback onProfile;
+  final VoidCallback onBackToTop;
+  final VoidCallback onClearSearch;
+
+  @override
+  State<_TrendingQuickControlPanel> createState() =>
+      _TrendingQuickControlPanelState();
+}
+
+class _TrendingQuickControlPanelState
+    extends State<_TrendingQuickControlPanel> {
+  late final List<_QuickControlItem> _items;
+  late final List<bool> _activeStates;
+
+  Future<void> _showComingSoon(String feature) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final theme = Theme.of(context);
+    Navigator.of(context).pop();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          '$feature is coming soon',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.black.withValues(alpha: 0.85),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _items = [
+      _QuickControlItem(
+        icon: Icons.school_rounded,
+        label: 'Class',
+        onPressed: () async {
+          Navigator.of(context).pop();
+          await Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const IosMinimalistMessagePage()),
+          );
+        },
+      ),
+      _QuickControlItem(
+        icon: Icons.mode_edit_outline_rounded,
+        label: 'Post',
+        onPressed: () async {
+          Navigator.of(context).pop();
+          widget.onCompose();
+        },
+      ),
+      _QuickControlItem(
+        icon: Icons.quiz_outlined,
+        label: 'Quiz',
+        onPressed: () async {
+          Navigator.of(context).pop();
+          await Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const QuizDashboardScreen()),
+          );
+        },
+      ),
+      _QuickControlItem(
+        icon: Icons.dark_mode_rounded,
+        label: 'Dark Theme',
+        onPressed: () async {
+          final next = !widget.appSettings.isDarkMode;
+          await widget.appSettings.toggleDarkMode(next);
+          setState(() {
+            _activeStates[3] = next;
+          });
+        },
+      ),
+      _QuickControlItem(
+        icon: Icons.notifications_none_outlined,
+        label: 'Notifications',
+        onPressed: () async => _showComingSoon('Notifications'),
+      ),
+      _QuickControlItem(
+        icon: Icons.forum_outlined,
+        label: 'Messages',
+        onPressed: () async {
+          Navigator.of(context).pop();
+          await Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const IosMinimalistMessagePage()),
+          );
+        },
+      ),
+      _QuickControlItem(
+        icon: Icons.search_rounded,
+        label: 'Search',
+        onPressed: () async {
+          Navigator.of(context).pop();
+          // Already on search/trends page – just close the panel.
+        },
+      ),
+      _QuickControlItem(
+        icon: Icons.quiz_outlined,
+        label: 'Settings',
+        onPressed: () async => _showComingSoon('Settings'),
+      ),
+      _QuickControlItem(
+        icon: Icons.person_outline_rounded,
+        label: 'Profile',
+        onPressed: () async {
+          Navigator.of(context).pop();
+          widget.onProfile();
+        },
+      ),
+    ];
+
+    _activeStates = _items.map((item) => item.initialValue).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = widget.theme;
+    final bool isDark = theme.brightness == Brightness.dark;
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 1, end: 0),
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Transform.translate(offset: Offset(0, value * 60), child: child);
+      },
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: ClipRRect(
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(28),
+            topRight: Radius.circular(28),
+          ),
+          child: BackdropFilter(
+            filter: ui.ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: isDark ? 0.10 : 0.16),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(28),
+                  topRight: Radius.circular(28),
+                ),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.26)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.10),
+                    blurRadius: 18,
+                    offset: const Offset(0, -3),
+                  ),
+                ],
+              ),
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.15,
+                          ),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildQuickControlGrid(),
+                    const SizedBox(height: 12),
+                    Center(
+                      child: Text(
+                        'IN INSTITUTION',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleItemInteraction(int index) async {
+    final item = _items[index];
+    await item.onPressed?.call();
+  }
+
+  Widget _buildQuickControlGrid() {
+    if (_items.isEmpty) return const SizedBox.shrink();
+
+    const maxColumns = 3;
+    final columns = _items.length < maxColumns ? _items.length : maxColumns;
+    final rows = (_items.length / columns).ceil();
+    final List<Widget> gridRows = [];
+
+    for (var row = 0; row < rows; row++) {
+      final int startIndex = row * columns;
+      if (startIndex >= _items.length) break;
+
+      final List<Widget> cells = [];
+      for (var column = 0; column < columns; column++) {
+        final index = startIndex + column;
+        final hasItem = index < _items.length;
+        cells.add(
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(right: column == columns - 1 ? 0 : 14),
+              child: hasItem
+                  ? _QuickControlButton(
+                      item: _items[index],
+                      isActive: _activeStates[index],
+                      onPressed: () => _handleItemInteraction(index),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ),
+        );
+      }
+
+      gridRows.add(
+        Padding(
+          padding: EdgeInsets.only(bottom: row == rows - 1 ? 0 : 10),
+          child: Row(children: cells),
+        ),
+      );
+    }
+
+    return Column(children: gridRows);
+  }
+}
+
+class _QuickControlItem {
+  const _QuickControlItem({
+    required this.icon,
+    required this.label,
+    this.onPressed,
+  })  : isTogglable = false,
+        onToggle = null,
+        initialValue = false;
+
+  final IconData icon;
+  final String label;
+  final Future<void> Function()? onPressed;
+  final Future<void> Function(bool)? onToggle;
+  final bool isTogglable;
+  final bool initialValue;
+}
+
+class _QuickControlButton extends StatelessWidget {
+  const _QuickControlButton({
+    required this.item,
+    required this.isActive,
+    required this.onPressed,
+  });
+
+  final _QuickControlItem item;
+  final bool isActive;
+  final Future<void> Function()? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+
+    final Color iconColor = isActive
+        ? (isDark ? Colors.white : Colors.black)
+        : theme.colorScheme.onSurface.withValues(alpha: 0.70);
+    final Color borderColor = theme.dividerColor.withValues(
+      alpha: isActive ? 0.4 : 0.25,
+    );
+    final Color backgroundColor = isDark
+        ? Colors.white.withValues(alpha: isActive ? 0.12 : 0.04)
+        : Colors.white.withValues(alpha: isActive ? 0.9 : 0.8);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onPressed == null ? null : () => onPressed!(),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: borderColor),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(item.icon, size: 24, color: iconColor),
+              const SizedBox(height: 8),
+              Text(
+                item.label,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: iconColor,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

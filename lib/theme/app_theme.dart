@@ -31,10 +31,11 @@ class AppTheme {
   /// slightly larger, compact line height, light tracking.
   static TextStyle tweetBody(Color color) {
     return GoogleFonts.inter(
-      color: color,
-      fontSize: 14,
-      height: 1.35,
-      letterSpacing: -0.01,
+      // Approximate Twitter/X mobile styling
+      color: color.withValues(alpha: 0.87),
+      fontSize: 15,
+      height: 1.4,
+      letterSpacing: -0.02,
       fontWeight: FontWeight.w400,
     );
   }

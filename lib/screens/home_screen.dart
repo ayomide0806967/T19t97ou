@@ -45,11 +45,14 @@ class _HomeScreenState extends State<HomeScreen>
     if (email == null || email.isEmpty) {
       return '@yourprofile';
     }
-    final normalized = email
+    String normalized = email
         .split('@')
         .first
         .replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '')
         .toLowerCase();
+    if (normalized.length > 12) {
+      normalized = normalized.substring(0, 12);
+    }
     if (normalized.isEmpty) {
       return '@yourprofile';
     }

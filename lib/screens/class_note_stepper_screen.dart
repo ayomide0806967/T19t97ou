@@ -15,6 +15,7 @@ class ClassNoteStepperScreen extends StatefulWidget {
 class _ClassNoteStepperScreenState extends State<ClassNoteStepperScreen> {
   int _activeIndex = 0;
   final List<GlobalKey> _stepKeys = <GlobalKey>[];
+  NoteStepBackgroundMode _activeBackgroundMode = NoteStepBackgroundMode.auto;
 
   // Example data – a single note broken into short rails/sections.
   late final List<ClassNoteSection> _sections = widget.summary?.sections.isNotEmpty == true
@@ -72,6 +73,19 @@ class _ClassNoteStepperScreenState extends State<ClassNoteStepperScreen> {
     _stepKeys.addAll(List<GlobalKey>.generate(_sections.length, (_) => GlobalKey()));
   }
 
+  void _cycleStepBackground(int index) {
+    if (index != _activeIndex) return;
+    setState(() {
+      _activeBackgroundMode = switch (_activeBackgroundMode) {
+        NoteStepBackgroundMode.auto => NoteStepBackgroundMode.whatsapp,
+        NoteStepBackgroundMode.whatsapp => NoteStepBackgroundMode.offwhite,
+        NoteStepBackgroundMode.offwhite => NoteStepBackgroundMode.white,
+        NoteStepBackgroundMode.white => NoteStepBackgroundMode.black,
+        NoteStepBackgroundMode.black => NoteStepBackgroundMode.auto,
+      };
+    });
+  }
+
   void _setActive(int index) {
     if (index < 0 || index >= _sections.length) return;
     setState(() => _activeIndex = index);
@@ -96,34 +110,26 @@ class _ClassNoteStepperScreenState extends State<ClassNoteStepperScreen> {
     final subtle = onSurface.withValues(
       alpha: theme.brightness == Brightness.dark ? 0.6 : 0.55,
     );
+    final progressFill = _progressFillColor(theme, _activeBackgroundMode);
     final int totalSteps = _sections.isEmpty ? 1 : _sections.length;
     final progress = (_activeIndex + 1) / totalSteps;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Class note'),
+        title: Text(
+          widget.summary?.title ?? 'Class note',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
       ),
       body: SafeArea(
         child: Padding(
           // Let cards extend almost to the right edge so text
           // can use the full width of the screen.
-          padding: const EdgeInsets.fromLTRB(20, 16, 0, 12),
+          padding: const EdgeInsets.fromLTRB(20, 0, 0, 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                widget.summary?.title ?? 'Medication safety in NICU',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 4),
-              if ((widget.summary?.subtitle ?? '').isNotEmpty)
-                Text(
-                  widget.summary!.subtitle,
-                  style: theme.textTheme.bodySmall?.copyWith(color: subtle),
-                ),
-              const SizedBox(height: 16),
               // Overall note progress using the same 3‑colour logic
               Row(
                 children: [
@@ -141,7 +147,7 @@ class _ClassNoteStepperScreenState extends State<ClassNoteStepperScreen> {
                               widthFactor: progress.clamp(0.0, 1.0),
                               alignment: Alignment.centerLeft,
                               child: Container(
-                                color: _progressColor(theme, progress),
+                                color: progressFill,
                               ),
                             ),
                           ],
@@ -159,7 +165,6 @@ class _ClassNoteStepperScreenState extends State<ClassNoteStepperScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
               Expanded(
                 child: ListView.builder(
                   // Extra bottom padding so the last item can scroll up
@@ -179,6 +184,10 @@ class _ClassNoteStepperScreenState extends State<ClassNoteStepperScreen> {
                       isActive: isActive,
                       isRevealed: isRevealed,
                       onTap: () => _setActive(index),
+                      onDoubleTap: () => _cycleStepBackground(index),
+                      backgroundMode: isActive
+                          ? _activeBackgroundMode
+                          : NoteStepBackgroundMode.white,
                     );
                   },
                 ),
@@ -224,16 +233,16 @@ class _ClassNoteStepperScreenState extends State<ClassNoteStepperScreen> {
   }
 }
 
-Color _progressColor(ThemeData theme, double value) {
-  // Keep the 3‑colour progress logic: red → dark cyan → green.
-  final p = value.clamp(0.0, 1.0);
-  if (p <= 0.30) {
-    return Colors.red;
-  }
-  if (p <= 0.60) {
-    return const Color(0xFF00838F); // dark cyan
-  }
-  return Colors.green;
+Color _progressFillColor(ThemeData theme, NoteStepBackgroundMode mode) {
+  const Color whatsappBubble = Color(0xFFDCF8C6);
+
+  return switch (mode) {
+    NoteStepBackgroundMode.auto => whatsappBubble,
+    NoteStepBackgroundMode.whatsapp => whatsappBubble,
+    NoteStepBackgroundMode.offwhite => Colors.black,
+    NoteStepBackgroundMode.white => Colors.black,
+    NoteStepBackgroundMode.black => Colors.black,
+  };
 }
 
 /// Simple, dedicated discussion page for class notes.

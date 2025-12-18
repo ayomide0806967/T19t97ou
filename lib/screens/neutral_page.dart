@@ -41,7 +41,7 @@ class NeutralPage extends StatelessWidget {
             _HubCard(
               title: 'Go to class',
               subtitle: 'Open your class space.',
-              icon: Icons.class_outlined,
+              icon: Icons.school_rounded,
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => const IosMinimalistMessagePage(),
