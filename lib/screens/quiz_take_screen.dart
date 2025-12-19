@@ -571,10 +571,8 @@ class _QuizTakeScreenState extends State<QuizTakeScreen> {
                     Expanded(
                       child: OutlinedButton(
                         style: OutlinedButton.styleFrom(
-                          backgroundColor: _singlePageMode
-                              ? Colors.transparent
-                              : theme.colorScheme.primary
-                                  .withValues(alpha: 0.08),
+                          backgroundColor:
+                              _singlePageMode ? Colors.transparent : Colors.white,
                           foregroundColor: theme.colorScheme.onSurface,
                           padding: const EdgeInsets.symmetric(
                             horizontal: 12,
@@ -584,9 +582,7 @@ class _QuizTakeScreenState extends State<QuizTakeScreen> {
                             borderRadius: BorderRadius.circular(999),
                           ),
                           side: BorderSide(
-                            color: _singlePageMode
-                                ? theme.dividerColor
-                                : theme.colorScheme.primary,
+                            color: theme.dividerColor.withValues(alpha: 0.7),
                           ),
                         ),
                         onPressed: () {
@@ -602,10 +598,8 @@ class _QuizTakeScreenState extends State<QuizTakeScreen> {
                     Expanded(
                       child: OutlinedButton(
                         style: OutlinedButton.styleFrom(
-                          backgroundColor: _singlePageMode
-                              ? theme.colorScheme.primary
-                                  .withValues(alpha: 0.08)
-                              : Colors.transparent,
+                          backgroundColor:
+                              _singlePageMode ? Colors.white : Colors.transparent,
                           foregroundColor: theme.colorScheme.onSurface,
                           padding: const EdgeInsets.symmetric(
                             horizontal: 12,
@@ -615,9 +609,7 @@ class _QuizTakeScreenState extends State<QuizTakeScreen> {
                             borderRadius: BorderRadius.circular(999),
                           ),
                           side: BorderSide(
-                            color: _singlePageMode
-                                ? theme.colorScheme.primary
-                                : theme.dividerColor,
+                            color: theme.dividerColor.withValues(alpha: 0.7),
                           ),
                         ),
                         onPressed: () {
