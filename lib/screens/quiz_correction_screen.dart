@@ -24,37 +24,107 @@ class QuizCorrectionScreen extends StatelessWidget {
         ? 0
         : correctCount / questions.length;
     final Duration timeUsed = _timeUsed;
+    int skippedCount = 0;
+    for (int i = 0; i < questions.length; i++) {
+      if (!responses.containsKey(i)) {
+        skippedCount += 1;
+      }
+    }
+    final int wrongCount = questions.length - correctCount - skippedCount;
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: const Text('Quiz correction'),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        _popToOrigin(context);
+      },
+      child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
-        elevation: 0,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-        children: [
-          _SummaryCard(
-            correct: correctCount,
-            total: questions.length,
-            accuracy: accuracy,
-            timeUsed: timeUsed,
-            timeRemaining: remainingTime,
+        appBar: AppBar(
+          backgroundColor: theme.scaffoldBackgroundColor,
+          elevation: 0,
+          automaticallyImplyLeading: false,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_rounded),
+            onPressed: () => _popToOrigin(context),
           ),
-          const SizedBox(height: 24),
-          ...List.generate(questions.length, (index) {
-            final question = questions[index];
-            final int? selected = responses[index];
-            final bool isCorrect = selected == question.answerIndex;
-            return _QuestionReviewCard(
-              question: question,
-              index: index,
-              selectedIndex: selected,
-              isCorrect: isCorrect,
-            );
-          }),
-        ],
+          title: const Text('Quiz correction'),
+        ),
+        body: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          children: [
+            _SummaryCard(
+              correct: correctCount,
+              total: questions.length,
+              accuracy: accuracy,
+              timeUsed: timeUsed,
+              timeRemaining: remainingTime,
+              wrong: wrongCount,
+              skipped: skippedCount,
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      textStyle: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                    onPressed: () => _retakeQuiz(context),
+                    child: const Text('Retake quiz'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      textStyle: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                    onPressed: () => _postResults(
+                      context,
+                      correctCount,
+                      wrongCount,
+                      skippedCount,
+                      accuracy,
+                      timeUsed,
+                    ),
+                    child: const Text('Post results'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            ...List.generate(questions.length, (index) {
+              final question = questions[index];
+              final int? selected = responses[index];
+              final bool isCorrect = selected == question.answerIndex;
+              return _QuestionReviewCard(
+                question: question,
+                index: index,
+                selectedIndex: selected,
+                isCorrect: isCorrect,
+              );
+            }),
+          ],
+        ),
       ),
     );
   }
@@ -76,6 +146,122 @@ class QuizCorrectionScreen extends StatelessWidget {
     }
     return total;
   }
+
+  void _popToOrigin(BuildContext context) {
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop();
+    }
+    if (navigator.canPop()) {
+      navigator.pop();
+    }
+  }
+
+  void _retakeQuiz(BuildContext context) {
+    Navigator.of(context).pop();
+  }
+
+  void _postResults(
+    BuildContext context,
+    int correct,
+    int wrong,
+    int skipped,
+    double accuracy,
+    Duration timeUsed,
+  ) {
+    final int accuracyPercent = (accuracy * 100).round();
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        final theme = Theme.of(context);
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: theme.dividerColor,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+              Text(
+                'Post results',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Share this quiz outcome with your class or group.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color:
+                      theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: theme.cardColor,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color:
+                        theme.dividerColor.withValues(alpha: 0.35),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Score: $correct correct, $wrong wrong, $skipped skipped',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Accuracy: $accuracyPercent%   •   Time: ${_SummaryCard._formatClock(timeUsed)}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface
+                            .withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerRight,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('Done'),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }
 
 class _SummaryCard extends StatelessWidget {
@@ -85,6 +271,8 @@ class _SummaryCard extends StatelessWidget {
     required this.accuracy,
     required this.timeUsed,
     required this.timeRemaining,
+    required this.wrong,
+    required this.skipped,
   });
 
   final int correct;
@@ -92,14 +280,17 @@ class _SummaryCard extends StatelessWidget {
   final double accuracy;
   final Duration timeUsed;
   final Duration timeRemaining;
+  final int wrong;
+  final int skipped;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
     final Color border = theme.dividerColor.withValues(
-      alpha: isDark ? 0.35 : 0.2,
+      alpha: isDark ? 0.35 : 0.25,
     );
+    final int accuracyPercent = (accuracy * 100).round();
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -112,7 +303,7 @@ class _SummaryCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Results summary',
+            'Results',
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w700,
             ),
@@ -120,15 +311,83 @@ class _SummaryCard extends StatelessWidget {
           const SizedBox(height: 16),
           Row(
             children: [
-              _SummaryMetric(label: 'Score', value: '$correct / $total'),
-              _SummaryMetric(
-                label: 'Accuracy',
-                value: '${(accuracy * 100).round()}%',
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Score',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.7,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '$correct / $total',
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(999),
+                      child: LinearProgressIndicator(
+                        value: total == 0 ? 0 : accuracy.clamp(0, 1),
+                        minHeight: 4,
+                        backgroundColor: theme.colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.6),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          accuracy >= 0.7
+                              ? Colors.green
+                              : accuracy >= 0.4
+                                  ? Colors.orange
+                                  : Colors.red,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '$accuracyPercent% accuracy',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.7,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              _SummaryMetric(
-                label: 'Time used',
-                value: _formatClock(timeUsed),
-                secondary: 'Rem ${_formatClock(timeRemaining)}',
+              const SizedBox(width: 16),
+              Expanded(
+                child: _SummaryMetric(
+                  label: 'Time used',
+                  value: _formatClock(timeUsed),
+                  secondary: 'Remaining ${_formatClock(timeRemaining)}',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              _StatusCountChip(
+                label: 'Correct',
+                count: correct,
+                color: Colors.green,
+              ),
+              const SizedBox(width: 8),
+              _StatusCountChip(
+                label: 'Wrong',
+                count: wrong,
+                color: Colors.red,
+              ),
+              const SizedBox(width: 8),
+              _StatusCountChip(
+                label: 'Skipped',
+                count: skipped,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ],
           ),
@@ -184,6 +443,54 @@ class _SummaryMetric extends StatelessWidget {
               secondary!,
               style: theme.textTheme.bodySmall?.copyWith(color: subtle),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusCountChip extends StatelessWidget {
+  const _StatusCountChip({
+    required this.label,
+    required this.count,
+    required this.color,
+  });
+
+  final String label;
+  final int count;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: color.withValues(alpha: 0.7),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            margin: const EdgeInsets.only(right: 6),
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          Text(
+            '$count $label',
+            style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                ),
+          ),
         ],
       ),
     );
