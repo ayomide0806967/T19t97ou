@@ -15,7 +15,7 @@ import '../screens/quote_screen.dart';
 import 'icons/x_retweet_icon.dart';
 import 'icons/x_comment_icon.dart';
 import '../screens/post_activity_screen.dart';
-import '../screens/profile_screen.dart';
+import '../screens/student_profile_screen.dart';
 import '../constants/toast_durations.dart';
 
 class TweetPostCard extends StatefulWidget {
@@ -482,8 +482,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
     // Build header content (author row) without the avatar.
     final Widget contentHeader;
     if (widget.fullWidthHeader) {
-      // Replies page / detail: name on first line, handle (and optional time)
-      // on second line.
+      // Replies page / detail: name on first line, optional time beneath.
       contentHeader = Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -512,39 +511,16 @@ class _TweetPostCardState extends State<TweetPostCard> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    if (displayHandle.isNotEmpty)
-                      Text(
-                        displayHandle,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontSize: 13,
-                          color: secondaryTextColor,
-                        ),
-                      ),
-                    if (widget.showTimeInHeader) ...[
-                      if (displayHandle.isNotEmpty) ...[
-                        const SizedBox(width: 6),
-                        Text(
-                          '·',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontSize: 13,
-                            color: secondaryTextColor.withValues(alpha: 0.7),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                      ],
-                      Text(
-                        widget.post.timeAgo,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontSize: 12,
-                          color: secondaryTextColor,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
+                if (widget.showTimeInHeader) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    widget.post.timeAgo,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontSize: 12,
+                      color: secondaryTextColor,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -559,7 +535,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
         ],
       );
     } else {
-      // Main timeline: name + handle + time on a single horizontal line.
+      // Main timeline: name + time on a single horizontal line (handle hidden).
       contentHeader = Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -583,16 +559,6 @@ class _TweetPostCardState extends State<TweetPostCard> {
                     ),
                   ),
                 ),
-                if (displayHandle.isNotEmpty) ...[
-                  const SizedBox(width: 6),
-                  Text(
-                    displayHandle,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontSize: 13,
-                      color: secondaryTextColor,
-                    ),
-                  ),
-                ],
                 if (widget.showTimeInHeader) ...[
                   const SizedBox(width: 6),
                   Text(
@@ -637,8 +603,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
             : '@${handleForProfile}';
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) =>
-                ProfileScreen(handleOverride: normalizedHandle, readOnly: true),
+            builder: (_) => StudentProfileScreen(handle: normalizedHandle),
           ),
         );
       },

@@ -22,6 +22,7 @@ import '../screens/create_note_flow/teacher_note_creation_screen.dart';
 import '../services/members_service.dart';
 import '../services/invites_service.dart';
 import 'student_profile_screen.dart';
+import 'create_class_screen.dart';
 import 'class_note_stepper_screen.dart';
 import '../widgets/equal_width_buttons_row.dart';
 import '../widgets/setting_switch_row.dart';
@@ -60,6 +61,7 @@ Map<String, dynamic> _classNoteSummaryToJson(ClassNoteSummary s) => {
   'createdAt': s.createdAt.toIso8601String(),
   'commentCount': s.commentCount,
   'sections': s.sections.map(_classNoteSectionToJson).toList(),
+  'attachedQuizTitle': s.attachedQuizTitle,
 };
 
 ClassNoteSummary _classNoteSummaryFromJson(Map<String, dynamic> json) =>
@@ -75,6 +77,7 @@ ClassNoteSummary _classNoteSummaryFromJson(Map<String, dynamic> json) =>
               ?.map((e) => _classNoteSectionFromJson(e as Map<String, dynamic>))
               .toList() ??
           const <ClassNoteSection>[],
+      attachedQuizTitle: json['attachedQuizTitle'] as String?,
     );
 
 Future<void> _loadNotesForCollege(String code) async {
@@ -997,16 +1000,9 @@ class _ClassesExperienceState extends State<_ClassesExperience> {
 }
 
 Future<void> _handleCreateClass(BuildContext context) async {
-  final result = await Navigator.of(
-    context,
-  ).push(MaterialPageRoute(builder: (_) => const _CreateClassPage()));
-  if (result is College) {
-    if (context.mounted) {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => _CollegeScreen(college: result)),
-      );
-    }
-  }
+  await Navigator.of(context).push(
+    MaterialPageRoute(builder: (_) => const CreateClassScreen()),
+  );
 }
 
 Future<void> _handleJoinClass(BuildContext context) async {
@@ -2176,18 +2172,26 @@ class _CreateClassStepContent extends StatelessWidget {
         ],
         const SizedBox(height: 16),
         if (step == 0)
-          Align(
-            alignment: Alignment.centerLeft,
-            child: FilledButton(
-              onPressed: () {
-                if (formKey.currentState!.validate()) onNext();
-              },
-              child: const Text('Next'),
-            ),
+          Row(
+            children: [
+              OutlinedButton(
+                onPressed: () => Navigator.of(context).maybePop(),
+                child: const Text('Back'),
+              ),
+              const SizedBox(width: 8),
+              FilledButton(
+                onPressed: () {
+                  if (formKey.currentState!.validate()) onNext();
+                },
+                child: const Text('Next'),
+              ),
+            ],
           )
         else
           Row(
             children: [
+              OutlinedButton(onPressed: onBack, child: const Text('Back')),
+              const SizedBox(width: 8),
               FilledButton(
                 onPressed: () {
                   if (step < 3) {
@@ -2198,8 +2202,6 @@ class _CreateClassStepContent extends StatelessWidget {
                 },
                 child: Text(step == 3 ? 'Create' : 'Next'),
               ),
-              const SizedBox(width: 8),
-              OutlinedButton(onPressed: onBack, child: const Text('Back')),
             ],
           ),
       ],
@@ -2555,6 +2557,19 @@ const List<College> _demoColleges = <College>[
 ];
 
 // Quiz screens exist separately; access via header quiz icon.
+
+/// Public wrapper so other parts of the app (e.g. quiz dashboard)
+/// can navigate to the class detail experience using the same layout.
+class CollegeDetailScreen extends StatelessWidget {
+  const CollegeDetailScreen({super.key, required this.college});
+
+  final College college;
+
+  @override
+  Widget build(BuildContext context) {
+    return _CollegeScreen(college: college);
+  }
+}
 
 class _CollegeScreen extends StatefulWidget {
   const _CollegeScreen({required this.college});
@@ -3759,7 +3774,7 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
                     Expanded(
                       flex: 3,
                       child: _ClassActionCard(
-                        title: 'Create lecture note',
+                        title: 'Create a lecture note',
                         backgroundColor: _whatsAppGreen.withValues(alpha: 0.15),
                         playIconColor: _whatsAppTeal,
                         onTap: () async {
@@ -3782,21 +3797,6 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    Expanded(
-                      flex: 2,
-                      child: _ClassActionCard(
-                        title: 'Quiz',
-                        backgroundColor: _whatsAppGreen.withValues(alpha: 0.15),
-                        playIconColor: _whatsAppTeal,
-                        onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const QuizHubScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
                   ],
                 ),
               ] else
@@ -4040,37 +4040,46 @@ class _LectureSetupPage extends StatelessWidget {
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              college.name,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: bannerText.withValues(alpha: 0.75),
-                                letterSpacing: 0.2,
+                        child: Align(
+                          alignment: Alignment.center,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                college.name,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: bannerText.withValues(alpha: 0.75),
+                                  letterSpacing: 0.2,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Create lecture note',
-                              style: theme.textTheme.titleLarge?.copyWith(
-                                color: bannerText,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -0.3,
+                              const SizedBox(height: 4),
+                              Text(
+                                'Create a lecture note',
+                                textAlign: TextAlign.center,
+                                style: theme.textTheme.headlineSmall?.copyWith(
+                                  color: bannerText,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.5,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 18),
-                  Text(
-                    'Set up the course, tutor, topic, and access before you start posting notes in real time.',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: bannerText.withValues(alpha: 0.7),
+                  Center(
+                    child: Text(
+                      'Set up the course, tutor, topic, and access before you start posting notes in real time.',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: bannerText.withValues(alpha: 0.8),
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],

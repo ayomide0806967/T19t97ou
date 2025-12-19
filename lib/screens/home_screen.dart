@@ -39,6 +39,8 @@ class _HomeScreenState extends State<HomeScreen>
   final PageController _feedPageController = PageController();
   late final AnimationController _logoRefreshController;
   bool _isRefreshingFeed = false;
+  double _feedOverscrollAccum = 0;
+  bool _openedQuickControlsFromSwipe = false;
   SimpleAuthService get _authService => SimpleAuthService();
   String get _currentUserHandle {
     final email = _authService.currentUserEmail;
@@ -217,21 +219,58 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
         ],
-        body: PageView(
-          controller: _feedPageController,
-          onPageChanged: (index) {
-            if (mounted) {
-              setState(() => _selectedFeedTabIndex = index);
+        body: NotificationListener<ScrollNotification>(
+          onNotification: (notification) {
+            // Only react on the "For You" page, and only for horizontal
+            // PageView scrolling (ignore vertical ListView scroll).
+            if (_selectedFeedTabIndex != 0) return false;
+            if (notification.metrics.axis != Axis.horizontal) return false;
+
+            if (notification is ScrollStartNotification) {
+              _feedOverscrollAccum = 0;
+              _openedQuickControlsFromSwipe = false;
+              return false;
             }
+
+            if (notification is OverscrollNotification) {
+              // On the first page, a right swipe overscrolls past the min
+              // extent (negative overscroll). Use that as the gesture to open
+              // quick controls without interfering with normal tab swipes.
+              if (notification.overscroll < 0 &&
+                  !_openedQuickControlsFromSwipe) {
+                _feedOverscrollAccum += -notification.overscroll;
+                if (_feedOverscrollAccum >= 12) {
+                  _openedQuickControlsFromSwipe = true;
+                  _showQuickControlPanel();
+                }
+              }
+              return false;
+            }
+
+            if (notification is ScrollEndNotification) {
+              _feedOverscrollAccum = 0;
+              _openedQuickControlsFromSwipe = false;
+              return false;
+            }
+
+            return false;
           },
-          children: [
-            _buildFeedList(
-              context,
-              _sortedTrending(baseTimeline),
-              currentUserHandle,
-            ),
-            _buildFeedList(context, baseTimeline, currentUserHandle),
-          ],
+          child: PageView(
+            controller: _feedPageController,
+            onPageChanged: (index) {
+              if (mounted) {
+                setState(() => _selectedFeedTabIndex = index);
+              }
+            },
+            children: [
+              _buildFeedList(
+                context,
+                _sortedTrending(baseTimeline),
+                currentUserHandle,
+              ),
+              _buildFeedList(context, baseTimeline, currentUserHandle),
+            ],
+          ),
         ),
       ),
       floatingActionButton: Padding(
@@ -1093,68 +1132,82 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
       builder: (context, value, child) {
         return Transform.translate(offset: Offset(0, value * 60), child: child);
       },
-      child: Align(
-        alignment: Alignment.bottomCenter,
-        child: ClipRRect(
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(28),
-            topRight: Radius.circular(28),
+      child: Stack(
+        children: [
+          // Tap-through scrim: tapping anywhere above the panel closes it.
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => Navigator.of(context).pop(),
+              child: const SizedBox.expand(),
+            ),
           ),
-          child: BackdropFilter(
-            filter: ui.ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: isDark ? 0.10 : 0.16),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(28),
-                  topRight: Radius.circular(28),
-                ),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.26)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.10),
-                    blurRadius: 18,
-                    offset: const Offset(0, -3),
-                  ),
-                ],
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: ClipRRect(
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(28),
+                topRight: Radius.circular(28),
               ),
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.onSurface.withValues(
-                            alpha: 0.15,
+              child: BackdropFilter(
+                filter: ui.ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: isDark ? 0.10 : 0.16),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(28),
+                      topRight: Radius.circular(28),
+                    ),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.26),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.10),
+                        blurRadius: 18,
+                        offset: const Offset(0, -3),
+                      ),
+                    ],
+                  ),
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 40,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.15,
+                              ),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
                           ),
-                          borderRadius: BorderRadius.circular(2),
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildQuickControlGrid(),
-                    const SizedBox(height: 12),
-                    Center(
-                      child: Text(
-                        'IN INSTITUTION',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.4,
+                        const SizedBox(height: 12),
+                        _buildQuickControlGrid(),
+                        const SizedBox(height: 12),
+                        Center(
+                          child: Text(
+                            'IN INSTITUTION',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.4,
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

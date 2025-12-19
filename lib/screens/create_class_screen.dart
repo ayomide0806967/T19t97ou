@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import '../widgets/setting_switch_row.dart';
 import '../widgets/equal_width_buttons_row.dart';
 import '../services/data_service.dart';
+import 'ios_messages_screen.dart'
+    show College, CollegeResource, CollegeDetailScreen;
 
 /// Create a class flow (4-step wizard) matching the provided reference.
 class CreateClassScreen extends StatefulWidget {
@@ -66,23 +68,57 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
 
   void _create() {
     if (!_formKey.currentState!.validate()) return;
-    // Optionally persist to a data service if available in tree
     final data = context.read<DataService?>();
-    debugPrint('Create class: name=${_name.text.trim()}, code=${_code.text.trim()}, facilitator=${_facilitator.text.trim()}');
+    final String name = _name.text.trim();
+    final String codeRaw = _code.text.trim();
+    final String code = codeRaw.isEmpty
+        ? name.replaceAll(RegExp(r'\s+'), '').toUpperCase()
+        : codeRaw.toUpperCase();
+    final String facilitatorRaw = _facilitator.text.trim();
+    final String facilitator =
+        facilitatorRaw.isEmpty ? 'Admin' : facilitatorRaw;
+
+    debugPrint(
+      'Create class: name=$name, code=$code, facilitator=$facilitator',
+    );
+
     if (data != null) {
-      // This demo call is intentionally light; integrate with your actual model/store.
-      // data.createClass(...)
+      // Integrate with your backing store here if desired, e.g.:
+      // data.createClass(...);
     }
-    if (mounted) Navigator.pop(context, {
-      'name': _name.text.trim(),
-      'code': _code.text.trim(),
-      'facilitator': _facilitator.text.trim(),
-      'description': _description.text.trim(),
-      'isPrivate': _isPrivate,
-      'adminOnlyPosting': _adminOnlyPosting,
-      'approvalRequired': _approvalRequired,
-      'allowMedia': _allowMedia,
-    });
+
+    final college = College(
+      name: name,
+      code: code,
+      facilitator: facilitator,
+      members: 1,
+      deliveryMode: _isPrivate ? 'Private' : 'Open',
+      upcomingExam: '',
+      resources: const <CollegeResource>[],
+      memberHandles: <String>{'@yourprofile'},
+    );
+
+    if (!mounted) return;
+
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder<void>(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            CollegeDetailScreen(college: college),
+        transitionDuration: const Duration(milliseconds: 260),
+        reverseTransitionDuration: const Duration(milliseconds: 260),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          );
+          return FadeTransition(
+            opacity: curved,
+            child: child,
+          );
+        },
+      ),
+    );
   }
 
   @override
@@ -271,6 +307,35 @@ class _CreateClassStepContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    final ButtonStyle nextStyle = FilledButton.styleFrom(
+      backgroundColor: Colors.black,
+      foregroundColor: Colors.white,
+      shape: const StadiumBorder(),
+      minimumSize: const Size(0, 44),
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      visualDensity: VisualDensity.compact,
+      padding: const EdgeInsets.symmetric(horizontal: 18),
+      textStyle: theme.textTheme.labelLarge?.copyWith(
+        fontWeight: FontWeight.w700,
+        height: 1.0,
+      ),
+    );
+
+    final ButtonStyle backStyle = OutlinedButton.styleFrom(
+      foregroundColor: Colors.black,
+      backgroundColor: theme.colorScheme.surface,
+      side: const BorderSide(color: Colors.black, width: 1.2),
+      shape: const StadiumBorder(),
+      minimumSize: const Size(0, 44),
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      visualDensity: VisualDensity.compact,
+      padding: const EdgeInsets.symmetric(horizontal: 18),
+      textStyle: theme.textTheme.labelLarge?.copyWith(
+        fontWeight: FontWeight.w700,
+        height: 1.0,
+      ),
+    );
 
     Widget panel(Widget child) {
       return Container(
@@ -476,19 +541,31 @@ class _CreateClassStepContent extends StatelessWidget {
 
         // Controls
         if (step == 0) ...[
-          // Only Next on first page — align left
-          Align(
-            alignment: Alignment.centerLeft,
-            child: FilledButton(
-              onPressed: () {
-                if (formKey.currentState!.validate()) onNext();
-              },
-              child: const Text('Next'),
-            ),
+          // First page: Back on the left, Next on the right.
+          EqualWidthButtonsRow(
+            children: [
+              OutlinedButton(
+                onPressed: () => Navigator.of(context).maybePop(),
+                style: backStyle,
+                child: const Text('Back'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  if (formKey.currentState!.validate()) onNext();
+                },
+                style: nextStyle,
+                child: const Text('Next'),
+              ),
+            ],
           ),
         ] else ...[
           EqualWidthButtonsRow(
             children: [
+              OutlinedButton(
+                onPressed: onBack,
+                style: backStyle,
+                child: const Text('Back'),
+              ),
               FilledButton(
                 onPressed: () {
                   if (step < 3) {
@@ -497,11 +574,8 @@ class _CreateClassStepContent extends StatelessWidget {
                     onCreate();
                   }
                 },
+                style: nextStyle,
                 child: Text(step == 3 ? 'Create' : 'Next'),
-              ),
-              OutlinedButton(
-                onPressed: onBack,
-                child: const Text('Back'),
               ),
             ],
           ),

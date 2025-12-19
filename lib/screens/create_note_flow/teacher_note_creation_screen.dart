@@ -46,6 +46,7 @@ class _TeacherNoteCreationScreenState extends State<TeacherNoteCreationScreen> {
   static const int _maxHeadingWords = 10;
   static const int _maxSubtitleWords = 5;
   final Map<int, List<String>> _imagePathsByStep = <int, List<String>>{};
+  String? _attachedQuizTitle;
 
   Future<void> _handleAddImageForStep(int stepIndex) async {
     final existing = List<String>.from(
@@ -493,6 +494,7 @@ class _TeacherNoteCreationScreenState extends State<TeacherNoteCreationScreen> {
       createdAt: widget.initialCreatedAt ?? DateTime.now(),
       commentCount: widget.initialCommentCount,
       sections: List<ClassNoteSection>.unmodifiable(_sections),
+      attachedQuizTitle: _attachedQuizTitle,
     );
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Class note created!')),
@@ -601,10 +603,24 @@ class _TeacherNoteCreationScreenState extends State<TeacherNoteCreationScreen> {
                         children: [
                           if (widget.attachQuizForNote) ...[
                             OutlinedButton.icon(
-                              onPressed: () {
-                                Navigator.of(context).push(
+                              onPressed: () async {
+                                final String? title =
+                                    await Navigator.of(context).push<String>(
                                   MaterialPageRoute(
-                                    builder: (_) => const QuizCreateScreen(),
+                                    builder: (_) => const QuizCreateScreen(
+                                      returnToCallerOnPublish: true,
+                                    ),
+                                  ),
+                                );
+                                if (!mounted || title == null) return;
+                                setState(() {
+                                  _attachedQuizTitle = title;
+                                });
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Quiz "$title" attached to this note.',
+                                    ),
                                   ),
                                 );
                               },
@@ -618,7 +634,11 @@ class _TeacherNoteCreationScreenState extends State<TeacherNoteCreationScreen> {
                                 ),
                               ),
                               icon: const Icon(Icons.quiz_outlined, size: 20),
-                              label: const Text('Add quiz'),
+                              label: Text(
+                                _attachedQuizTitle == null
+                                    ? 'Add quiz'
+                                    : 'Quiz attached',
+                              ),
                             ),
                             const SizedBox(width: 12),
                           ],

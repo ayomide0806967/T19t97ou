@@ -360,8 +360,8 @@ class _DashboardQuickAccessGrid extends StatelessWidget {
       );
     }
 
-    void openCreateClass() {
-      Navigator.of(context).push(
+    Future<void> openCreateClass() async {
+      await Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => const CreateClassScreen()),
       );
     }

@@ -22,6 +22,7 @@ class ClassNoteSummary {
     required this.createdAt,
     this.commentCount = 0,
     this.sections = const <ClassNoteSection>[],
+    this.attachedQuizTitle,
   });
 
   final String title;
@@ -31,4 +32,5 @@ class ClassNoteSummary {
   final DateTime createdAt;
   final int commentCount;
   final List<ClassNoteSection> sections;
+  final String? attachedQuizTitle;
 }

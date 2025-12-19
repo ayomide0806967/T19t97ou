@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'ios_messages_screen.dart' show ClassDiscussionThreadPage;
+import 'ios_messages_screen.dart'
+    show ClassDiscussionThreadPage, CollegeDetailScreen;
+import 'quiz_take_screen.dart';
 import '../models/class_note.dart';
 import '../widgets/note_rail_step.dart';
 
@@ -193,36 +195,74 @@ class _ClassNoteStepperScreenState extends State<ClassNoteStepperScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              // Dedicated discussion entry point (separate page)
               SafeArea(
                 top: false,
-                child: SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.forum_outlined, size: 18),
-                    label: const Text('Open class discussion'),
-                    style: OutlinedButton.styleFrom(
-                      backgroundColor: Colors.black,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (widget.summary?.attachedQuizTitle != null) ...[
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          icon: const Icon(Icons.quiz_outlined, size: 18),
+                          label: Text(
+                            'Open quiz: ${widget.summary!.attachedQuizTitle}',
+                          ),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Colors.black,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                          ),
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => QuizTakeScreen(
+                                  title:
+                                      widget.summary?.attachedQuizTitle ??
+                                          'Quiz',
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(999),
-                        side: const BorderSide(color: Colors.black),
-                      ),
-                    ),
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => ClassNoteDiscussionScreen(
-                            sections: _sections,
+                      const SizedBox(height: 8),
+                    ],
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.forum_outlined, size: 18),
+                        label: const Text('Open class discussion'),
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(999),
+                            side: const BorderSide(color: Colors.black),
                           ),
                         ),
-                      );
-                    },
-                  ),
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => ClassNoteDiscussionScreen(
+                                sections: _sections,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

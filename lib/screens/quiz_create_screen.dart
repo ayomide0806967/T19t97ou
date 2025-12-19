@@ -27,7 +27,12 @@ enum _QuizBuildMode { manual, aiken }
 /// Revamped Quiz Creation Screen with rail-based vertical stepper
 /// Design inspired by the note creation flow
 class QuizCreateScreen extends StatefulWidget {
-  const QuizCreateScreen({super.key});
+  const QuizCreateScreen({
+    super.key,
+    this.returnToCallerOnPublish = false,
+  });
+
+  final bool returnToCallerOnPublish;
 
   @override
   State<QuizCreateScreen> createState() => _QuizCreateScreenState();
@@ -599,6 +604,11 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
 
     if (!mounted) return;
 
+    if (widget.returnToCallerOnPublish) {
+      Navigator.of(context).pop<String>(title);
+      return;
+    }
+
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => const QuizResultsScreen(),
@@ -673,8 +683,17 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
   }
 
   Future<void> _openQuizPreview() async {
+    final title = _titleController.text.trim().isEmpty
+        ? 'Preview quiz'
+        : _titleController.text.trim();
+    final description = _descriptionController.text.trim();
     await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const QuizTakeScreen()),
+      MaterialPageRoute(
+        builder: (_) => QuizTakeScreen(
+          title: title,
+          subtitle: description.isEmpty ? null : description,
+        ),
+      ),
     );
   }
 
