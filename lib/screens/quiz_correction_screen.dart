@@ -370,20 +370,20 @@ class _SummaryCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
               _StatusCountChip(
                 label: 'Correct',
                 count: correct,
                 color: Colors.green,
               ),
-              const SizedBox(width: 8),
               _StatusCountChip(
                 label: 'Wrong',
                 count: wrong,
                 color: Colors.red,
               ),
-              const SizedBox(width: 8),
               _StatusCountChip(
                 label: 'Skipped',
                 count: skipped,
@@ -486,10 +486,10 @@ class _StatusCountChip extends StatelessWidget {
           ),
           Text(
             '$count $label',
-            style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: color,
-                ),
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
           ),
         ],
       ),
