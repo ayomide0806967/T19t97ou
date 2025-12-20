@@ -532,12 +532,6 @@ class _HomeScreenState extends State<HomeScreen>
               MaterialPageRoute(builder: (_) => const ComposeScreen()),
             );
           },
-          onProfile: () {
-            setState(() => _selectedBottomNavIndex = 4);
-            navigator.push(
-              MaterialPageRoute(builder: (_) => const ProfileScreen()),
-            );
-          },
         );
       },
     );
@@ -995,7 +989,6 @@ class _QuickControlPanel extends StatefulWidget {
     required this.userCard,
     required this.onNavigateHome,
     required this.onCompose,
-    required this.onProfile,
   });
 
   final ThemeData theme;
@@ -1003,7 +996,6 @@ class _QuickControlPanel extends StatefulWidget {
   final Widget userCard;
   final VoidCallback onNavigateHome;
   final VoidCallback onCompose;
-  final VoidCallback onProfile;
 
   @override
   State<_QuickControlPanel> createState() => _QuickControlPanelState();
@@ -1108,11 +1100,11 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
         onPressed: () async => _showComingSoon('Settings'),
       ),
       _QuickControlItem(
-        icon: Icons.person_outline_rounded,
-        label: 'Profile',
+        icon: Icons.logout_outlined,
+        label: 'Log out',
         onPressed: () async {
           Navigator.of(context).pop();
-          widget.onProfile();
+          await SimpleAuthService().signOut();
         },
       ),
     ];
@@ -1295,23 +1287,31 @@ class _QuickControlButton extends StatelessWidget {
     final theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
 
+    final bool isLogoutTile = item.label == 'Log out';
+
     final Color baseBorder = theme.dividerColor.withValues(
       alpha: isDark ? 0.35 : 0.35,
     );
     final Color activeBorder = theme.colorScheme.primary.withValues(
       alpha: isDark ? 0.38 : 0.45,
     );
-    final Color baseBackground = isDark
-        ? Colors.white.withValues(alpha: 0.08)
-        : Colors.white;
+    final Color baseBackground =
+        isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white;
     final Color activeBackground = isDark
         ? Colors.white.withValues(alpha: 0.14)
         : theme.colorScheme.primary.withValues(alpha: 0.08);
 
+    final Color tileBorder = isLogoutTile
+        ? const Color(0xFFF56565)
+        : (isActive ? activeBorder : baseBorder);
+    final Color tileBackground = isLogoutTile
+        ? const Color(0xFFF56565)
+        : (isActive ? activeBackground : baseBackground);
+
     final decoration = BoxDecoration(
-      color: isActive ? activeBackground : baseBackground,
+      color: tileBackground,
       borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: isActive ? activeBorder : baseBorder, width: 1),
+      border: Border.all(color: tileBorder, width: 1),
     );
 
     final bool isThemeTile = item.label == 'Dark Theme';
@@ -1322,13 +1322,16 @@ class _QuickControlButton extends StatelessWidget {
         ? (isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded)
         : item.icon;
 
-    final TextStyle labelStyle =
-        theme.textTheme.bodyMedium?.copyWith(
+    final Color labelColor = isLogoutTile
+        ? Colors.white
+        : theme.colorScheme.onSurface.withValues(alpha: 0.82);
+
+    final TextStyle labelStyle = theme.textTheme.bodyMedium?.copyWith(
           fontWeight: FontWeight.w600,
           fontSize: 11,
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.82),
+          color: labelColor,
         ) ??
-        const TextStyle(fontSize: 11, fontWeight: FontWeight.w600);
+        TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: labelColor);
 
     final Widget content = Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -1336,7 +1339,9 @@ class _QuickControlButton extends StatelessWidget {
         Icon(
           displayIcon,
           size: 20,
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.72),
+          color: isLogoutTile
+              ? Colors.white
+              : theme.colorScheme.onSurface.withValues(alpha: 0.72),
         ),
         const SizedBox(height: 8),
         Text(

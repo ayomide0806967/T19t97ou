@@ -94,6 +94,7 @@ flutter:
     - assets/
     # Explicitly include the logos to ensure they’re bundled
     - assets/images/in_logo.png
+    - assets/images/google_image.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

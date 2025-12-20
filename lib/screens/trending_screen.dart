@@ -120,11 +120,6 @@ class _TrendingScreenState extends State<TrendingScreen> {
               MaterialPageRoute(builder: (_) => const ComposeScreen()),
             );
           },
-          onProfile: () {
-            navigator.push(
-              MaterialPageRoute(builder: (_) => const ProfileScreen()),
-            );
-          },
           onBackToTop: () {
             _scrollController.animateTo(
               0,
@@ -1033,7 +1028,6 @@ class _TrendingQuickControlPanel extends StatefulWidget {
     required this.theme,
     required this.appSettings,
     required this.onCompose,
-    required this.onProfile,
     required this.onBackToTop,
     required this.onClearSearch,
   });
@@ -1041,7 +1035,6 @@ class _TrendingQuickControlPanel extends StatefulWidget {
   final ThemeData theme;
   final AppSettings appSettings;
   final VoidCallback onCompose;
-  final VoidCallback onProfile;
   final VoidCallback onBackToTop;
   final VoidCallback onClearSearch;
 
@@ -1148,11 +1141,11 @@ class _TrendingQuickControlPanelState
         onPressed: () async => _showComingSoon('Settings'),
       ),
       _QuickControlItem(
-        icon: Icons.person_outline_rounded,
-        label: 'Profile',
+        icon: Icons.logout_outlined,
+        label: 'Log out',
         onPressed: () async {
           Navigator.of(context).pop();
-          widget.onProfile();
+          await SimpleAuthService().signOut();
         },
       ),
     ];
@@ -1320,15 +1313,23 @@ class _QuickControlButton extends StatelessWidget {
     final theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
 
-    final Color iconColor = isActive
+    final bool isLogoutTile = item.label == 'Log out';
+
+    final Color baseIconColor = isActive
         ? (isDark ? Colors.white : Colors.black)
         : theme.colorScheme.onSurface.withValues(alpha: 0.70);
-    final Color borderColor = theme.dividerColor.withValues(
+    final Color baseBorderColor = theme.dividerColor.withValues(
       alpha: isActive ? 0.4 : 0.25,
     );
-    final Color backgroundColor = isDark
+    final Color baseBackgroundColor = isDark
         ? Colors.white.withValues(alpha: isActive ? 0.12 : 0.04)
         : Colors.white.withValues(alpha: isActive ? 0.9 : 0.8);
+
+    final Color iconColor = isLogoutTile ? Colors.white : baseIconColor;
+    final Color borderColor =
+        isLogoutTile ? const Color(0xFFF56565) : baseBorderColor;
+    final Color backgroundColor =
+        isLogoutTile ? const Color(0xFFF56565) : baseBackgroundColor;
 
     return Material(
       color: Colors.transparent,
