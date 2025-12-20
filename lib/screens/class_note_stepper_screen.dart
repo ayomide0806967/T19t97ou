@@ -4,6 +4,7 @@ import 'ios_messages_screen.dart'
 import 'quiz_take_screen.dart';
 import '../models/class_note.dart';
 import '../widgets/note_rail_step.dart';
+import '../services/quiz_repository.dart';
 
 class ClassNoteStepperScreen extends StatefulWidget {
   const ClassNoteStepperScreen({super.key, this.summary});
@@ -133,39 +134,42 @@ class _ClassNoteStepperScreenState extends State<ClassNoteStepperScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Overall note progress using the same 3‑colour logic
-              Row(
-                children: [
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(999),
-                      child: SizedBox(
-                        height: 8,
-                        child: Stack(
-                          children: [
-                            Container(
-                              color: onSurface.withValues(alpha: 0.12),
-                            ),
-                            FractionallySizedBox(
-                              widthFactor: progress.clamp(0.0, 1.0),
-                              alignment: Alignment.centerLeft,
-                              child: Container(
-                                color: progressFill,
+              Padding(
+                padding: const EdgeInsets.only(right: 80),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(999),
+                        child: SizedBox(
+                          height: 8,
+                          child: Stack(
+                            children: [
+                              Container(
+                                color: onSurface.withValues(alpha: 0.12),
                               ),
-                            ),
-                          ],
+                              FractionallySizedBox(
+                                widthFactor: progress.clamp(0.0, 1.0),
+                                alignment: Alignment.centerLeft,
+                                child: Container(
+                                  color: progressFill,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    '${(progress * 100).round()}%',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: subtle,
-                      fontWeight: FontWeight.w600,
+                    const SizedBox(width: 12),
+                    Text(
+                      '${(progress * 100).round()}%',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: subtle,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               Expanded(
                 child: ListView.builder(
@@ -197,72 +201,75 @@ class _ClassNoteStepperScreenState extends State<ClassNoteStepperScreen> {
               const SizedBox(height: 8),
               SafeArea(
                 top: false,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (widget.summary?.attachedQuizTitle != null) ...[
-                      SizedBox(
-                        width: double.infinity,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 20),
+                  child: Row(
+                    children: [
+                      if (widget.summary?.attachedQuizTitle != null) ...[
+                        Expanded(
                         child: FilledButton.icon(
-                          icon: const Icon(Icons.quiz_outlined, size: 18),
-                          label: Text(
-                            'Open quiz: ${widget.summary!.attachedQuizTitle}',
+                          icon:
+                              const Icon(Icons.menu_book_rounded, size: 18),
+                          label: const Text('Open quiz'),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Colors.black,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                            ),
+                            onPressed: () {
+                              final String? title =
+                                  widget.summary?.attachedQuizTitle;
+                              final questions = title == null
+                                  ? null
+                                  : QuizRepository.questionsForTitle(title);
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => QuizTakeScreen(
+                                    title: title ?? 'Quiz',
+                                    questions: questions,
+                                  ),
+                                ),
+                              );
+                            },
                           ),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: Colors.black,
-                            foregroundColor: Colors.white,
+                        ),
+                        const SizedBox(width: 12),
+                      ],
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.forum_outlined, size: 18),
+                          label: const Text('Open class discussion'),
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: theme.scaffoldBackgroundColor,
+                            foregroundColor: Colors.black,
                             padding: const EdgeInsets.symmetric(
                               horizontal: 16,
-                              vertical: 12,
+                              vertical: 14,
                             ),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(999),
+                              borderRadius: BorderRadius.circular(16),
                             ),
+                            side: const BorderSide(color: Colors.black),
                           ),
                           onPressed: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (_) => QuizTakeScreen(
-                                  title:
-                                      widget.summary?.attachedQuizTitle ??
-                                          'Quiz',
+                                builder: (_) => ClassNoteDiscussionScreen(
+                                  sections: _sections,
                                 ),
                               ),
                             );
                           },
                         ),
                       ),
-                      const SizedBox(height: 8),
                     ],
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        icon: const Icon(Icons.forum_outlined, size: 18),
-                        label: const Text('Open class discussion'),
-                        style: OutlinedButton.styleFrom(
-                          backgroundColor: Colors.black,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 10,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(999),
-                            side: const BorderSide(color: Colors.black),
-                          ),
-                        ),
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => ClassNoteDiscussionScreen(
-                                sections: _sections,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ],

@@ -10,27 +10,32 @@ class QuizTakeScreen extends StatefulWidget {
     super.key,
     this.title,
     this.subtitle,
+    this.questions,
   });
 
   final String? title;
   final String? subtitle;
+  final List<QuizTakeQuestion>? questions;
 
   @override
   State<QuizTakeScreen> createState() => _QuizTakeScreenState();
 }
 
 class _QuizTakeScreenState extends State<QuizTakeScreen> {
-  final List<QuizTakeQuestion> _questions = QuizRepository.sampleQuestions;
+  late final List<QuizTakeQuestion> _questions;
   final Map<int, int> _responses = <int, int>{};
   int _currentIndex = 0;
-  static const Duration _totalDuration = Duration(minutes: 12);
-  Duration _timeLeft = _totalDuration;
+  late final Duration _totalDuration;
+  Duration _timeLeft = Duration.zero;
   Timer? _timer;
   bool _singlePageMode = false;
 
   @override
   void initState() {
     super.initState();
+    _questions = widget.questions ?? QuizRepository.sampleQuestions;
+    _totalDuration = const Duration(minutes: 12);
+    _timeLeft = _totalDuration;
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) return;
       setState(() {

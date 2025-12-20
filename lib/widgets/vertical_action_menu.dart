@@ -11,7 +11,6 @@ class VerticalActionMenu extends StatefulWidget {
     this.onEditQuiz,
     this.onAddFavourite,
     this.onCollaboration,
-    this.onViewQuiz,
     this.onDuplicateQuiz,
     this.onDeleteQuiz,
     this.answerCount,
@@ -25,7 +24,6 @@ class VerticalActionMenu extends StatefulWidget {
   final VoidCallback? onEditQuiz;
   final VoidCallback? onAddFavourite;
   final VoidCallback? onCollaboration;
-  final VoidCallback? onViewQuiz;
   final VoidCallback? onDuplicateQuiz;
   final VoidCallback? onDeleteQuiz;
   final int? answerCount;
@@ -92,8 +90,8 @@ class _VerticalActionMenuState extends State<VerticalActionMenu> {
           ),
           Divider(height: 1, thickness: 1, color: dividerColor),
           _MenuTile(
-            icon: Icons.visibility_outlined,
-            label: 'View Answers',
+            icon: Icons.visibility_rounded,
+            label: 'View result',
             onTap: widget.onViewAnswers,
             trailing: widget.answerCount != null
                 ? _AnswerCountBadge(count: widget.answerCount!)
@@ -102,7 +100,7 @@ class _VerticalActionMenuState extends State<VerticalActionMenu> {
           Divider(height: 1, thickness: 1, color: dividerColor),
           _MenuTile(
             icon: Icons.leaderboard_outlined,
-            label: 'View Result',
+            label: 'Monitor live quiz',
             onTap: widget.onViewResult,
           ),
           Divider(height: 1, thickness: 1, color: dividerColor),
@@ -123,13 +121,17 @@ class _VerticalActionMenuState extends State<VerticalActionMenu> {
             label: 'Collaboration',
             onTap: widget.onCollaboration,
           ),
-          Divider(height: 1, thickness: 1, color: dividerColor),
-          _MenuTile(
-            icon: Icons.remove_red_eye_outlined,
-            label: 'View Quiz',
-            onTap: widget.onViewQuiz,
-            isLastItem: true,
-          ),
+          if (widget.onDeleteQuiz != null) ...[
+            Divider(height: 1, thickness: 1, color: dividerColor),
+            _MenuTile(
+              icon: Icons.delete_outline,
+              label: 'Delete quiz',
+              onTap: widget.onDeleteQuiz,
+              iconColor: Colors.red,
+              textColor: Colors.red,
+              isLastItem: true,
+            ),
+          ],
         ],
       ),
     );
@@ -144,6 +146,8 @@ class _MenuTile extends StatelessWidget {
     this.trailing,
     this.isFirstItem = false,
     this.isLastItem = false,
+    this.iconColor,
+    this.textColor,
   });
 
   final IconData icon;
@@ -152,6 +156,8 @@ class _MenuTile extends StatelessWidget {
   final Widget? trailing;
   final bool isFirstItem;
   final bool isLastItem;
+  final Color? iconColor;
+  final Color? textColor;
 
   @override
   Widget build(BuildContext context) {
@@ -169,13 +175,14 @@ class _MenuTile extends StatelessWidget {
       leading: Icon(
         icon,
         size: 22,
-        color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
+        color: iconColor ??
+            theme.colorScheme.onSurface.withValues(alpha: 0.75),
       ),
       title: Text(
         label,
         style: theme.textTheme.titleMedium?.copyWith(
           fontWeight: FontWeight.w700,
-          color: theme.colorScheme.onSurface,
+          color: textColor ?? theme.colorScheme.onSurface,
         ),
       ),
       trailing: trailing,

@@ -69,8 +69,10 @@ class AnalyticsProgressArc extends StatelessWidget {
             averageScore: averageScore,
             completionRate: completionRate,
             totalResponses: totalResponses,
-            failColor: failGreen,
-            passColor: passRed,
+            // Swap colors so Pass uses the green
+            // and Fail uses the red accent.
+            failColor: passRed,
+            passColor: failGreen,
           ),
         ],
       ),
@@ -242,9 +244,10 @@ class _BarChartSummary extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         buildBar(
-          label: 'Not attempted',
+          label: 'Not completed',
           percent: remainingPercent,
-          color: Colors.cyan,
+          // Brighter green, still aligned with toast accent.
+          color: const Color(0xFF86E29B),
           visualPercent: remainingPercent == 0 ? 10 : remainingPercent,
         ),
       ],

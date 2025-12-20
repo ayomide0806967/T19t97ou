@@ -337,6 +337,69 @@ class _TeacherNoteCreationScreenState extends State<TeacherNoteCreationScreen> {
       ),
     );
   }
+
+  void _showAttachedQuizToast(BuildContext context, String title) {
+    final overlay = Overlay.of(context);
+    if (overlay == null) return;
+
+    final theme = Theme.of(context);
+    final entry = OverlayEntry(
+      builder: (ctx) {
+        final double top =
+            MediaQuery.of(ctx).padding.top + 12; // just under status/app bar
+        return Positioned(
+          top: top,
+          left: 16,
+          right: 16,
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                // WhatsApp chat bubble green
+                color: const Color(0xFFDCF8C6),
+                borderRadius: BorderRadius.circular(999),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.check_circle_rounded,
+                    color: Color(0xFF075E54),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Quiz "$title" attached to this note.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xFF075E54),
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    overlay.insert(entry);
+    Future<void>.delayed(const Duration(seconds: 2), () {
+      entry.remove();
+    });
+  }
   
   /// Save current edit and move to next step (for editing mode)
   void _saveAndNext() {
@@ -604,11 +667,27 @@ class _TeacherNoteCreationScreenState extends State<TeacherNoteCreationScreen> {
                           if (widget.attachQuizForNote) ...[
                             OutlinedButton.icon(
                               onPressed: () async {
+                                if (_sections.isEmpty) {
+                                  ScaffoldMessenger.of(context)
+                                    ..hideCurrentSnackBar()
+                                    ..showSnackBar(
+                                      SnackBar(
+                                        behavior:
+                                            SnackBarBehavior.floating,
+                                        content: const Text(
+                                          'Add at least one step before attaching a quiz.',
+                                        ),
+                                      ),
+                                    );
+                                  return;
+                                }
                                 final String? title =
-                                    await Navigator.of(context).push<String>(
+                                    await Navigator.of(context)
+                                        .push<String>(
                                   MaterialPageRoute(
-                                    builder: (_) => const QuizCreateScreen(
+                                    builder: (_) => QuizCreateScreen(
                                       returnToCallerOnPublish: true,
+                                      initialTitle: widget.topic,
                                     ),
                                   ),
                                 );
@@ -616,24 +695,42 @@ class _TeacherNoteCreationScreenState extends State<TeacherNoteCreationScreen> {
                                 setState(() {
                                   _attachedQuizTitle = title;
                                 });
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Quiz "$title" attached to this note.',
-                                    ),
-                                  ),
-                                );
+                                _showAttachedQuizToast(context, title);
                               },
                               style: OutlinedButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 20,
                                   vertical: 12,
                                 ),
+                                backgroundColor: _sections.isEmpty
+                                    ? Colors.grey.shade300
+                                    : (_attachedQuizTitle == null
+                                        ? Colors.transparent
+                                        : Colors.white),
+                                foregroundColor: _sections.isEmpty
+                                    ? Colors.grey.shade600
+                                    : Colors.black,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(999),
                                 ),
+                                side: BorderSide(
+                                  color: _sections.isEmpty
+                                      ? Colors.grey.shade400
+                                      : Colors.black
+                                          .withValues(alpha: 0.7),
+                                ),
                               ),
-                              icon: const Icon(Icons.quiz_outlined, size: 20),
+                              icon: Icon(
+                                _attachedQuizTitle == null
+                                    ? Icons.quiz_outlined
+                                    : Icons.check_circle_rounded,
+                                size: 20,
+                                color: _sections.isEmpty
+                                    ? Colors.grey.shade600
+                                    : (_attachedQuizTitle == null
+                                        ? null
+                                        : const Color(0xFF075E54)),
+                              ),
                               label: Text(
                                 _attachedQuizTitle == null
                                     ? 'Add quiz'

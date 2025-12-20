@@ -3055,7 +3055,6 @@ Mock exam briefing extended update: please review chapters one through five, pra
       }
     }
     final theme = Theme.of(context);
-    const whatsappGreen = Color(0xFF075E54);
     return DefaultTabController(
       length: 3,
       child: Scaffold(
@@ -3074,123 +3073,75 @@ Mock exam briefing extended update: please review chapters one through five, pra
               ),
           ],
           bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(140),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        college.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.3,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        college.facilitator,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(
-                            alpha: 0.6,
+            preferredSize: const Size.fromHeight(56),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+              child: Builder(
+                builder: (context) {
+                  final TabController controller = DefaultTabController.of(
+                    context,
+                  )!;
+                  return AnimatedBuilder(
+                    animation: controller.animation ?? controller,
+                    builder: (context, _) {
+                      final int index = controller.index;
+                      Color indicatorColor;
+                      if (index == 1) {
+                        indicatorColor = Colors.red;
+                      } else if (index == 2) {
+                        indicatorColor = Colors.black;
+                      } else {
+                        indicatorColor = _whatsAppDarkGreen;
+                      }
+                      return Container(
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surface.withValues(
+                            alpha: 0.9,
                           ),
+                          borderRadius: BorderRadius.circular(999),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          _ClassHeaderChip(
-                            icon: Icons.people_alt_outlined,
-                            label: '${college.members} students',
+                        child: TabBar(
+                          labelStyle: theme.textTheme.labelMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            fontFamily: 'Roboto',
                           ),
-                          const SizedBox(width: 8),
-                          if (college.upcomingExam.isNotEmpty)
-                            _ClassHeaderChip(
-                              icon: Icons.schedule_rounded,
-                              label: college.upcomingExam,
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                  child: Builder(
-                    builder: (context) {
-                      final TabController controller = DefaultTabController.of(
-                        context,
-                      )!;
-                      return AnimatedBuilder(
-                        animation: controller.animation ?? controller,
-                        builder: (context, _) {
-                          final int index = controller.index;
-                          Color indicatorColor;
-                          if (index == 1) {
-                            indicatorColor = Colors.red;
-                          } else if (index == 2) {
-                            indicatorColor = Colors.black;
-                          } else {
-                            indicatorColor = _whatsAppDarkGreen;
-                          }
-                          return Container(
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.surface.withValues(
-                                alpha: 0.9,
-                              ),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: TabBar(
-                              labelStyle: theme.textTheme.labelMedium?.copyWith(
+                          unselectedLabelStyle: theme.textTheme.labelMedium
+                              ?.copyWith(
                                 fontWeight: FontWeight.w700,
                                 fontFamily: 'Roboto',
                               ),
-                              unselectedLabelStyle: theme.textTheme.labelMedium
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    fontFamily: 'Roboto',
-                                  ),
-                              labelColor: Colors.white,
-                              unselectedLabelColor: Colors.black,
-                              indicator: BoxDecoration(
-                                color: indicatorColor,
-                                borderRadius: BorderRadius.circular(999),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: indicatorColor.withValues(
-                                      alpha: 0.25,
-                                    ),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 3),
-                                  ),
-                                ],
+                          labelColor: Colors.white,
+                          unselectedLabelColor: Colors.black,
+                          indicator: BoxDecoration(
+                            color: indicatorColor,
+                            borderRadius: BorderRadius.circular(999),
+                            boxShadow: [
+                              BoxShadow(
+                                color: indicatorColor.withValues(
+                                  alpha: 0.25,
+                                ),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
                               ),
-                              indicatorPadding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                              ),
-                              indicatorSize: TabBarIndicatorSize.tab,
-                              dividerColor: Colors.transparent,
-                              tabs: const [
-                                Tab(text: 'Class'),
-                                Tab(text: 'Library'),
-                                Tab(text: 'Students'),
-                              ],
-                            ),
-                          );
-                        },
+                            ],
+                          ),
+                          indicatorPadding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                          ),
+                          indicatorSize: TabBarIndicatorSize.tab,
+                          dividerColor: Colors.transparent,
+                          tabs: const [
+                            Tab(text: 'Class'),
+                            Tab(text: 'Library'),
+                            Tab(text: 'Students'),
+                          ],
+                        ),
                       );
                     },
-                  ),
-                ),
-              ],
+                  );
+                },
+              ),
             ),
           ),
         ),
@@ -3285,7 +3236,6 @@ Mock exam briefing extended update: please review chapters one through five, pra
     // Local snapshot so the bottom sheet can rebuild independently.
     var adminOnlyPosting = _adminOnlyPosting;
     var allowReplies = _allowReplies;
-    var allowMedia = _allowMedia;
     var isPrivate = _isPrivate;
 
     showModalBottomSheet<void>(
@@ -3308,141 +3258,17 @@ Mock exam briefing extended update: please review chapters one through five, pra
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Text(
-                            S.classSettings,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          margin: const EdgeInsets.only(bottom: 16),
+                          decoration: BoxDecoration(
+                            color: theme.dividerColor.withValues(alpha: 0.9),
+                            borderRadius: BorderRadius.circular(999),
                           ),
-                          const SizedBox(width: 8),
-                          FilledButton.tonalIcon(
-                            style: FilledButton.styleFrom(
-                              backgroundColor: _whatsAppDarkGreen,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 8,
-                              ),
-                              minimumSize: const Size(0, 0),
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            icon: const Icon(Icons.link_outlined, size: 18),
-                            label: const Text('Invite by code'),
-                            onPressed: () async {
-                              Navigator.of(ctx).pop();
-                              final code = await InvitesService.getOrCreateCode(
-                                widget.college.code,
-                              );
-                              if (!context.mounted) return;
-                              showModalBottomSheet<void>(
-                                context: context,
-                                backgroundColor: Colors.white,
-                                shape: const RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.vertical(
-                                    top: Radius.circular(20),
-                                  ),
-                                ),
-                                builder: (sheet) => SafeArea(
-                                  top: false,
-                                  child: Padding(
-                                    padding: const EdgeInsets.fromLTRB(
-                                      16,
-                                      12,
-                                      16,
-                                      16,
-                                    ),
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Text(
-                                              S.inviteByCode,
-                                              style: Theme.of(sheet)
-                                                  .textTheme
-                                                  .titleMedium
-                                                  ?.copyWith(
-                                                    fontWeight: FontWeight.w700,
-                                                  ),
-                                            ),
-                                            const Spacer(),
-                                            IconButton(
-                                              icon: const Icon(Icons.close),
-                                              onPressed: () =>
-                                                  Navigator.of(sheet).pop(),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 12),
-                                        Center(
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 16,
-                                              vertical: 12,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(14),
-                                              border: Border.all(
-                                                color: Theme.of(sheet)
-                                                    .dividerColor
-                                                    .withValues(alpha: 0.25),
-                                              ),
-                                            ),
-                                            child: Text(
-                                              code,
-                                              style: Theme.of(sheet)
-                                                  .textTheme
-                                                  .headlineSmall
-                                                  ?.copyWith(
-                                                    fontWeight: FontWeight.w800,
-                                                  ),
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(height: 12),
-                                        Align(
-                                          alignment: Alignment.centerRight,
-                                          child: FilledButton.icon(
-                                            icon: const Icon(Icons.copy),
-                                            onPressed: () async {
-                                              await Clipboard.setData(
-                                                ClipboardData(text: code),
-                                              );
-                                              if (context.mounted) {
-                                                ScaffoldMessenger.of(
-                                                  context,
-                                                ).showSnackBar(
-                                                  SnackBar(
-                                                    content: Text(
-                                                      S.inviteCodeCopied,
-                                                    ),
-                                                  ),
-                                                );
-                                              }
-                                            },
-                                            label: Text(S.copyCode),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                          const Spacer(),
-                          IconButton(
-                            icon: const Icon(Icons.close_rounded),
-                            onPressed: () => Navigator.of(ctx).pop(),
-                          ),
-                        ],
+                        ),
                       ),
-                      const SizedBox(height: 16),
                       SettingSwitchRow(
                         label: 'Admin-only posting',
                         value: adminOnlyPosting,
@@ -3468,18 +3294,6 @@ Mock exam briefing extended update: please review chapters one through five, pra
                         },
                       ),
                       SettingSwitchRow(
-                        label: 'Allow media attachments',
-                        value: allowMedia,
-                        onChanged: (v) {
-                          setSheetState(() {
-                            allowMedia = v;
-                          });
-                          setState(() {
-                            _allowMedia = v;
-                          });
-                        },
-                      ),
-                      SettingSwitchRow(
                         label: 'Private class',
                         value: isPrivate,
                         onChanged: (v) {
@@ -3492,19 +3306,194 @@ Mock exam briefing extended update: please review chapters one through five, pra
                         },
                       ),
                       const SizedBox(height: 20),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            FilledButton.icon(
+                              icon: const Icon(Icons.tune, size: 18),
+                              label: const Text('Open full settings'),
+                              style: FilledButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 10,
+                                ),
+                                minimumSize: const Size(0, 0),
+                                tapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
+                                backgroundColor: Colors.white,
+                                foregroundColor: Colors.black,
+                                elevation: 0,
+                                side: BorderSide(
+                                  color:
+                                      Colors.black.withValues(alpha: 0.15),
+                                ),
+                              ),
+                              onPressed: () async {
+                                Navigator.of(ctx).pop();
+                                await Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => const _CreateClassPage(
+                                      initialStep: 1,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                            const SizedBox(width: 8),
+                            FilledButton.tonalIcon(
+                              style: FilledButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: Colors.black,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 8,
+                                ),
+                                minimumSize: const Size(0, 0),
+                                tapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
+                                side: BorderSide(
+                                  color:
+                                      Colors.black.withValues(alpha: 0.15),
+                                ),
+                              ),
+                              icon: const Icon(Icons.link_outlined, size: 18),
+                              label: const Text('Invite by code'),
+                              onPressed: () async {
+                                Navigator.of(ctx).pop();
+                                final code =
+                                    await InvitesService.getOrCreateCode(
+                                  widget.college.code,
+                                );
+                                if (!context.mounted) return;
+                                showModalBottomSheet<void>(
+                                  context: context,
+                                  backgroundColor: Colors.white,
+                                  shape: const RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.vertical(
+                                      top: Radius.circular(20),
+                                    ),
+                                  ),
+                                  builder: (sheet) => SafeArea(
+                                    top: false,
+                                    child: Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                        16,
+                                        12,
+                                        16,
+                                        16,
+                                      ),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Text(
+                                                S.inviteByCode,
+                                                style: Theme.of(sheet)
+                                                    .textTheme
+                                                    .titleMedium
+                                                    ?.copyWith(
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                    ),
+                                              ),
+                                              const Spacer(),
+                                              IconButton(
+                                                icon:
+                                                    const Icon(Icons.close),
+                                                onPressed: () =>
+                                                    Navigator.of(sheet).pop(),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 12),
+                                          Center(
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                horizontal: 16,
+                                                vertical: 12,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                borderRadius:
+                                                    BorderRadius.circular(14),
+                                                border: Border.all(
+                                                  color: Theme.of(sheet)
+                                                      .dividerColor
+                                                      .withValues(
+                                                        alpha: 0.25,
+                                                      ),
+                                                ),
+                                              ),
+                                              child: Text(
+                                                code,
+                                                style: Theme.of(sheet)
+                                                    .textTheme
+                                                    .headlineSmall
+                                                    ?.copyWith(
+                                                      fontWeight:
+                                                          FontWeight.w800,
+                                                    ),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 12),
+                                          Align(
+                                            alignment: Alignment.centerRight,
+                                            child: FilledButton.icon(
+                                              icon: const Icon(Icons.copy),
+                                              onPressed: () async {
+                                                await Clipboard.setData(
+                                                  ClipboardData(text: code),
+                                                );
+                                                if (context.mounted) {
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        S.inviteCodeCopied,
+                                                      ),
+                                                    ),
+                                                  );
+                                                }
+                                              },
+                                              label: Text(S.copyCode),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
                       SizedBox(
                         width: double.infinity,
-                        child: FilledButton.icon(
-                          icon: const Icon(Icons.tune),
-                          label: const Text('Open full settings'),
-                          onPressed: () async {
+                        child: OutlinedButton.icon(
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            size: 20,
+                            color: Colors.red,
+                          ),
+                          label: const Text('Delete class'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.red,
+                            side: BorderSide(
+                              color: Colors.red.withValues(alpha: 0.4),
+                            ),
+                          ),
+                          onPressed: () {
                             Navigator.of(ctx).pop();
-                            await Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    const _CreateClassPage(initialStep: 1),
-                              ),
-                            );
+                            _exitClass(context);
                           },
                         ),
                       ),
@@ -3711,6 +3700,8 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
     final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
         title: const Text('Delete lecture note?'),
         content: const Text(
           'This will permanently remove the note from this class.',
@@ -3759,23 +3750,69 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
             children: [
-              // Class discussion label sits above the lecture CTA so
-              // both the create button and cards feel grouped under it.
-              Text(
+              // Class header now scrolls away with the feed so that
+              // the tab bar becomes the sticky hero at the top.
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.college.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      widget.college.facilitator,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.6,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        _ClassHeaderChip(
+                          icon: Icons.people_alt_outlined,
+                          label: '${widget.college.members} students',
+                        ),
+                        const SizedBox(width: 8),
+                        if (widget.college.upcomingExam.isNotEmpty)
+                          _ClassHeaderChip(
+                            icon: Icons.schedule_rounded,
+                            label: widget.college.upcomingExam,
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+             // Class discussion label sits above the lecture CTA so
+             // both the create button and cards feel grouped under it.
+             Text(
                 S.classDiscussion,
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: 12),
-              if (widget.activeTopic == null && widget.isAdmin) ...[
+              if (widget.isAdmin) ...[
                 Row(
                   children: [
                     Expanded(
                       flex: 3,
                       child: _ClassActionCard(
                         title: 'Create a lecture note',
-                        backgroundColor: _whatsAppGreen.withValues(alpha: 0.15),
+                        backgroundColor:
+                            _whatsAppGreen.withValues(alpha: 0.15),
                         playIconColor: _whatsAppTeal,
                         onTap: () async {
                           final summary = await Navigator.of(context)
@@ -3854,15 +3891,6 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
                 ),
               ],
             ],
-          ),
-        ),
-        SafeArea(
-          top: false,
-          minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-          child: Text(
-            'Lecture notes are shared by admins in real time.',
-            style: theme.textTheme.bodySmall,
-            textAlign: TextAlign.center,
           ),
         ),
       ],
@@ -6595,9 +6623,9 @@ class _ClassNotesCard extends StatelessWidget {
         },
         child: Container(
           decoration: BoxDecoration(
-            color: whatsappGreen,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: whatsappGreen),
+            color: Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.shade300),
             boxShadow: [
               if (!isDark)
                 BoxShadow(
@@ -6620,14 +6648,7 @@ class _ClassNotesCard extends StatelessWidget {
                     height: 36,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
-                      color: Colors.white.withValues(alpha: 0.14),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.4),
-                          blurRadius: 14,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
+                      color: Colors.grey.shade800,
                     ),
                     child: Icon(
                       Icons.description_outlined,
@@ -6643,7 +6664,8 @@ class _ClassNotesCard extends StatelessWidget {
                         Text(
                           'Lecture note',
                           style: theme.textTheme.labelSmall?.copyWith(
-                            color: Colors.white.withValues(alpha: 0.9),
+                            color: theme.colorScheme.onSurface
+                                .withValues(alpha: 0.7),
                             fontWeight: FontWeight.w600,
                             letterSpacing: 0.6,
                           ),
@@ -6652,7 +6674,7 @@ class _ClassNotesCard extends StatelessWidget {
                         Text(
                           'Topic: ${summary.title}',
                           style: theme.textTheme.titleMedium?.copyWith(
-                            color: Colors.white,
+                            color: theme.colorScheme.onSurface,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -6660,7 +6682,8 @@ class _ClassNotesCard extends StatelessWidget {
                         Text(
                           summary.subtitle,
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: Colors.white.withValues(alpha: 0.7),
+                            color: theme.colorScheme.onSurface
+                                .withValues(alpha: 0.65),
                           ),
                         ),
                       ],
@@ -6676,9 +6699,10 @@ class _ClassNotesCard extends StatelessWidget {
                           minWidth: 32,
                           minHeight: 32,
                         ),
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.delete_outline,
-                          color: Colors.white,
+                          color: theme.colorScheme.onSurface
+                              .withValues(alpha: 0.8),
                           size: 20,
                         ),
                         onPressed: onDelete,
@@ -6738,7 +6762,7 @@ class _ClassNotesCard extends StatelessWidget {
                       Text(
                         dateLabel,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.8),
+                          color: subtle,
                         ),
                       ),
                     ],
@@ -6749,13 +6773,13 @@ class _ClassNotesCard extends StatelessWidget {
                       Icon(
                         Icons.list_alt_outlined,
                         size: 16,
-                        color: Colors.white.withValues(alpha: 0.8),
+                        color: subtle,
                       ),
                       const SizedBox(width: 4),
                       Text(
                         '${summary.steps} step${summary.steps == 1 ? '' : 's'}',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.8),
+                          color: subtle,
                         ),
                       ),
                     ],
@@ -6766,13 +6790,13 @@ class _ClassNotesCard extends StatelessWidget {
                       Icon(
                         Icons.schedule_rounded,
                         size: 16,
-                        color: Colors.white.withValues(alpha: 0.8),
+                        color: subtle,
                       ),
                       const SizedBox(width: 4),
                       Text(
                         '${summary.estimatedMinutes} min review',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.8),
+                          color: subtle,
                         ),
                       ),
                     ],

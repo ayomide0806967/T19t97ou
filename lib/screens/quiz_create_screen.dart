@@ -30,9 +30,13 @@ class QuizCreateScreen extends StatefulWidget {
   const QuizCreateScreen({
     super.key,
     this.returnToCallerOnPublish = false,
+    this.initialTitle,
+    this.initialQuestions,
   });
 
   final bool returnToCallerOnPublish;
+  final String? initialTitle;
+  final List<QuizTakeQuestion>? initialQuestions;
 
   @override
   State<QuizCreateScreen> createState() => _QuizCreateScreenState();
@@ -80,8 +84,38 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
   @override
   void initState() {
     super.initState();
-    _questions.add(_QuizQuestionFields());
-    _questionStepKeys.add(GlobalKey());
+    if (widget.initialTitle != null &&
+        widget.initialTitle!.trim().isNotEmpty) {
+      _titleController.text = widget.initialTitle!.trim();
+      _detailsCompleted = true;
+    }
+    if (widget.initialQuestions != null &&
+        widget.initialQuestions!.isNotEmpty) {
+      for (final QuizTakeQuestion q in widget.initialQuestions!) {
+        final fields = _QuizQuestionFields();
+        fields.prompt.text = q.prompt;
+        for (int i = 0;
+            i < fields.options.length && i < q.options.length;
+            i++) {
+          fields.options[i].text = q.options[i];
+        }
+        if (q.answerIndex >= 0 &&
+            q.answerIndex < fields.options.length) {
+          fields.correctIndex = q.answerIndex;
+        } else {
+          fields.correctIndex = 0;
+        }
+        _questions.add(fields);
+        _questionStepKeys.add(GlobalKey());
+      }
+      _detailsCompleted = true;
+      _settingsCompleted = true;
+      _questionSetupCompleted = true;
+      _activeStep = 3;
+    } else {
+      _questions.add(_QuizQuestionFields());
+      _questionStepKeys.add(GlobalKey());
+    }
   }
 
   @override
@@ -591,7 +625,34 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
     final title = _titleController.text.trim().isEmpty
         ? 'Untitled quiz'
         : _titleController.text.trim();
-    QuizRepository.recordPublishedQuiz(title: title, questions: _questions.length);
+    final List<QuizTakeQuestion> takeQuestions = _questions.map((q) {
+      final prompt = q.prompt.text.trim();
+      final List<String> options =
+          q.options.map((c) => c.text.trim()).toList();
+      int answerIndex = q.correctIndex;
+      if (options.isEmpty) {
+        // Should not happen due to validation, but keep safe.
+        options.addAll(['Option A', 'Option B']);
+        answerIndex = 0;
+      } else if (answerIndex < 0 || answerIndex >= options.length) {
+        answerIndex = 0;
+      }
+      return QuizTakeQuestion(
+        prompt: prompt,
+        options: options,
+        answerIndex: answerIndex,
+      );
+    }).toList();
+
+    QuizRepository.recordPublishedQuiz(title: title, questions: takeQuestions);
+
+    // If we were launched from the note-creation flow, just return
+    // the title to the caller without sharing or navigating.
+    if (widget.returnToCallerOnPublish) {
+      if (!mounted) return;
+      Navigator.of(context).pop<String>(title);
+      return;
+    }
 
     final shareMessage = 'I just created a new quiz: "$title". '
         'Tap to try it and test your knowledge.';

@@ -4,8 +4,8 @@ import '../services/quiz_repository.dart';
 import '../widgets/analytics_progress_arc.dart';
 import '../widgets/vertical_action_menu.dart';
 import 'quiz_answers_screen.dart';
-import 'quiz_leaderboard_screen.dart';
 import 'quiz_create_screen.dart';
+import 'quiz_leaderboard_screen.dart';
 
 class QuizResultsScreen extends StatefulWidget {
   const QuizResultsScreen({super.key});
@@ -333,6 +333,12 @@ class _QuizResultDetailsScreenState extends State<QuizResultDetailsScreen> {
                     isQuizActive: _isQuizActive,
                     onQuizStatusChanged: (value) {
                       setState(() => _isQuizActive = value);
+                      _showStatusToast(
+                        context,
+                        value
+                            ? 'Quiz is now active.'
+                            : 'Quiz has been set to inactive.',
+                      );
                     },
                     onShareQuiz: () {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -351,12 +357,34 @@ class _QuizResultDetailsScreenState extends State<QuizResultDetailsScreen> {
                     },
                     onViewResult: () {
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const QuizLeaderboardScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => QuizLiveMonitorScreen(
+                            quizTitle: widget.result.title,
+                          ),
+                        ),
                       );
                     },
                     onEditQuiz: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Edit quiz coming soon')),
+                      final questions = QuizRepository.questionsForTitle(
+                        widget.result.title,
+                      );
+                      if (questions == null || questions.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Editing is not available for this quiz yet.',
+                            ),
+                          ),
+                        );
+                        return;
+                      }
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => QuizCreateScreen(
+                            initialTitle: widget.result.title,
+                            initialQuestions: questions,
+                          ),
+                        ),
                       );
                     },
                     onAddFavourite: () {
@@ -369,10 +397,38 @@ class _QuizResultDetailsScreenState extends State<QuizResultDetailsScreen> {
                         const SnackBar(content: Text('Collaboration coming soon')),
                       );
                     },
-                    onViewQuiz: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('View quiz coming soon')),
+                    onDeleteQuiz: () async {
+                      final bool? confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          backgroundColor: Colors.white,
+                          surfaceTintColor: Colors.transparent,
+                          title: const Text('Delete this quiz?'),
+                          content: const Text(
+                            'This will remove the quiz and its summary from your dashboard.',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(ctx).pop(false),
+                              child: const Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.of(ctx).pop(true),
+                              child: const Text(
+                                'Delete',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ),
+                          ],
+                        ),
                       );
+                      if (confirmed != true) return;
+                      QuizRepository.deleteQuiz(widget.result.title);
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Quiz deleted')),
+                      );
+                      Navigator.of(context).pop();
                     },
                     answerCount: 87,
                   ),
@@ -384,6 +440,68 @@ class _QuizResultDetailsScreenState extends State<QuizResultDetailsScreen> {
       ),
     );
   }
+}
+
+void _showStatusToast(BuildContext context, String message) {
+  final overlay = Overlay.of(context);
+  if (overlay == null) return;
+
+  final theme = Theme.of(context);
+  final entry = OverlayEntry(
+    builder: (ctx) {
+      final double top =
+          MediaQuery.of(ctx).padding.top + 12; // just under status/app bar
+      return Positioned(
+        top: top,
+        left: 16,
+        right: 16,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFDCF8C6),
+              borderRadius: BorderRadius.circular(999),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.15),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.check_circle_rounded,
+                  color: Color(0xFF075E54),
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    message,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: const Color(0xFF075E54),
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
+
+  overlay.insert(entry);
+  Future<void>.delayed(const Duration(seconds: 2), () {
+    entry.remove();
+  });
 }
 
 class _StatBlock extends StatelessWidget {

@@ -124,8 +124,16 @@ class QuizRepository {
     ),
   ];
 
+  // In-memory store of quizzes that have been published from the builder,
+  // keyed by their title. This keeps the demo lightweight but lets us
+  // reopen the actual questions later (e.g. from a class note).
+  static final Map<String, List<QuizTakeQuestion>> _publishedQuizzesByTitle =
+      <String, List<QuizTakeQuestion>>{};
+
   static List<QuizDraft> get drafts => List.unmodifiable(_drafts);
   static List<QuizResultSummary> get results => List.unmodifiable(_results);
+  static List<QuizTakeQuestion>? questionsForTitle(String title) =>
+      _publishedQuizzesByTitle[title];
 
   static void saveDraft(QuizDraft draft) {
     final index = _drafts.indexWhere((d) => d.id == draft.id);
@@ -138,7 +146,7 @@ class QuizRepository {
 
   static void recordPublishedQuiz({
     required String title,
-    required int questions,
+    required List<QuizTakeQuestion> questions,
   }) {
     final summary = QuizResultSummary(
       title: title,
@@ -148,5 +156,12 @@ class QuizRepository {
       lastUpdated: DateTime.now(),
     );
     _results.insert(0, summary);
+    _publishedQuizzesByTitle[title] =
+        List<QuizTakeQuestion>.unmodifiable(questions);
+  }
+
+  static void deleteQuiz(String title) {
+    _results.removeWhere((r) => r.title == title);
+    _publishedQuizzesByTitle.remove(title);
   }
 }
