@@ -1,10 +1,7 @@
 part of 'tweet_post_card.dart';
 
 String _initialsFrom(String value) {
-  final letters = value.replaceAll(RegExp('[^A-Za-z]'), '');
-  if (letters.isEmpty) return 'IN';
-  final count = letters.length >= 2 ? 2 : 1;
-  return letters.substring(0, count).toUpperCase();
+  return initialsFrom(value);
 }
 
 String _formatMetric(int value) {
@@ -18,4 +15,3 @@ String _formatMetric(int value) {
   }
   return value.toString();
 }
-

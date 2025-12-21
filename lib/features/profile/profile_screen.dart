@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../core/auth/auth_repository.dart';
 import '../../core/user/handle.dart';
 import '../../core/feed/post_repository.dart';
+import '../../core/ui/initials.dart';
 import '../../models/post.dart';
 import '../../widgets/tweet_post_card.dart';
 import '../../widgets/app_tab_scaffold.dart';
@@ -67,7 +68,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _showProfilePhotoViewer() async {
     final bool hasImage = _profileImage != null;
-    final String initials = _initialsFrom(
+    final String initials = initialsFrom(
       (context.read<AuthRepository>().currentUser?.email ??
           'user@institution.edu'),
     );
@@ -338,7 +339,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: 'Profile photo',
       );
     }
-    final initials = _initialsFrom(widget.handleOverride ?? _currentUserHandle);
+    final initials = initialsFrom(widget.handleOverride ?? _currentUserHandle);
     return _openFullPlaceholder(
       title: 'Profile photo',
       child: Container(
@@ -546,7 +547,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final email = context.read<AuthRepository>().currentUser?.email ??
         'user@institution.edu';
     final initials =
-        _initialsFrom(widget.handleOverride ?? email);
+        initialsFrom(widget.handleOverride ?? email);
     final posts = dataService.postsForHandle(currentUserHandle);
     final replies = dataService.repliesForHandle(currentUserHandle);
     final bookmarks = posts.where((post) => post.bookmarks > 0).toList();
@@ -2175,12 +2176,5 @@ class _ProfileTabs extends StatelessWidget {
 }
 
 // Removed unused _PillTag after header redesign
-
-String _initialsFrom(String value) {
-  final letters = value.replaceAll(RegExp('[^A-Za-z]'), '');
-  if (letters.isEmpty) return 'IN';
-  final count = letters.length >= 2 ? 2 : 1;
-  return letters.substring(0, count).toUpperCase();
-}
 
 enum _HeaderAction { pickImage, removeImage }

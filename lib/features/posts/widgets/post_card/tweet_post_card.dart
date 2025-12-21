@@ -10,6 +10,7 @@ import '../../../../constants/toast_durations.dart';
 import '../../../../core/feed/post_repository.dart';
 import '../../../../core/navigation/app_nav.dart';
 import '../../../../core/ui/app_toast.dart';
+import '../../../../core/ui/initials.dart';
 import '../../../../models/post.dart';
 import '../../../../screens/post_activity_screen.dart';
 import '../../../../screens/quote_screen.dart';
