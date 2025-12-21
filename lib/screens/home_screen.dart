@@ -4,9 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../core/auth/auth_repository.dart';
+import '../core/user/handle.dart';
 import '../services/data_service.dart';
 import '../models/post.dart';
-import '../services/simple_auth_service.dart';
 import '../state/app_settings.dart';
 import '../theme/app_theme.dart';
 import '../widgets/hexagon_avatar.dart';
@@ -44,25 +45,6 @@ class _HomeScreenState extends State<HomeScreen>
   bool _isRefreshingFeed = false;
   double _feedOverscrollAccum = 0;
   bool _openedQuickControlsFromSwipe = false;
-  SimpleAuthService get _authService => SimpleAuthService();
-  String get _currentUserHandle {
-    final email = _authService.currentUserEmail;
-    if (email == null || email.isEmpty) {
-      return '@yourprofile';
-    }
-    String normalized = email
-        .split('@')
-        .first
-        .replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '')
-        .toLowerCase();
-    if (normalized.length > 12) {
-      normalized = normalized.substring(0, 12);
-    }
-    if (normalized.isEmpty) {
-      return '@yourprofile';
-    }
-    return '@$normalized';
-  }
 
   @override
   void initState() {
@@ -137,7 +119,8 @@ class _HomeScreenState extends State<HomeScreen>
   Widget build(BuildContext context) {
     final dataService = context.watch<DataService>();
     final baseTimeline = dataService.timelinePosts;
-    final currentUserHandle = _currentUserHandle;
+    final auth = context.read<AuthRepository>();
+    final currentUserHandle = deriveHandleFromEmail(auth.currentUser?.email);
 
     return Scaffold(
       key: _scaffoldKey,
@@ -494,7 +477,8 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildUserProfileCard() {
-    final initials = _initialsFrom(_authService.currentUserEmail);
+    final initials =
+        _initialsFrom(context.read<AuthRepository>().currentUser?.email);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
@@ -673,7 +657,7 @@ class _HomeScreenState extends State<HomeScreen>
                         color: const Color(0xFFF56565),
                         onTap: () async {
                           Navigator.pop(context);
-                          await _authService.signOut();
+                          await context.read<AuthRepository>().signOut();
                         },
                       ),
                     ],
@@ -1134,7 +1118,7 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
         label: 'Log out',
         onPressed: () async {
           Navigator.of(context).pop();
-          await SimpleAuthService().signOut();
+          await context.read<AuthRepository>().signOut();
         },
       ),
     ];

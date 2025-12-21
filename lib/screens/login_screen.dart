@@ -2,8 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
-import '../services/simple_auth_service.dart';
+import '../core/auth/auth_repository.dart';
 import '../widgets/swiss_bank_icon.dart';
 import 'login_email_entry_screen.dart';
 
@@ -18,7 +19,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final SimpleAuthService _authService = SimpleAuthService();
 
   bool _isLogin = true;
   bool _isLoading = false;
@@ -48,13 +48,14 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
+      final auth = context.read<AuthRepository>();
       final email = _emailController.text.trim();
       final password = _passwordController.text;
 
       if (_isLogin) {
-        await _authService.signIn(email, password);
+        await auth.signInWithEmailPassword(email, password);
       } else {
-        await _authService.signUp(email, password);
+        await auth.signUpWithEmailPassword(email, password);
       }
     } catch (e) {
       if (!mounted) return;
@@ -83,7 +84,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _signInWithGoogle() async {
     setState(() => _isLoading = true);
     try {
-      await _authService.signInWithGoogle();
+      await context.read<AuthRepository>().signInWithGoogle();
     } catch (e) {
       if (!mounted) return;
       final message = e.toString().replaceFirst('Exception: ', '');

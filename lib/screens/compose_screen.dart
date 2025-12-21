@@ -4,8 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
-import '../services/data_service.dart';
-import '../services/simple_auth_service.dart';
+import '../core/auth/auth_repository.dart';
+import '../core/feed/post_repository.dart';
+import '../core/user/handle.dart';
 import '../theme/app_theme.dart';
 import '../widgets/hexagon_avatar.dart';
 
@@ -36,8 +37,6 @@ class _ComposeScreenState extends State<ComposeScreen> {
   final ImagePicker _picker = ImagePicker();
   ReplyPermission _replyPermission = ReplyPermission.everyone;
   bool _largeText = false;
-
-  SimpleAuthService get _authService => SimpleAuthService();
 
   @override
   void dispose() {
@@ -219,22 +218,10 @@ class _ComposeScreenState extends State<ComposeScreen> {
   bool get _hasUnsavedChanges => _controller.text.trim().isNotEmpty || _media.isNotEmpty;
 
   String get _currentUserHandle {
-    final email = _authService.currentUserEmail;
-    if (email == null || email.isEmpty) {
-      return '@yourprofile';
-    }
-    String normalized = email
-        .split('@')
-        .first
-        .replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '')
-        .toLowerCase();
-    if (normalized.length > 12) {
-      normalized = normalized.substring(0, 12);
-    }
-    if (normalized.isEmpty) {
-      return '@yourprofile';
-    }
-    return '@$normalized';
+    return deriveHandleFromEmail(
+      context.read<AuthRepository>().currentUser?.email,
+      fallback: '@yourprofile',
+    );
   }
 
   String get _replyPermissionLabel {
@@ -317,8 +304,9 @@ class _ComposeScreenState extends State<ComposeScreen> {
     if (!_canPost) return;
     setState(() => _isPosting = true);
     final handle = _currentUserHandle;
-    final author = _authService.currentUserEmail?.split('@').first.trim();
-    await context.read<DataService>().addPost(
+    final email = context.read<AuthRepository>().currentUser?.email;
+    final author = email?.split('@').first.trim();
+    await context.read<PostRepository>().addPost(
           author: author == null || author.isEmpty ? 'You' : author,
           handle: handle,
           body: _controller.text.trim(),

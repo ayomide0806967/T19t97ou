@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../core/auth/auth_repository.dart';
+import '../core/user/handle.dart';
 import '../services/data_service.dart';
-import '../services/simple_auth_service.dart';
 import '../widgets/lecture_note_card.dart';
 import 'class_note_stepper_screen.dart';
 import 'create_note_flow/create_note_welcome_screen.dart';
@@ -18,7 +19,10 @@ class LectureTopicScreen extends StatelessWidget {
     final data = context.watch<DataService>();
     final posts = data.posts.where((p) => p.tags.contains(topic.topicTag)).toList();
 
-    final String currentUserHandle = _currentUserHandle();
+    final String currentUserHandle = deriveHandleFromEmail(
+      context.read<AuthRepository>().currentUser?.email,
+      fallback: '@yourprofile',
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -56,16 +60,5 @@ class LectureTopicScreen extends StatelessWidget {
         icon: const Icon(Icons.add),
       ),
     );
-  }
-
-  static String _currentUserHandle() {
-    final email = SimpleAuthService().currentUserEmail;
-    if (email == null || email.isEmpty) return '@yourprofile';
-    final normalized = email
-        .split('@')
-        .first
-        .replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '')
-        .toLowerCase();
-    return normalized.isEmpty ? '@yourprofile' : '@$normalized';
   }
 }

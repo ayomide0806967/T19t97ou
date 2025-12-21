@@ -6,6 +6,10 @@ import 'screens/auth_wrapper.dart';
 import 'state/app_settings.dart';
 import 'services/data_service.dart';
 import 'services/profile_service.dart';
+import 'core/auth/auth_repository.dart';
+import 'core/auth/local_auth_repository.dart';
+import 'services/simple_auth_service.dart';
+import 'core/feed/post_repository.dart';
 
 import 'dart:async';
 
@@ -26,6 +30,9 @@ void main() {
     final settings = AppSettings();
     await settings.load();
 
+    final authRepository = LocalAuthRepository(SimpleAuthService());
+    await authRepository.initialize();
+
     // Prepare data services
     final dataService = DataService();
     await dataService.load();
@@ -35,8 +42,10 @@ void main() {
     runApp(
       MultiProvider(
         providers: [
+          Provider<AuthRepository>.value(value: authRepository),
           ChangeNotifierProvider<AppSettings>.value(value: settings),
           ChangeNotifierProvider<DataService>.value(value: dataService),
+          Provider<PostRepository>.value(value: dataService),
           ChangeNotifierProvider<ProfileService>.value(value: profileService),
         ],
         child: const MyApp(),

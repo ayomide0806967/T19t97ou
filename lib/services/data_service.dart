@@ -6,14 +6,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/thread_entry.dart';
 import '../models/post.dart';
+import '../core/feed/post_repository.dart';
 
-class DataService extends ChangeNotifier {
+class DataService extends ChangeNotifier implements PostRepository {
   static const _storageKey = 'feed_posts';
   final Random _random = Random();
 
   final List<PostModel> _posts = <PostModel>[];
+  @override
   List<PostModel> get posts => List.unmodifiable(_posts);
 
+  @override
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_storageKey);
@@ -31,12 +34,14 @@ class DataService extends ChangeNotifier {
     await _save();
   }
 
+  @override
   Future<void> clearAll() async {
     _posts.clear();
     await _save();
     notifyListeners();
   }
 
+  @override
   Future<void> addPost({
     required String author,
     required String handle,
@@ -61,6 +66,7 @@ class DataService extends ChangeNotifier {
     notifyListeners();
   }
 
+  @override
   Future<void> addQuote({
     required String author,
     required String handle,
@@ -85,13 +91,18 @@ class DataService extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool hasUserRetweeted(String postId, String userHandle) {
+  bool hasUserRetweeted(String postId, String userHandle) =>
+      hasUserReposted(postId, userHandle);
+
+  @override
+  bool hasUserReposted(String postId, String userHandle) {
     final targetId = postId;
     return _posts.any(
       (post) => post.originalId == targetId && post.repostedBy == userHandle,
     );
   }
 
+  @override
   Future<bool> toggleRepost({
     required String postId,
     required String userHandle,
@@ -365,15 +376,18 @@ class DataService extends ChangeNotifier {
   }
 
   // Global timeline rules:
+  @override
   List<PostModel> get timelinePosts {
     // Show all posts in reverse chronological order (newest first).
     return List<PostModel>.from(_posts);
   }
 
+  @override
   List<PostModel> postsForHandle(String handle) => _posts
       .where((post) => post.handle == handle || post.repostedBy == handle)
       .toList();
 
+  @override
   List<PostModel> postsForHandles(Set<String> handles) {
     if (handles.isEmpty) return const <PostModel>[];
     final lower = handles.map((h) => h.toLowerCase()).toSet();
@@ -386,6 +400,7 @@ class DataService extends ChangeNotifier {
         .toList();
   }
 
+  @override
   List<PostModel> repliesForHandle(String handle, {int minLikes = 0}) {
     final lowerHandle = handle.toLowerCase();
     final Set<String> seen = <String>{};

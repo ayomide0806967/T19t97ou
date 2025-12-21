@@ -3,7 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
-import '../services/simple_auth_service.dart';
+import '../core/auth/auth_repository.dart';
+import '../core/user/handle.dart';
 import '../services/data_service.dart';
 import '../models/post.dart';
 import '../widgets/tweet_post_card.dart';
@@ -37,7 +38,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? _nameOverride;
   String? _bioOverride;
   final ImagePicker _picker = ImagePicker();
-  SimpleAuthService get _authService => SimpleAuthService();
   bool _isRefreshing = false;
   bool _isFollowingOther = false;
   bool _notifyThreads = true;
@@ -68,7 +68,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _showProfilePhotoViewer() async {
     final bool hasImage = _profileImage != null;
     final String initials = _initialsFrom(
-      (_authService.currentUserEmail ?? 'user@institution.edu'),
+      (context.read<AuthRepository>().currentUser?.email ??
+          'user@institution.edu'),
     );
 
     await showDialog<void>(
@@ -505,22 +506,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   String get _authHandle {
-    final email = _authService.currentUserEmail;
-    if (email == null || email.isEmpty) {
-      return '@yourprofile';
-    }
-    String normalized = email
-        .split('@')
-        .first
-        .replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '')
-        .toLowerCase();
-    if (normalized.length > 12) {
-      normalized = normalized.substring(0, 12);
-    }
-    if (normalized.isEmpty) {
-      return '@yourprofile';
-    }
-    return '@$normalized';
+    return deriveHandleFromEmail(
+      context.read<AuthRepository>().currentUser?.email,
+      fallback: '@yourprofile',
+    );
   }
 
   String get _currentUserHandle {
@@ -554,7 +543,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final theme = Theme.of(context);
     final dataService = context.watch<DataService>();
     final currentUserHandle = _currentUserHandle;
-    final email = _authService.currentUserEmail ?? 'user@institution.edu';
+    final email = context.read<AuthRepository>().currentUser?.email ??
+        'user@institution.edu';
     final initials =
         _initialsFrom(widget.handleOverride ?? email);
     final posts = dataService.postsForHandle(currentUserHandle);

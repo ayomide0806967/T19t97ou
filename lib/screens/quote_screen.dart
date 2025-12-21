@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/hexagon_avatar.dart';
 import 'package:provider/provider.dart';
-import '../services/data_service.dart';
 import '../models/post.dart';
 import '../core/ui/app_toast.dart';
+import '../core/feed/post_repository.dart';
 
 class QuoteScreen extends StatefulWidget {
   const QuoteScreen({
@@ -355,7 +355,7 @@ class _QuoteScreenState extends State<QuoteScreen> {
 
     if (!mounted) return;
 
-    await context.read<DataService>().addQuote(
+    await context.read<PostRepository>().addQuote(
       author: 'You',
       handle: '@yourprofile',
       comment: _controller.text.trim(),

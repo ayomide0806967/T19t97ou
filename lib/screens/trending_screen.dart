@@ -2,9 +2,10 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../core/auth/auth_repository.dart';
+import '../core/user/handle.dart';
 import '../services/data_service.dart';
 import '../models/post.dart';
-import '../services/simple_auth_service.dart';
 import '../state/app_settings.dart';
 import '../theme/app_theme.dart';
 import '../widgets/floating_nav_bar.dart';
@@ -46,20 +47,6 @@ class _TrendingScreenState extends State<TrendingScreen> {
     _searchController.dispose();
     _scrollController.dispose();
     super.dispose();
-  }
-
-  String _deriveHandle(SimpleAuthService auth) {
-    final email = auth.currentUserEmail;
-    if (email == null || email.isEmpty) return '@yourprofile';
-    String normalized = email
-        .split('@')
-        .first
-        .replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '')
-        .toLowerCase();
-    if (normalized.length > 12) {
-      normalized = normalized.substring(0, 12);
-    }
-    return normalized.isEmpty ? '@yourprofile' : '@$normalized';
   }
 
   int _score(PostModel p) => p.likes + (p.reposts * 2) + (p.views ~/ 100);
@@ -149,7 +136,8 @@ class _TrendingScreenState extends State<TrendingScreen> {
       return _score(b).compareTo(_score(a));
     });
 
-    final currentUserHandle = _deriveHandle(SimpleAuthService());
+    final currentUserHandle =
+        deriveHandleFromEmail(context.read<AuthRepository>().currentUser?.email);
 
     final Map<String, int> topicCounts = <String, int>{};
     for (final post in allPosts) {
@@ -1146,7 +1134,7 @@ class _TrendingQuickControlPanelState
         label: 'Log out',
         onPressed: () async {
           Navigator.of(context).pop();
-          await SimpleAuthService().signOut();
+          await context.read<AuthRepository>().signOut();
         },
       ),
     ];

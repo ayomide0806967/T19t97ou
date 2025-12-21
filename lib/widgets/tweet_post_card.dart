@@ -6,9 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
-import '../services/data_service.dart';
 import '../models/post.dart';
 import '../core/ui/app_toast.dart';
+import '../core/feed/post_repository.dart';
+import '../services/data_service.dart';
 import '../theme/app_theme.dart';
 // Removed card-style shell for timeline layout
 import 'hexagon_avatar.dart';
@@ -172,15 +173,15 @@ class _TweetPostCardState extends State<TweetPostCard> {
       return;
     }
 
-    final dataService = context.read<DataService>();
+    final repo = context.read<PostRepository>();
     final targetId = widget.post.originalId ?? widget.post.id;
 
-    final alreadyReposted = dataService.hasUserRetweeted(targetId, handle);
+    final alreadyReposted = repo.hasUserReposted(targetId, handle);
     if (alreadyReposted) {
       return;
     }
 
-    final toggled = await dataService.toggleRepost(
+    final toggled = await repo.toggleRepost(
       postId: targetId,
       userHandle: handle,
     );
@@ -203,7 +204,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
       return;
     }
     final targetId = widget.post.originalId ?? widget.post.id;
-    final toggled = await context.read<DataService>().toggleRepost(
+    final toggled = await context.read<PostRepository>().toggleRepost(
       postId: targetId,
       userHandle: handle,
     );
@@ -243,7 +244,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
 
   Future<void> _showReinOptions() async {
     final theme = Theme.of(context);
-    final bool repostedByUser = _userHasReposted(context.read<DataService>());
+    final bool repostedByUser = _userHasReposted(context.read<PostRepository>());
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -546,11 +547,11 @@ class _TweetPostCardState extends State<TweetPostCard> {
     );
   }
 
-  bool _userHasReposted(DataService service) {
+  bool _userHasReposted(PostRepository service) {
     final handle = widget.currentUserHandle;
     if (handle.isEmpty) return false;
     final targetId = widget.post.originalId ?? widget.post.id;
-    return service.hasUserRetweeted(targetId, handle);
+    return service.hasUserReposted(targetId, handle);
   }
 
   @override
