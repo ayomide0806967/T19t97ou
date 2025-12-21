@@ -8,7 +8,7 @@ import '../widgets/lecture_note_card.dart';
 import 'class_note_stepper_screen.dart';
 import 'create_note_flow/create_note_welcome_screen.dart';
 import '../features/messages/replies/message_replies_route.dart';
-import 'ios_messages_screen.dart' show ClassTopic; // reuse type
+import '../models/class_topic.dart';
 
 class LectureTopicScreen extends StatelessWidget {
   const LectureTopicScreen({super.key, required this.topic});

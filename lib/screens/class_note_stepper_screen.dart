@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'ios_messages_screen.dart'
-    show ClassDiscussionThreadPage, CollegeDetailScreen;
+    show ClassDiscussionThreadPage;
 import 'quiz_take_screen.dart';
 import '../models/class_note.dart';
 import '../widgets/note_rail_step.dart';

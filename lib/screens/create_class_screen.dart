@@ -5,8 +5,8 @@ import 'package:provider/provider.dart';
 import '../widgets/setting_switch_row.dart';
 import '../widgets/equal_width_buttons_row.dart';
 import '../services/data_service.dart';
-import 'ios_messages_screen.dart'
-    show College, CollegeResource, CollegeDetailScreen;
+import '../models/college.dart';
+import 'ios_messages_screen.dart' show CollegeDetailScreen;
 
 /// Create a class flow (4-step wizard) matching the provided reference.
 class CreateClassScreen extends StatefulWidget {
