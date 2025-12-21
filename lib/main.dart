@@ -13,6 +13,7 @@ import 'services/simple_auth_service.dart';
 import 'core/feed/post_repository.dart';
 import 'core/config/app_config.dart';
 import 'core/supabase/supabase_auth_repository.dart';
+import 'core/supabase/supabase_post_repository.dart';
 
 import 'dart:async';
 
@@ -45,9 +46,17 @@ void main() {
       await authRepository.initialize();
     }
 
-    // Prepare data services
+    // Prepare post repository (local by default; Supabase when enabled).
     final dataService = DataService();
     await dataService.load();
+    final PostRepository postRepository;
+    if (AppConfig.hasSupabaseConfig && AppConfig.enableSupabaseFeed) {
+      postRepository = SupabasePostRepository(Supabase.instance.client);
+      await postRepository.load();
+    } else {
+      postRepository = dataService;
+    }
+
     final profileService = ProfileService();
     await profileService.load();
 
@@ -57,7 +66,7 @@ void main() {
           Provider<AuthRepository>.value(value: authRepository),
           ChangeNotifierProvider<AppSettings>.value(value: settings),
           ChangeNotifierProvider<DataService>.value(value: dataService),
-          ListenableProvider<PostRepository>.value(value: dataService),
+          ListenableProvider<PostRepository>.value(value: postRepository),
           ChangeNotifierProvider<ProfileService>.value(value: profileService),
         ],
         child: const MyApp(),

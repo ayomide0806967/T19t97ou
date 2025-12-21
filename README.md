@@ -13,6 +13,10 @@ Example:
 
 `flutter run --dart-define=SUPABASE_URL=... --dart-define=SUPABASE_ANON_KEY=...`
 
+To enable the Supabase-backed feed (requires schema): add `--dart-define=SUPABASE_FEED=true`.
+
+Schema reference: `docs/supabase_schema.sql`
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.
