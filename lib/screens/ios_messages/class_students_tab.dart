@@ -40,7 +40,7 @@ class _ClassStudentsTabState extends State<_ClassStudentsTab> {
               )
               .toList();
 
-    void _showStudentActions(String handle) {
+    void showStudentActions(String handle) {
       showModalBottomSheet<void>(
         context: context,
         backgroundColor: Colors.white,
@@ -208,7 +208,7 @@ class _ClassStudentsTabState extends State<_ClassStudentsTab> {
                 return _StudentCard(
                   handle: handle,
                   index: index,
-                  onTap: () => _showStudentActions(handle),
+                  onTap: () => showStudentActions(handle),
                 );
               },
             ),
@@ -232,7 +232,6 @@ class _StudentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final Color cardColor = theme.colorScheme.surface;
     final Color nameColor = const Color(0xFF111827);
     final Color frameColor = theme.colorScheme.surfaceVariant.withValues(
       alpha: 0.8,
@@ -312,99 +311,6 @@ class _StudentCard extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _ClassTopInfo extends StatelessWidget {
-  const _ClassTopInfo({
-    required this.college,
-    this.memberCount,
-    this.activeTopic,
-  });
-
-  final College college;
-  final int? memberCount;
-  final ClassTopic? activeTopic;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    const Color whatsappGreen = Color(0xFF075E54);
-    final Color onGreen = Colors.white;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: whatsappGreen,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  college.code,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: onGreen,
-                  ),
-                ),
-              ),
-              const Spacer(),
-              Text(
-                '${memberCount ?? college.members} students',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: onGreen.withValues(alpha: 0.85),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            college.name,
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.2,
-              color: onGreen,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            college.facilitator,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: onGreen.withValues(alpha: 0.8),
-            ),
-          ),
-          if (activeTopic != null) ...[
-            const SizedBox(height: 10),
-            Text(
-              'Topic: ${activeTopic!.topicTitle}',
-              style: theme.textTheme.bodyLarge?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: onGreen,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Tutor ${activeTopic!.tutorName} • Started ${_formatRelative(activeTopic!.createdAt)}',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: onGreen.withValues(alpha: 0.9),
-              ),
-            ),
-          ],
-        ],
       ),
     );
   }

@@ -370,50 +370,6 @@ class _ReviewSummary extends StatelessWidget {
 
 // Removed unused _ClassStatChip widget
 
-class _LibraryChip extends StatelessWidget {
-  const _LibraryChip({required this.resource});
-
-  final CollegeResource resource;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.picture_as_pdf,
-            size: 18,
-            color: theme.colorScheme.primary,
-          ),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                resource.title,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              Text(
-                '${resource.fileType.toUpperCase()} • ${resource.size}',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 // Removed unused _TweetCard widget
 
 // Removed unused _TweetStat widget

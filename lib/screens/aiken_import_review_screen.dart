@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
-const Color _whatsAppTeal = Color(0xFF075E54);
+import '../features/quiz/ui/quiz_palette.dart';
+
+const Color _whatsAppTeal = quizWhatsAppTeal;
 
 /// A dedicated screen for reviewing and editing imported Aiken questions
 class AikenImportReviewScreen extends StatefulWidget {

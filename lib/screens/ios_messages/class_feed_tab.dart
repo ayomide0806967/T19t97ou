@@ -43,10 +43,6 @@ class _ClassFeedTab extends StatefulWidget {
 }
 
 class _ClassFeedTabState extends State<_ClassFeedTab> {
-  static const int _pageSize = 10;
-  int _visibleNotes = 0;
-  bool _loadingMoreNotes = false;
-
   @override
   void initState() {
     super.initState();
@@ -59,38 +55,7 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
   Future<void> _initNotes() async {
     await ClassNotesStore.loadForCollege(widget.college.code);
     if (!mounted) return;
-    setState(() {
-      _visibleNotes = ClassNotesStore.classNotes.isEmpty
-          ? 0
-          : (ClassNotesStore.classNotes.length < _pageSize
-              ? ClassNotesStore.classNotes.length
-              : _pageSize);
-    });
-  }
-
-  @override
-  void didUpdateWidget(covariant _ClassFeedTab oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.notes.length != widget.notes.length) {
-      final int minNeeded = widget.notes.isEmpty ? 0 : _pageSize;
-      _visibleNotes = _visibleNotes.clamp(minNeeded, widget.notes.length);
-      if (_visibleNotes == 0 && widget.notes.isNotEmpty) {
-        _visibleNotes = widget.notes.length < _pageSize
-            ? widget.notes.length
-            : _pageSize;
-      }
-    }
-  }
-
-  Future<void> _loadMoreNotes() async {
-    if (_loadingMoreNotes) return;
-    setState(() => _loadingMoreNotes = true);
-    await Future<void>.delayed(const Duration(milliseconds: 250));
-    final next = _visibleNotes + _pageSize;
-    setState(() {
-      _visibleNotes = next > widget.notes.length ? widget.notes.length : next;
-      _loadingMoreNotes = false;
-    });
+    setState(() {});
   }
 
   Future<void> _confirmDeleteNote(ClassNoteSummary note) async {
@@ -140,7 +105,6 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
     final subtle = onSurface.withValues(
       alpha: theme.brightness == Brightness.dark ? 0.6 : 0.55,
     );
-    final TextEditingController textController = TextEditingController();
     return Column(
       children: [
         Expanded(
@@ -301,14 +265,12 @@ class _ClassActionCard extends StatelessWidget {
     required this.title,
     required this.onTap,
     required this.backgroundColor,
-    this.chips = const <String>[],
     this.playIconColor = Colors.black,
   });
 
   final String title;
   final VoidCallback onTap;
   final Color backgroundColor;
-  final List<String> chips;
   final Color playIconColor;
 
   @override
@@ -343,34 +305,6 @@ class _ClassActionCard extends StatelessWidget {
                         fontSize: 15,
                       ),
                     ),
-                    if (chips.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 4,
-                        children: [
-                          for (final chip in chips)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.85),
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: Text(
-                                chip,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.black,
-                                  fontFamily: 'Roboto',
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ],
                   ],
                 ),
               ),
@@ -600,7 +534,7 @@ class _LectureSetupFormState extends State<_LectureSetupForm> {
       ),
       builder: (ctx) {
         final theme = Theme.of(ctx);
-        String _format(TimeOfDay t) {
+        String formatTime(TimeOfDay t) {
           final int hour = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
           final String minute = t.minute.toString().padLeft(2, '0');
           final String period = t.period == DayPeriod.am ? 'AM' : 'PM';
@@ -645,7 +579,7 @@ class _LectureSetupFormState extends State<_LectureSetupForm> {
                         // This StatefulBuilder is only used to refresh
                         // the preview text when the wheel changes.
                         return Text(
-                          _format(temp),
+                          formatTime(temp),
                           style: theme.textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.w700,
                             letterSpacing: 1.2,
@@ -697,6 +631,7 @@ class _LectureSetupFormState extends State<_LectureSetupForm> {
       TimeOfDay.fromDateTime(now.add(const Duration(hours: 1))),
     );
     if (time == null) return;
+    if (!mounted) return;
     setState(() {
       _autoArchiveAt = DateTime(
         date.year,
@@ -1160,6 +1095,7 @@ class _StartLectureCardState extends State<_StartLectureCard> {
                               firstDate: now,
                               lastDate: DateTime(now.year + 2),
                             );
+                            if (!mounted) return;
                             if (date == null) return;
                             final time = await showTimePicker(
                               context: context,
@@ -1167,6 +1103,7 @@ class _StartLectureCardState extends State<_StartLectureCard> {
                                 now.add(const Duration(hours: 1)),
                               ),
                             );
+                            if (!mounted) return;
                             if (time == null) return;
                             final dt = DateTime(
                               date.year,

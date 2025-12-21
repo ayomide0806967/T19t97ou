@@ -17,9 +17,8 @@ import 'quiz_take_screen.dart';
 import 'aiken_import_review_screen.dart';
 import 'quiz_dashboard_screen.dart';
 
-// WhatsApp-inspired palette for quiz steps
-const Color _quizWhatsAppGreen = Color(0xFF25D366);
-const Color _quizWhatsAppTeal = Color(0xFF075E54);
+import '../features/quiz/ui/quiz_palette.dart';
+import '../features/quiz/create/models/quiz_question_fields.dart';
 
 enum QuizVisibility { everyone, followers }
 enum _QuizBuildMode { manual, aiken }
@@ -66,7 +65,7 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
   _QuizBuildMode _buildMode = _QuizBuildMode.manual;
   
   // Questions
-  final List<_QuizQuestionFields> _questions = <_QuizQuestionFields>[];
+  final List<QuizQuestionFields> _questions = <QuizQuestionFields>[];
   
   // Track which steps have been completed
   bool _detailsCompleted = false;
@@ -92,7 +91,7 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
     if (widget.initialQuestions != null &&
         widget.initialQuestions!.isNotEmpty) {
       for (final QuizTakeQuestion q in widget.initialQuestions!) {
-        final fields = _QuizQuestionFields();
+        final fields = QuizQuestionFields();
         fields.prompt.text = q.prompt;
         for (int i = 0;
             i < fields.options.length && i < q.options.length;
@@ -113,7 +112,7 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
       _questionSetupCompleted = true;
       _activeStep = 3;
     } else {
-      _questions.add(_QuizQuestionFields());
+      _questions.add(QuizQuestionFields());
       _questionStepKeys.add(GlobalKey());
     }
   }
@@ -219,7 +218,7 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
   void _addQuestion() {
     final newKey = GlobalKey();
     setState(() {
-      _questions.add(_QuizQuestionFields());
+      _questions.add(QuizQuestionFields());
       _questionStepKeys.add(newKey);
       _activeStep = 3 + _questions.length - 1;
     });
@@ -332,7 +331,7 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
       _buildMode = _QuizBuildMode.manual;
       _questionSetupCompleted = true;
       if (_questions.isEmpty) {
-        _questions.add(_QuizQuestionFields());
+        _questions.add(QuizQuestionFields());
       }
       _activeStep = 3;
     });
@@ -479,10 +478,10 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
         return;
       }
 
-      // Convert ImportedQuestion to _QuizQuestionFields
-      final List<_QuizQuestionFields> imported = [];
+      // Convert ImportedQuestion to QuizQuestionFields
+      final List<QuizQuestionFields> imported = [];
       for (final iq in uniqueReviewed) {
-        final q = _QuizQuestionFields();
+        final q = QuizQuestionFields();
         q.prompt.text = iq.prompt.text;
         q.promptImage = iq.promptImage;
         
@@ -698,7 +697,7 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        backgroundColor: success ? _quizWhatsAppTeal : const Color(0xFFDC2626),
+        backgroundColor: success ? quizWhatsAppTeal : const Color(0xFFDC2626),
         behavior: SnackBarBehavior.floating,
         margin: EdgeInsets.only(
           bottom: MediaQuery.of(context).size.height - 150,
@@ -975,8 +974,8 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  side: BorderSide(color: _quizWhatsAppTeal),
-                  foregroundColor: _quizWhatsAppTeal,
+                  side: BorderSide(color: quizWhatsAppTeal),
+                  foregroundColor: quizWhatsAppTeal,
                 ),
                 child: const Text('Save draft'),
               ),
@@ -986,7 +985,7 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
                             icon: const Icon(Icons.send_rounded, size: 18),
                 label: const Text('Publish'),
                 style: FilledButton.styleFrom(
-                  backgroundColor: _quizWhatsAppTeal,
+                  backgroundColor: quizWhatsAppTeal,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -1124,10 +1123,10 @@ class _CompletedStepCard extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: _quizWhatsAppGreen.withOpacity(0.10),
+              color: quizWhatsAppGreen.withOpacity(0.10),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: _quizWhatsAppTeal.withOpacity(0.4),
+                color: quizWhatsAppTeal.withOpacity(0.4),
               ),
             ),
             child: Row(
@@ -1226,10 +1225,10 @@ class _LockedStepCard extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: _quizWhatsAppGreen.withOpacity(0.06),
+              color: quizWhatsAppGreen.withOpacity(0.06),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: _quizWhatsAppTeal.withOpacity(0.25),
+                color: quizWhatsAppTeal.withOpacity(0.25),
               ),
             ),
             child: Column(
@@ -1335,7 +1334,7 @@ class _DetailsEditingStep extends StatelessWidget {
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w800,
                     fontSize: 16,
-                    color: _quizWhatsAppTeal,
+                    color: quizWhatsAppTeal,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -1370,7 +1369,7 @@ class _DetailsEditingStep extends StatelessWidget {
                     icon: const Icon(Icons.arrow_forward_rounded, size: 18),
                     label: const Text('Next'),
                     style: FilledButton.styleFrom(
-                      backgroundColor: _quizWhatsAppTeal,
+                      backgroundColor: quizWhatsAppTeal,
                       foregroundColor: Colors.white,
                     ),
                   ),
@@ -1523,7 +1522,7 @@ class _SettingsEditingStep extends StatelessWidget {
                   subtitle: const Text('Set a time limit'),
                   contentPadding: EdgeInsets.zero,
                   activeColor: Colors.black,
-                  activeTrackColor: _quizWhatsAppTeal,
+                  activeTrackColor: quizWhatsAppTeal,
                   inactiveTrackColor: Colors.black.withValues(alpha: 0.12),
                   thumbColor: WidgetStateProperty.resolveWith<Color?>(
                     (states) {
@@ -1803,7 +1802,7 @@ class _SettingsEditingStep extends StatelessWidget {
                   subtitle: const Text('Set a deadline'),
                   contentPadding: EdgeInsets.zero,
                   activeColor: Colors.black,
-                  activeTrackColor: _quizWhatsAppTeal,
+                  activeTrackColor: quizWhatsAppTeal,
                   inactiveTrackColor: Colors.black.withValues(alpha: 0.12),
                   thumbColor: WidgetStateProperty.resolveWith<Color?>(
                     (states) {
@@ -1861,7 +1860,7 @@ class _SettingsEditingStep extends StatelessWidget {
                   title: const Text('Require PIN'),
                   contentPadding: EdgeInsets.zero,
                   activeColor: Colors.black,
-                  activeTrackColor: _quizWhatsAppTeal,
+                  activeTrackColor: quizWhatsAppTeal,
                   inactiveTrackColor: Colors.black.withValues(alpha: 0.12),
                   thumbColor: WidgetStateProperty.resolveWith<Color?>(
                     (states) {
@@ -1896,7 +1895,7 @@ class _SettingsEditingStep extends StatelessWidget {
                     TextButton(
                       onPressed: onBack,
                       style: TextButton.styleFrom(
-                        foregroundColor: _quizWhatsAppTeal,
+                        foregroundColor: quizWhatsAppTeal,
                       ),
                       child: const Text('Back'),
                     ),
@@ -1905,7 +1904,7 @@ class _SettingsEditingStep extends StatelessWidget {
                       icon: const Icon(Icons.arrow_forward_rounded, size: 18),
                       label: const Text('Next'),
                       style: FilledButton.styleFrom(
-                        backgroundColor: _quizWhatsAppTeal,
+                        backgroundColor: quizWhatsAppTeal,
                         foregroundColor: Colors.white,
                       ),
                     ),
@@ -2014,7 +2013,7 @@ class _QuestionSetupStep extends StatelessWidget {
                   icon: Icon(
                     Icons.edit_note_rounded,
                     color: mode == _QuizBuildMode.manual
-                        ? _quizWhatsAppTeal
+                        ? quizWhatsAppTeal
                         : Colors.black,
                   ),
                   label: Align(
@@ -2059,7 +2058,7 @@ class _QuestionSetupStep extends StatelessWidget {
                   icon: Icon(
                     Icons.upload_file_rounded,
                     color: mode == _QuizBuildMode.aiken
-                        ? _quizWhatsAppTeal
+                        ? quizWhatsAppTeal
                         : Colors.black,
                   ),
                   label: Align(
@@ -2105,7 +2104,7 @@ class _QuestionSetupStep extends StatelessWidget {
                     TextButton(
                       onPressed: onBack,
                       style: TextButton.styleFrom(
-                        foregroundColor: _quizWhatsAppTeal,
+                        foregroundColor: quizWhatsAppTeal,
                       ),
                       child: const Text('Back'),
                     ),
@@ -2156,7 +2155,7 @@ class _QuestionEditingStep extends StatelessWidget {
   });
 
   final int index;
-  final _QuizQuestionFields question;
+  final QuizQuestionFields question;
   final bool canRemove;
   final VoidCallback onAddOption;
   final void Function(int) onRemoveOption;
@@ -2318,7 +2317,7 @@ class _QuestionEditingStep extends StatelessWidget {
                             : Icons.image_outlined,
                         size: 20,
                         color: question.promptImage != null
-                            ? _quizWhatsAppTeal
+                            ? quizWhatsAppTeal
                             : theme.colorScheme.onSurface
                                 .withValues(alpha: 0.5),
                       ),
@@ -2388,12 +2387,12 @@ class _QuestionEditingStep extends StatelessWidget {
                               height: 24,
                               decoration: BoxDecoration(
                                 color: question.correctIndex == optionIndex
-                                    ? _quizWhatsAppTeal
+                                    ? quizWhatsAppTeal
                                     : theme.colorScheme.surface,
                                 borderRadius: BorderRadius.circular(999),
                                 border: Border.all(
                                   color: question.correctIndex == optionIndex
-                                      ? _quizWhatsAppTeal
+                                      ? quizWhatsAppTeal
                                       : theme.colorScheme.onSurface
                                           .withValues(alpha: 0.25),
                                 ),
@@ -2444,7 +2443,7 @@ class _QuestionEditingStep extends StatelessWidget {
                                   ),
                                   focusedBorder: const UnderlineInputBorder(
                                     borderSide: BorderSide(
-                                      color: _quizWhatsAppTeal,
+                                      color: quizWhatsAppTeal,
                                       width: 2,
                                     ),
                                   ),
@@ -2481,7 +2480,7 @@ class _QuestionEditingStep extends StatelessWidget {
                                                 question.optionImages[
                                                         optionIndex] !=
                                                     null)
-                                            ? _quizWhatsAppTeal
+                                            ? quizWhatsAppTeal
                                             : theme.colorScheme.onSurface
                                                 .withValues(alpha: 0.4),
                                       ),
@@ -2498,7 +2497,7 @@ class _QuestionEditingStep extends StatelessWidget {
                                           : Icons.radio_button_unchecked,
                                       size: 24,
                                       color: question.correctIndex == optionIndex
-                                          ? _quizWhatsAppTeal
+                                          ? quizWhatsAppTeal
                                           : theme.colorScheme.onSurface
                                               .withValues(alpha: 0.4),
                                     ),
@@ -2560,7 +2559,7 @@ class _CompletedQuestionCard extends StatelessWidget {
   });
 
   final int index;
-  final _QuizQuestionFields question;
+  final QuizQuestionFields question;
   final VoidCallback onTap;
 
   @override
@@ -2709,7 +2708,7 @@ class _LabeledField extends StatelessWidget {
                   label,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: _quizWhatsAppTeal,
+                    color: quizWhatsAppTeal,
                   ),
                 ),
               const Spacer(),
@@ -2760,24 +2759,3 @@ class _LabeledField extends StatelessWidget {
 // ============================================================================
 // QUIZ QUESTION FIELDS
 // ============================================================================
-
-class _QuizQuestionFields {
-  _QuizQuestionFields()
-      : prompt = TextEditingController(),
-        options = List<TextEditingController>.generate(4, (_) => TextEditingController()),
-        optionImages = List<String?>.filled(4, null, growable: true),
-        promptImage = null;
-
-  final TextEditingController prompt;
-  final List<TextEditingController> options;
-  int correctIndex = 0;
-  final List<String?> optionImages;
-  String? promptImage;
-
-  void dispose() {
-    prompt.dispose();
-    for (final controller in options) {
-      controller.dispose();
-    }
-  }
-}

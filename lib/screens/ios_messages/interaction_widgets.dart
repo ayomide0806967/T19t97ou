@@ -4,12 +4,10 @@ class _LabelCountButton extends StatefulWidget {
   const _LabelCountButton({
     required this.count,
     required this.onPressed,
-    this.label,
     this.icon,
     this.color,
     this.iconSize,
   });
-  final String? label;
   final IconData? icon;
   final int count;
   final VoidCallback onPressed;
@@ -51,18 +49,6 @@ class _LabelCountButtonState extends State<_LabelCountButton> {
                 if (widget.icon != null) ...[
                   Icon(widget.icon, size: widget.iconSize ?? 18, color: meta),
                   SizedBox(width: gap),
-                ] else if (widget.label != null && !ultraTight) ...[
-                  Text(
-                    // Shorten long labels when space is tight
-                    veryTight && widget.label!.length > 3
-                        ? widget.label!.substring(0, 1)
-                        : widget.label!,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: meta,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  SizedBox(width: gap - 1),
                 ],
                 Text('${widget.count}', style: countStyle),
               ],

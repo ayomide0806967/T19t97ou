@@ -7,7 +7,6 @@ import 'package:image_picker/image_picker.dart';
 // when the dependency hasn't been fetched. If you add file_picker to
 // pubspec and run `flutter pub get`, you can re-enable file attachments by
 // switching _handleAttachFile() to use FilePicker.
-import 'quiz_hub_screen.dart';
 import 'package:provider/provider.dart';
 import '../l10n/strings.dart';
 import '../models/post.dart';
@@ -66,7 +65,6 @@ part 'ios_messages/create_class_wizard_widgets.dart';
 // WhatsApp color palette for Classes screen
 const Color _whatsAppGreen = Color(0xFF25D366);
 const Color _whatsAppDarkGreen = Color(0xFF128C7E);
-const Color _whatsAppLightGreen = Color(0xFFDCF8C6);
 const Color _whatsAppTeal = Color(0xFF075E54);
 
 // (moved to ios_messages/create_class_page.dart)

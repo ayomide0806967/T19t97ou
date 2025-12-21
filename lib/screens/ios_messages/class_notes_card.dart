@@ -1,7 +1,8 @@
 part of '../ios_messages_screen.dart';
 
 class _ClassNotesCard extends StatelessWidget {
-  _ClassNotesCard({
+  const _ClassNotesCard({
+    super.key,
     required this.summary,
     this.onUpdated,
     this.onMoveToLibrary,

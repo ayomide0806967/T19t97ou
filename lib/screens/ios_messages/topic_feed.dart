@@ -33,6 +33,7 @@ class _TopicFeedListState extends State<_TopicFeedList> {
     if (_loading) return;
     setState(() => _loading = true);
     await Future<void>.delayed(const Duration(milliseconds: 250));
+    if (!mounted) return;
     final data = context.read<PostRepository>();
     final posts = data.posts
         .where((p) => p.tags.contains(widget.topic.topicTag))
@@ -128,24 +129,6 @@ class _TopicFeedListState extends State<_TopicFeedList> {
   }
 }
 
-// Lightweight relative time formatter used by ActiveTopicCard
-String _formatRelative(DateTime time) {
-  final Duration diff = DateTime.now().difference(time);
-  if (diff.inDays >= 1) {
-    final d = diff.inDays;
-    return d == 1 ? '1 day ago' : '$d days ago';
-  }
-  if (diff.inHours >= 1) {
-    final h = diff.inHours;
-    return h == 1 ? '1 hour ago' : '$h hours ago';
-  }
-  if (diff.inMinutes >= 1) {
-    final m = diff.inMinutes;
-    return m == 1 ? '1 min ago' : '$m mins ago';
-  }
-  return 'just now';
-}
-
 class _ClassSettings {
   const _ClassSettings({
     required this.adminOnlyPosting,
@@ -239,126 +222,6 @@ class _PinGateCardState extends State<_PinGateCard> {
   }
 }
 
-// --- Reusable step rails ---
-class _StepRailVertical extends StatelessWidget {
-  const _StepRailVertical({
-    required this.steps,
-    required this.activeIndex,
-    this.titles,
-    this.onStepTap,
-  });
-
-  final List<String> steps; // Dot labels (e.g., 1..4)
-  final List<String>? titles; // Step titles shown to the right
-  final int activeIndex;
-  final ValueChanged<int>? onStepTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final bool hasTitles = titles != null && titles!.length == steps.length;
-    final Color connectorColor = theme.colorScheme.onSurface.withValues(
-      alpha: 0.25,
-    );
-    const double dotSize = 24;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (int i = 0; i < steps.length; i++) ...[
-          InkWell(
-            onTap: onStepTap == null ? null : () => onStepTap!(i),
-            borderRadius: BorderRadius.circular(8),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  _StepDot(
-                    active: i == activeIndex,
-                    label: steps[i],
-                    size: dotSize,
-                  ),
-                  if (hasTitles) ...[
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        titles![i],
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: i == activeIndex
-                              ? FontWeight.w700
-                              : FontWeight.w600,
-                          color: i == activeIndex
-                              ? theme.colorScheme.onSurface
-                              : theme.colorScheme.onSurface.withValues(
-                                  alpha: 0.7,
-                                ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-          if (i < steps.length - 1)
-            Row(
-              children: [
-                const SizedBox(width: dotSize / 2),
-                Container(width: 1, height: 28, color: connectorColor),
-                if (hasTitles) const SizedBox(width: 10),
-                if (hasTitles) const Expanded(child: SizedBox()),
-              ],
-            ),
-        ],
-      ],
-    );
-  }
-}
-
-class _StepRailHorizontal extends StatelessWidget {
-  const _StepRailHorizontal({
-    required this.steps,
-    required this.activeIndex,
-    this.onStepTap,
-  });
-
-  final List<String> steps;
-  final int activeIndex;
-  final ValueChanged<int>? onStepTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final Color connectorColor = theme.colorScheme.onSurface.withValues(
-      alpha: 0.25,
-    );
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (int i = 0; i < steps.length; i++) ...[
-          InkWell(
-            onTap: onStepTap == null ? null : () => onStepTap!(i),
-            borderRadius: BorderRadius.circular(12),
-            child: _StepDot(
-              active: i == activeIndex,
-              label: steps[i],
-              size: 24,
-            ),
-          ),
-          if (i < steps.length - 1)
-            Container(
-              width: 28,
-              height: 1,
-              margin: const EdgeInsets.symmetric(horizontal: 6),
-              color: connectorColor,
-            ),
-        ],
-      ],
-    );
-  }
-}
-
 class _StepRailMini extends StatelessWidget {
   const _StepRailMini({required this.activeIndex, required this.steps});
   final int activeIndex;
@@ -420,60 +283,6 @@ class _StepDot extends StatelessWidget {
           fontWeight: FontWeight.w700,
           height: 1,
         ),
-      ),
-    );
-  }
-}
-
-class _TopicDetailPage extends StatelessWidget {
-  const _TopicDetailPage({required this.topic, required this.classCode});
-  final ClassTopic topic;
-  final String classCode;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final data = context.watch<PostRepository>();
-    final posts = data.posts
-        .where((p) => p.tags.contains(topic.topicTag))
-        .toList();
-    return Scaffold(
-      appBar: AppBar(title: Text(topic.topicTitle)),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-        children: [
-          Text(
-            '${topic.courseName} • Tutor ${topic.tutorName}',
-            style: theme.textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 8),
-          for (final p in posts) ...[
-            _ClassMessageTile(
-              message: _ClassMessage(
-                id: p.id,
-                author: p.author,
-                handle: p.handle,
-                timeAgo: p.timeAgo,
-                body: p.body,
-                likes: p.likes,
-                replies: p.replies,
-                heartbreaks: 0,
-              ),
-              onShare: () async {},
-            ),
-            const SizedBox(height: 8),
-          ],
-          if (posts.isEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 40),
-              child: Center(
-                child: Text(
-                  'No notes found for this topic',
-                  style: theme.textTheme.bodyMedium,
-                ),
-              ),
-            ),
-        ],
       ),
     );
   }

@@ -26,11 +26,8 @@ class _CommentTileState extends State<_CommentTile> {
   // Track which comment currently shows inline repost actions so only one is open.
   static _CommentTileState? _openRepostTile;
 
-  bool _highlight = false;
   double _dx = 0;
   double _dragOffset = 0; // visual slide during swipe-to-reply
-  int _likes = 0;
-  bool _liked = false;
   bool _reposted = false;
   int _reposts = 0;
   bool _swipeHapticFired = false;
@@ -41,7 +38,6 @@ class _CommentTileState extends State<_CommentTile> {
   @override
   void initState() {
     super.initState();
-    _likes = widget.comment.likes;
     _seedMockReactions();
   }
 
@@ -831,9 +827,6 @@ class _CommentTileState extends State<_CommentTile> {
     );
 
     return GestureDetector(
-      onTapDown: (_) => setState(() => _highlight = true),
-      onTapUp: (_) => setState(() => _highlight = false),
-      onTapCancel: () => setState(() => _highlight = false),
       onTap: () {
         if (widget.onTap != null) {
           widget.onTap!();
@@ -849,7 +842,6 @@ class _CommentTileState extends State<_CommentTile> {
         final double next = (_dragOffset + details.delta.dx).clamp(0, 56);
         setState(() {
           _dragOffset = next;
-          _highlight = true;
         });
         if (!_swipeHapticFired && _dragOffset > 42) {
           HapticFeedback.mediumImpact();
@@ -869,7 +861,6 @@ class _CommentTileState extends State<_CommentTile> {
           widget.onSwipeReply?.call();
         }
         setState(() {
-          _highlight = false;
           _dragOffset = 0; // animate back to rest
         });
         _swipeHapticFired = false;

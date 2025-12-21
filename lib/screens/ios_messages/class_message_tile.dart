@@ -20,7 +20,6 @@ class _ClassMessageTile extends StatefulWidget {
 }
 
 class _ClassMessageTileState extends State<_ClassMessageTile> {
-  bool _expanded = false;
   bool _saved = false;
   int _good = 0;
   int _bad = 0;
