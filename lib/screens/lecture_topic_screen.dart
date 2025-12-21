@@ -7,7 +7,8 @@ import '../core/feed/post_repository.dart';
 import '../widgets/lecture_note_card.dart';
 import 'class_note_stepper_screen.dart';
 import 'create_note_flow/create_note_welcome_screen.dart';
-import 'ios_messages_screen.dart' show ClassTopic, messageRepliesRouteFromPost; // reuse route
+import '../features/messages/replies/message_replies_route.dart';
+import 'ios_messages_screen.dart' show ClassTopic; // reuse type
 
 class LectureTopicScreen extends StatelessWidget {
   const LectureTopicScreen({super.key, required this.topic});

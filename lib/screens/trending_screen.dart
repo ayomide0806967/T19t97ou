@@ -11,11 +11,11 @@ import '../theme/app_theme.dart';
 import '../widgets/floating_nav_bar.dart';
 import '../widgets/tweet_post_card.dart';
 import 'compose_screen.dart';
-import 'ios_messages_screen.dart';
 import 'neutral_page.dart';
 import 'notifications_screen.dart';
 import 'profile_screen.dart';
 import 'quiz_dashboard_screen.dart';
+import '../features/messages/messages_screen.dart';
 
 class TrendingScreen extends StatefulWidget {
   const TrendingScreen({super.key});
@@ -1067,7 +1067,7 @@ class _TrendingQuickControlPanelState
         onPressed: () async {
           Navigator.of(context).pop();
           await Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const IosMinimalistMessagePage()),
+            MaterialPageRoute(builder: (_) => const MessagesScreen()),
           );
         },
       ),
@@ -1111,7 +1111,7 @@ class _TrendingQuickControlPanelState
         onPressed: () async {
           Navigator.of(context).pop();
           await Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const IosMinimalistMessagePage()),
+            MaterialPageRoute(builder: (_) => const MessagesScreen()),
           );
         },
       ),

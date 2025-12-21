@@ -14,8 +14,8 @@ import '../theme/app_theme.dart';
 import '../constants/toast_durations.dart';
 import 'edit_profile_screen.dart';
 import 'settings_screen.dart';
-import 'ios_messages_screen.dart'
-    show messageRepliesRouteFromPost, IosMinimalistMessagePage;
+import '../features/messages/replies/message_replies_route.dart';
+import '../features/messages/messages_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
@@ -487,7 +487,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _handleMessageUser() async {
     if (!widget.readOnly) return;
     await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const IosMinimalistMessagePage()),
+      MaterialPageRoute(builder: (_) => const MessagesScreen()),
     );
   }
 

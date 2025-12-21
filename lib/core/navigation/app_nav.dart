@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../screens/compose_screen.dart';
-import '../../screens/ios_messages_screen.dart';
 import '../../screens/notifications_screen.dart';
 import '../../screens/profile_screen.dart';
 import '../../screens/quiz_dashboard_screen.dart';
 import '../../screens/trending_screen.dart';
 import '../../screens/user_profile_screen.dart';
+import '../../features/messages/messages_screen.dart';
 
 class AppNav {
   AppNav._();
@@ -18,7 +18,7 @@ class AppNav {
       MaterialPageRoute(builder: (_) => const QuizDashboardScreen());
 
   static Route<void> classes() =>
-      MaterialPageRoute(builder: (_) => const IosMinimalistMessagePage());
+      MaterialPageRoute(builder: (_) => const MessagesScreen());
 
   static Route<void> notifications() =>
       MaterialPageRoute(builder: (_) => const NotificationsScreen());
@@ -35,4 +35,3 @@ class AppNav {
   static Future<T?> push<T>(BuildContext context, Route<T> route) =>
       Navigator.of(context).push(route);
 }
-

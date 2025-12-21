@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'create_class_screen.dart';
-import 'ios_messages_screen.dart';
 import 'quiz_dashboard_screen.dart';
+import '../features/messages/messages_screen.dart';
 
 class NeutralPage extends StatelessWidget {
   const NeutralPage({super.key});
@@ -31,9 +30,7 @@ class NeutralPage extends StatelessWidget {
               icon: Icons.mail_outline_rounded,
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) => const IosMinimalistMessagePage(
-                    openInboxOnStart: true,
-                  ),
+                  builder: (_) => const MessagesScreen(openInboxOnStart: true),
                 ),
               ),
             ),
@@ -44,7 +41,7 @@ class NeutralPage extends StatelessWidget {
               icon: Icons.school_rounded,
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) => const IosMinimalistMessagePage(),
+                  builder: (_) => const MessagesScreen(),
                 ),
               ),
             ),
