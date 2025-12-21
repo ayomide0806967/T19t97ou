@@ -26,6 +26,7 @@ import 'create_class_screen.dart';
 import 'class_note_stepper_screen.dart';
 import '../widgets/equal_width_buttons_row.dart';
 import '../widgets/setting_switch_row.dart';
+import '../core/user/handle.dart';
 import '../models/class_note.dart';
 import '../models/college.dart';
 import '../models/class_topic.dart';
@@ -71,4 +72,3 @@ const Color _whatsAppTeal = Color(0xFF075E54);
 // (moved to ios_messages/create_class_page.dart)
 
 // (moved to ios_messages/create_class_wizard_widgets.dart)
-

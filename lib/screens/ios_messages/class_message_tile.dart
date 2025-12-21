@@ -726,16 +726,10 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
   }
 
   void _openComments(BuildContext context, _ClassMessage message) {
-    String me = '@yourprofile';
-    final email = SimpleAuthService().currentUserEmail;
-    if (email != null && email.isNotEmpty) {
-      final normalized = email
-          .split('@')
-          .first
-          .replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '')
-          .toLowerCase();
-      if (normalized.isNotEmpty) me = '@$normalized';
-    }
+    final String me = deriveHandleFromEmail(
+      SimpleAuthService().currentUserEmail,
+      maxLength: 999,
+    );
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) =>

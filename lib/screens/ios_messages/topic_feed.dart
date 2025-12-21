@@ -82,17 +82,10 @@ class _TopicFeedListState extends State<_TopicFeedList> {
             onRepost: widget.topic.privateLecture
                 ? null
                 : () async {
-                    // Derive current user handle (same as used elsewhere)
-                    String me = '@yourprofile';
-                    final email = SimpleAuthService().currentUserEmail;
-                    if (email != null && email.isNotEmpty) {
-                      final normalized = email
-                          .split('@')
-                          .first
-                          .replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '')
-                          .toLowerCase();
-                      if (normalized.isNotEmpty) me = '@$normalized';
-                    }
+                    final String me = deriveHandleFromEmail(
+                      SimpleAuthService().currentUserEmail,
+                      maxLength: 999,
+                    );
                     final toggled = await context
                         .read<DataService>()
                         .toggleRepost(postId: p.id, userHandle: me);

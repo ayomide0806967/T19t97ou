@@ -445,15 +445,10 @@ Mock exam briefing extended update: please review chapters one through five, pra
   }
 
   String get _currentUserHandle {
-    final email = SimpleAuthService().currentUserEmail;
-    if (email == null || email.isEmpty) return '@yourprofile';
-    final normalized = email
-        .split('@')
-        .first
-        .replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '')
-        .toLowerCase();
-    if (normalized.isEmpty) return '@yourprofile';
-    return '@$normalized';
+    return deriveHandleFromEmail(
+      SimpleAuthService().currentUserEmail,
+      maxLength: 999,
+    );
   }
 
   bool get _isCurrentUserAdmin => _admins.contains(_currentUserHandle);

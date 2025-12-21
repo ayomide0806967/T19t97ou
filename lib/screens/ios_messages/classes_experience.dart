@@ -510,14 +510,7 @@ Future<void> _handleJoinClass(BuildContext context) async {
 
 // Derive a normalized @handle from current user email
 String _deriveHandle(SimpleAuthService auth) {
-  final email = auth.currentUserEmail;
-  if (email == null || email.isEmpty) return '@yourprofile';
-  final normalized = email
-      .split('@')
-      .first
-      .replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '')
-      .toLowerCase();
-  return normalized.isEmpty ? '@yourprofile' : '@$normalized';
+  return deriveHandleFromEmail(auth.currentUserEmail, maxLength: 999);
 }
 
 class _CreateClassTile extends StatelessWidget {
@@ -917,4 +910,3 @@ class _CollegeCard extends StatelessWidget {
     );
   }
 }
-

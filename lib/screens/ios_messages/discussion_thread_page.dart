@@ -36,17 +36,10 @@ class _ClassDiscussionThreadPageState extends State<ClassDiscussionThreadPage> {
   }
 
   String get _currentUserHandle {
-    String me = '@yourprofile';
-    final email = SimpleAuthService().currentUserEmail;
-    if (email != null && email.isNotEmpty) {
-      final normalized = email
-          .split('@')
-          .first
-          .replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '')
-          .toLowerCase();
-      if (normalized.isNotEmpty) me = '@$normalized';
-    }
-    return me;
+    return deriveHandleFromEmail(
+      SimpleAuthService().currentUserEmail,
+      maxLength: 999,
+    );
   }
 
   void _setReplyTarget(_ThreadNode node) {
@@ -234,4 +227,3 @@ class _ClassDiscussionThreadPageState extends State<ClassDiscussionThreadPage> {
     );
   }
 }
-
