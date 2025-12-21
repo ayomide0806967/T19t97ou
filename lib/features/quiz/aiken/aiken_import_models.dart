@@ -1,5 +1,17 @@
 import 'package:flutter/material.dart';
 
+String normalizeAikenPrompt(String text) {
+  final trimmed = text.trim();
+  final withoutNumber = trimmed.replaceFirst(
+    RegExp(
+      r'^(?:Q(?:uestion)?\s*)?[\(\[]?\s*\d+\s*[\)\.\:\]]?\s*',
+      caseSensitive: false,
+    ),
+    '',
+  );
+  return withoutNumber.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
+}
+
 /// Result returned from the Aiken import review screen.
 class AikenImportResult {
   AikenImportResult({
@@ -62,18 +74,6 @@ List<ImportedQuestion> parseAikenQuestions(String raw) {
   List<String> options = [];
   String? correctLetter;
 
-  String normalizePrompt(String text) {
-    final trimmed = text.trim();
-    final withoutNumber = trimmed.replaceFirst(
-      RegExp(
-        r'^(?:Q(?:uestion)?\s*)?[\(\[]?\s*\d+\s*[\)\.\:\]]?\s*',
-        caseSensitive: false,
-      ),
-      '',
-    );
-    return withoutNumber.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
-  }
-
   final Set<String> seenPrompts = {};
 
   void commitQuestion() {
@@ -87,7 +87,7 @@ List<ImportedQuestion> parseAikenQuestions(String raw) {
       options = [currentPrompt!.trim()];
     }
 
-    final normalizedPrompt = normalizePrompt(currentPrompt!);
+    final normalizedPrompt = normalizeAikenPrompt(currentPrompt!);
     if (normalizedPrompt.isEmpty || seenPrompts.contains(normalizedPrompt)) {
       currentPrompt = null;
       options = [];
@@ -145,8 +145,8 @@ List<ImportedQuestion> parseAikenQuestions(String raw) {
       if (colonIndex != -1 && colonIndex < trimmedLine.length - 1) {
         final String left = trimmedLine.substring(0, colonIndex).trim();
         final String right = trimmedLine.substring(colonIndex + 1).trim();
-        final String normLeft = normalizePrompt(left);
-        final String normRight = normalizePrompt(right);
+        final String normLeft = normalizeAikenPrompt(left);
+        final String normRight = normalizeAikenPrompt(right);
         if (normLeft.isNotEmpty &&
             normLeft == normRight &&
             !seenPrompts.contains(normLeft)) {
@@ -211,4 +211,3 @@ List<ImportedQuestion> parseAikenQuestions(String raw) {
   commitQuestion();
   return result;
 }
-

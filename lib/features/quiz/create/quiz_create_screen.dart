@@ -342,21 +342,9 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
   Future<void> _importQuestionsFromAiken({List<ImportedQuestion>? accumulated}) async {
     if (!_settingsCompleted) return;
     try {
-      String normalizePrompt(String text) {
-        final trimmed = text.trim();
-        final withoutNumber = trimmed.replaceFirst(
-          RegExp(
-            r'^(?:Q(?:uestion)?\s*)?[\(\[]?\s*\d+\s*[\)\.\:\]]?\s*',
-            caseSensitive: false,
-          ),
-          '',
-        );
-        return withoutNumber.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
-      }
-
       // Prompts that already exist in the quiz builder
       final Set<String> existingPrompts = _questions
-          .map((q) => normalizePrompt(q.prompt.text))
+          .map((q) => normalizeAikenPrompt(q.prompt.text))
           .where((t) => t.isNotEmpty)
           .toSet();
       final result = await FilePicker.platform.pickFiles(
@@ -411,11 +399,11 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
         if (accumulated != null) ...accumulated,
       ];
       final Set<String> seenCombined = {
-        for (final iq in combined) normalizePrompt(iq.prompt.text),
+        for (final iq in combined) normalizeAikenPrompt(iq.prompt.text),
         ...existingPrompts,
       };
       for (final iq in parsed) {
-        final normalized = normalizePrompt(iq.prompt.text);
+        final normalized = normalizeAikenPrompt(iq.prompt.text);
         if (normalized.isEmpty || seenCombined.contains(normalized)) {
           iq.dispose();
           continue;
@@ -459,11 +447,11 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
       final List<ImportedQuestion> uniqueReviewed = [];
       final Set<String> seenInImport = {};
       final Set<String> finalExistingPrompts = _questions
-          .map((q) => normalizePrompt(q.prompt.text))
+          .map((q) => normalizeAikenPrompt(q.prompt.text))
           .where((t) => t.isNotEmpty)
           .toSet();
       for (final iq in reviewResult.questions) {
-        final normalized = normalizePrompt(iq.prompt.text);
+        final normalized = normalizeAikenPrompt(iq.prompt.text);
         if (normalized.isEmpty ||
             finalExistingPrompts.contains(normalized) ||
             seenInImport.contains(normalized)) {
