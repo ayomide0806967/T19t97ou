@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:docx_to_text/docx_to_text.dart';
-import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
 import 'dart:io';
@@ -20,6 +18,8 @@ import '../take/quiz_take_screen.dart';
 
 import '../ui/quiz_palette.dart';
 import 'models/quiz_question_fields.dart';
+import 'import/pdf_text_extractor.dart';
+import 'import/word_text_extractor.dart';
 
 enum QuizVisibility { everyone, followers }
 enum _QuizBuildMode { manual, aiken }
@@ -379,7 +379,7 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
       if (extension == 'docx' || extension == 'doc') {
         // Extract text from Word document
         try {
-          content = docxToText(bytes);
+          content = extractTextFromWord(bytes);
         } catch (e) {
           _showSnack('Failed to read Word document. Try a .txt file.');
           return;
@@ -387,7 +387,7 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
       } else if (extension == 'pdf') {
         // Extract text from PDF document
         try {
-          content = _extractTextFromPdf(bytes);
+          content = extractTextFromPdf(bytes);
         } catch (e) {
           _showSnack('Failed to read PDF. Try a .txt file.');
           return;
@@ -548,13 +548,6 @@ class _QuizCreateScreenState extends State<QuizCreateScreen> {
     } catch (e) {
       _showSnack('Failed to import Aiken file: ${e.toString()}');
     }
-  }
-
-  String _extractTextFromPdf(Uint8List bytes) {
-    final PdfDocument document = PdfDocument(inputBytes: bytes);
-    String text = PdfTextExtractor(document).extractText();
-    document.dispose();
-    return text;
   }
 
   Future<void> _pickDeadline() async {
