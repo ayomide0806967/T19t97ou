@@ -23,4 +23,3 @@ class _FullPageClassesScreen extends StatelessWidget {
     );
   }
 }
-

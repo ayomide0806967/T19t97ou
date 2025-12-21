@@ -255,4 +255,3 @@ class _HeroArtworkPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
-

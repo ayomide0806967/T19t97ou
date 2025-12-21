@@ -153,4 +153,3 @@ class _IosMinimalistMessagePageState extends State<IosMinimalistMessagePage> {
         .toList();
   }
 }
-

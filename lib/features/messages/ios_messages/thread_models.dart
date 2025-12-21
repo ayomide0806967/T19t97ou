@@ -151,4 +151,3 @@ class _ThreadComment {
   final String? quotedFrom;
   final String? quotedBody;
 }
-

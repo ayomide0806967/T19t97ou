@@ -19,4 +19,3 @@ class _CollegeScreen extends StatefulWidget {
   @override
   State<_CollegeScreen> createState() => _CollegeScreenState();
 }
-

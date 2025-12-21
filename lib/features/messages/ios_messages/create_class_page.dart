@@ -199,4 +199,3 @@ class _CreateClassPageState extends State<_CreateClassPage> {
     );
   }
 }
-
