@@ -14,12 +14,10 @@ import '../theme/app_theme.dart';
 import '../widgets/hexagon_avatar.dart';
 import '../services/class_service.dart';
 import '../widgets/swiss_bank_icon.dart';
-import '../widgets/floating_nav_bar.dart';
-import '../widgets/compose_fab.dart';
+import '../widgets/app_tab_scaffold.dart';
 import 'compose_screen.dart';
 import '../widgets/tweet_post_card.dart';
 import 'settings_screen.dart';
-import 'neutral_page.dart';
 import '../features/messages/replies/message_replies_route.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -31,11 +29,9 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final ScrollController _outerScrollController = ScrollController();
   final ScrollController _forYouScrollController = ScrollController();
   final ScrollController _followingScrollController = ScrollController();
-  int _selectedBottomNavIndex = 0;
   int _selectedFeedTabIndex = 0;
   final PageController _feedPageController = PageController();
   late final AnimationController _logoRefreshController;
@@ -118,8 +114,10 @@ class _HomeScreenState extends State<HomeScreen>
     final auth = context.read<AuthRepository>();
     final currentUserHandle = deriveHandleFromEmail(auth.currentUser?.email);
 
-    return Scaffold(
-      key: _scaffoldKey,
+    return AppTabScaffold(
+      currentIndex: 0,
+      isHomeRoot: true,
+      onHomeReselect: _scrollFeedToTop,
       body: NestedScrollView(
         controller: _outerScrollController,
         floatHeaderSlivers: true,
@@ -293,11 +291,6 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ),
       ),
-      floatingActionButton: const Padding(
-        padding: EdgeInsets.only(bottom: 12),
-        child: ComposeFab(),
-      ),
-      bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
 
@@ -357,79 +350,6 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _buildBottomNavigationBar() {
-    void resetToHome() {
-      if (_selectedBottomNavIndex != 0 && mounted) {
-        setState(() => _selectedBottomNavIndex = 0);
-      }
-    }
-
-    return FloatingNavBar(
-      currentIndex: _selectedBottomNavIndex,
-      onIndexChange: (index) {
-        // Center button opens full-page composer (no modal)
-        if (index == 2) {
-          Navigator.of(context).push(AppNav.compose());
-          return;
-        }
-        if (mounted) {
-          setState(() => _selectedBottomNavIndex = index);
-        }
-      },
-      destinations: [
-        FloatingNavBarDestination(
-          icon: Icons.home_filled,
-          onTap: () {
-            if (_selectedBottomNavIndex == 0) {
-              _scrollFeedToTop();
-              return;
-            }
-            if (mounted) {
-              setState(() => _selectedBottomNavIndex = 0);
-            }
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (!mounted) return;
-              _scrollFeedToTop();
-            });
-          },
-        ),
-        // Messages
-        FloatingNavBarDestination(
-          icon: Icons.mail_outline_rounded,
-          onTap: () {
-            Navigator.of(context)
-                .push(
-                  MaterialPageRoute(
-                    builder: (context) => const NeutralPage(),
-                  ),
-                )
-                .then((_) => resetToHome());
-          },
-        ),
-        FloatingNavBarDestination(icon: Icons.add, onTap: null),
-        // Notifications (love/heart)
-        FloatingNavBarDestination(
-          icon: Icons.favorite_border_rounded,
-          onTap: () {
-            Navigator.of(context)
-                .push(AppNav.notifications())
-                .then((_) => resetToHome());
-          },
-        ),
-        FloatingNavBarDestination(
-          icon: Icons.person_outline_rounded,
-          onTap: () {
-            Navigator.of(context)
-                .push(AppNav.myProfile())
-                .then((_) {
-                  resetToHome();
-                });
-          },
-        ),
-      ],
-    );
-  }
-
   void _showQuickControlPanel() {
     final theme = Theme.of(context);
     final navigator = Navigator.of(context);
@@ -444,9 +364,7 @@ class _HomeScreenState extends State<HomeScreen>
           theme: theme,
           appSettings: appSettings,
           userCard: _buildUserProfileCard(),
-          onNavigateHome: () {
-            setState(() => _selectedBottomNavIndex = 0);
-          },
+          onNavigateHome: _scrollFeedToTop,
           onCompose: () async {
             navigator.pop();
             await navigator.push(

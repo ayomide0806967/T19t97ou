@@ -7,6 +7,7 @@ import '../../screens/quiz_dashboard_screen.dart';
 import '../../screens/trending_screen.dart';
 import '../../screens/user_profile_screen.dart';
 import '../../features/messages/messages_screen.dart';
+import '../../screens/neutral_page.dart';
 
 class AppNav {
   AppNav._();
@@ -19,6 +20,9 @@ class AppNav {
 
   static Route<void> classes() =>
       MaterialPageRoute(builder: (_) => const MessagesScreen());
+
+  static Route<void> hub() =>
+      MaterialPageRoute(builder: (_) => const NeutralPage());
 
   static Route<void> notifications() =>
       MaterialPageRoute(builder: (_) => const NotificationsScreen());

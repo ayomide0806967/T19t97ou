@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
-import '../widgets/compose_fab.dart';
+import '../widgets/app_tab_scaffold.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -23,12 +23,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final theme = Theme.of(context);
     final notifications = _sampleNotifications;
 
-    return Scaffold(
+    return AppTabScaffold(
+      currentIndex: 3,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Notifications'),
         centerTitle: true,
       ),
-      backgroundColor: theme.scaffoldBackgroundColor,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -58,10 +59,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ),
           ),
         ],
-      ),
-      floatingActionButton: const Padding(
-        padding: EdgeInsets.only(bottom: 12),
-        child: ComposeFab(),
       ),
     );
   }

@@ -8,7 +8,7 @@ import '../core/user/handle.dart';
 import '../core/feed/post_repository.dart';
 import '../models/post.dart';
 import '../widgets/tweet_post_card.dart';
-import '../widgets/compose_fab.dart';
+import '../widgets/app_tab_scaffold.dart';
 import '../core/ui/app_toast.dart';
 import '../theme/app_theme.dart';
 import '../constants/toast_durations.dart';
@@ -629,7 +629,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     // Removed legacy local handleChangeHeader (replaced with _handleChangeHeader)
 
-    return Scaffold(
+    return AppTabScaffold(
+      currentIndex: 4,
       appBar: null,
       body: SafeArea(
         top: false,
@@ -763,10 +764,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
         ),
-      ),
-      floatingActionButton: const Padding(
-        padding: EdgeInsets.only(bottom: 12),
-        child: ComposeFab(),
       ),
     );
   }

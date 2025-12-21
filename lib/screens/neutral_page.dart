@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'quiz_dashboard_screen.dart';
 import '../features/messages/messages_screen.dart';
+import '../widgets/app_tab_scaffold.dart';
 
 class NeutralPage extends StatelessWidget {
   const NeutralPage({super.key});
@@ -13,7 +14,8 @@ class NeutralPage extends StatelessWidget {
     final Color surface =
         isDark ? const Color(0xFF0E0F12) : const Color(0xFFF5F5F5);
 
-    return Scaffold(
+    return AppTabScaffold(
+      currentIndex: 1,
       backgroundColor: surface,
       appBar: AppBar(
         title: const Text('Neutral page'),
