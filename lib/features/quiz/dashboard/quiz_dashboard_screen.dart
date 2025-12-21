@@ -3,9 +3,9 @@ import 'package:flutter/services.dart';
 
 import '../../../services/quiz_repository.dart';
 import '../../../screens/create_class_screen.dart';
-import '../../../screens/quiz_drafts_screen.dart';
-import '../../../screens/quiz_create_screen.dart';
-import '../../../screens/quiz_results_screen.dart';
+import '../create/quiz_create_screen.dart';
+import '../drafts/quiz_drafts_screen.dart';
+import '../results/quiz_results_screen.dart';
 
 class QuizDashboardScreen extends StatelessWidget {
   const QuizDashboardScreen({

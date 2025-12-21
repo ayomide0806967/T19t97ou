@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../services/quiz_repository.dart';
-import '../../../screens/quiz_correction_screen.dart';
+import '../results/quiz_correction_screen.dart';
 
 class QuizTakeScreen extends StatefulWidget {
   const QuizTakeScreen({

@@ -11,11 +11,11 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import '../../../services/quiz_repository.dart';
-import '../../../screens/quiz_drafts_screen.dart';
-import '../../../screens/quiz_results_screen.dart';
-import '../../../screens/quiz_take_screen.dart';
-import '../../../screens/aiken_import_review_screen.dart';
-import '../../../screens/quiz_dashboard_screen.dart';
+import '../aiken/aiken_import_review_screen.dart';
+import '../dashboard/quiz_dashboard_screen.dart';
+import '../drafts/quiz_drafts_screen.dart';
+import '../results/quiz_results_screen.dart';
+import '../take/quiz_take_screen.dart';
 
 import '../ui/quiz_palette.dart';
 import 'models/quiz_question_fields.dart';
