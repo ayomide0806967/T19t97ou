@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../core/auth/auth_repository.dart';
 import '../core/user/handle.dart';
-import '../services/data_service.dart';
+import '../core/feed/post_repository.dart';
 import '../models/post.dart';
 import '../state/app_settings.dart';
 import '../theme/app_theme.dart';
@@ -72,7 +72,7 @@ class _HomeScreenState extends State<HomeScreen>
 
     try {
       HapticFeedback.lightImpact();
-      await context.read<DataService>().load();
+      await context.read<PostRepository>().load();
       await Future<void>.delayed(const Duration(milliseconds: 450));
     } finally {
       if (mounted) {
@@ -117,8 +117,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
-    final dataService = context.watch<DataService>();
-    final baseTimeline = dataService.timelinePosts;
+    final baseTimeline = context.watch<PostRepository>().timelinePosts;
     final auth = context.read<AuthRepository>();
     final currentUserHandle = deriveHandleFromEmail(auth.currentUser?.email);
 
@@ -1727,8 +1726,6 @@ class _PostCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Use DataService via higher-level builders where needed
-
     return TweetPostCard(
       post: post,
       currentUserHandle: currentUserHandle,

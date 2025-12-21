@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/auth/auth_repository.dart';
 import '../core/user/handle.dart';
-import '../services/data_service.dart';
+import '../core/feed/post_repository.dart';
 import '../models/post.dart';
 import '../state/app_settings.dart';
 import '../theme/app_theme.dart';
@@ -129,8 +129,7 @@ class _TrendingScreenState extends State<TrendingScreen> {
     final isDark = theme.brightness == Brightness.dark;
     final onSurface = theme.colorScheme.onSurface;
 
-    final dataService = context.watch<DataService>();
-    final timeline = dataService.timelinePosts;
+    final timeline = context.watch<PostRepository>().timelinePosts;
     final allPosts = List.of(timeline);
     allPosts.sort((a, b) {
       return _score(b).compareTo(_score(a));

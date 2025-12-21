@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../core/auth/auth_repository.dart';
 import '../core/user/handle.dart';
-import '../services/data_service.dart';
+import '../core/feed/post_repository.dart';
 import '../models/post.dart';
 import '../widgets/tweet_post_card.dart';
 import '../widgets/compose_fab.dart';
@@ -475,7 +475,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _isRefreshing = true);
     try {
       HapticFeedback.lightImpact();
-      await context.read<DataService>().load();
+      await context.read<PostRepository>().load();
       await Future<void>.delayed(const Duration(milliseconds: 450));
     } finally {
       if (mounted) {
@@ -541,7 +541,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final dataService = context.watch<DataService>();
+    final dataService = context.watch<PostRepository>();
     final currentUserHandle = _currentUserHandle;
     final email = context.read<AuthRepository>().currentUser?.email ??
         'user@institution.edu';

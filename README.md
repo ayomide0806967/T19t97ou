@@ -2,6 +2,17 @@
 
 A new Flutter project.
 
+## Supabase setup
+
+This app reads Supabase config from compile-time defines.
+
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+
+Example:
+
+`flutter run --dart-define=SUPABASE_URL=... --dart-define=SUPABASE_ANON_KEY=...`
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.

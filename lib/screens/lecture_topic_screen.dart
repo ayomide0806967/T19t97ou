@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../core/auth/auth_repository.dart';
 import '../core/user/handle.dart';
-import '../services/data_service.dart';
+import '../core/feed/post_repository.dart';
 import '../widgets/lecture_note_card.dart';
 import 'class_note_stepper_screen.dart';
 import 'create_note_flow/create_note_welcome_screen.dart';
@@ -16,8 +16,9 @@ class LectureTopicScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final data = context.watch<DataService>();
-    final posts = data.posts.where((p) => p.tags.contains(topic.topicTag)).toList();
+    final data = context.watch<PostRepository>();
+    final posts =
+        data.posts.where((p) => p.tags.contains(topic.topicTag)).toList();
 
     final String currentUserHandle = deriveHandleFromEmail(
       context.read<AuthRepository>().currentUser?.email,

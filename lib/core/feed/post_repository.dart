@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
+
 import '../../models/post.dart';
 import '../../models/thread_entry.dart';
 
-abstract class PostRepository {
+abstract class PostRepository extends Listenable {
   List<PostModel> get posts;
   List<PostModel> get timelinePosts;
 
@@ -38,4 +40,3 @@ abstract class PostRepository {
 
   List<PostModel> repliesForHandle(String handle, {int minLikes});
 }
-

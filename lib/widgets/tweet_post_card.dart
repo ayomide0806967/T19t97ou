@@ -9,7 +9,6 @@ import 'package:provider/provider.dart';
 import '../models/post.dart';
 import '../core/ui/app_toast.dart';
 import '../core/feed/post_repository.dart';
-import '../services/data_service.dart';
 import '../theme/app_theme.dart';
 // Removed card-style shell for timeline layout
 import 'hexagon_avatar.dart';
@@ -557,8 +556,8 @@ class _TweetPostCardState extends State<TweetPostCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final dataService = context.watch<DataService>();
-    final repostedByUser = _userHasReposted(dataService);
+    final repo = context.watch<PostRepository>();
+    final repostedByUser = _userHasReposted(repo);
     // Repost highlighting is currently disabled; no special casing needed.
     final Color? cardBackground = widget.backgroundColor;
     final bool usesLightCardOnDarkTheme =
@@ -1131,8 +1130,8 @@ class _TweetPostCardState extends State<TweetPostCard> {
 
   Future<void> _openReplyComposer() async {
     // Open the same thread view used in profile, focusing the composer
-    final data = context.read<DataService>();
-    final thread = data.buildThreadForPost(widget.post.id);
+    final repo = context.read<PostRepository>();
+    final thread = repo.buildThreadForPost(widget.post.id);
     await Navigator.of(context).push(
       ThreadScreen.route(
         entry: thread,
@@ -1142,7 +1141,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
     );
     // After returning, refresh reply count from service to reflect potential changes
     if (!mounted) return;
-    final updated = data.buildThreadForPost(widget.post.id).post.replies;
+    final updated = repo.buildThreadForPost(widget.post.id).post.replies;
     setState(() => _replies = updated);
   }
 }

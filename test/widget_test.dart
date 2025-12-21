@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:my_app/main.dart';
@@ -30,7 +32,15 @@ class _TestAuthRepository implements AuthRepository {
 
 void main() {
   testWidgets('App builds and shows login CTA', (WidgetTester tester) async {
-    SharedPreferences.setMockInitialValues(<String, Object?>{});
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final binding = TestWidgetsFlutterBinding.ensureInitialized();
+    binding.window.physicalSizeTestValue = const Size(1080, 2400);
+    binding.window.devicePixelRatioTestValue = 1.0;
+    addTearDown(() {
+      binding.window.clearPhysicalSizeTestValue();
+      binding.window.clearDevicePixelRatioTestValue();
+    });
+
     await tester.pumpWidget(
       MultiProvider(
         providers: [
