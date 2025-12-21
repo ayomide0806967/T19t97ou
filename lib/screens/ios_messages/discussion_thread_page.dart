@@ -37,7 +37,7 @@ class _ClassDiscussionThreadPageState extends State<ClassDiscussionThreadPage> {
 
   String get _currentUserHandle {
     return deriveHandleFromEmail(
-      SimpleAuthService().currentUserEmail,
+      context.read<AuthRepository>().currentUser?.email,
       maxLength: 999,
     );
   }

@@ -482,7 +482,10 @@ Future<void> _handleCreateClass(BuildContext context) async {
 }
 
 Future<void> _handleJoinClass(BuildContext context) async {
-  final handle = _deriveHandle(SimpleAuthService());
+  final handle = deriveHandleFromEmail(
+    context.read<AuthRepository>().currentUser?.email,
+    maxLength: 999,
+  );
   final code = await _promptForInviteCode(context);
   if (code == null) return;
   final resolved = await InvitesService.resolve(code);
@@ -506,11 +509,6 @@ Future<void> _handleJoinClass(BuildContext context) async {
       context,
     ).push(MaterialPageRoute(builder: (_) => _CollegeScreen(college: match)));
   }
-}
-
-// Derive a normalized @handle from current user email
-String _deriveHandle(SimpleAuthService auth) {
-  return deriveHandleFromEmail(auth.currentUserEmail, maxLength: 999);
 }
 
 class _CreateClassTile extends StatelessWidget {

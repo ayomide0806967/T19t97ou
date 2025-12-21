@@ -727,7 +727,7 @@ class _ClassMessageTileState extends State<_ClassMessageTile> {
 
   void _openComments(BuildContext context, _ClassMessage message) {
     final String me = deriveHandleFromEmail(
-      SimpleAuthService().currentUserEmail,
+      context.read<AuthRepository>().currentUser?.email,
       maxLength: 999,
     );
     Navigator.of(context).push(

@@ -15,7 +15,7 @@ class _TopicFeedListState extends State<_TopicFeedList> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final data = context.watch<DataService>();
+    final data = context.watch<PostRepository>();
     final posts = data.posts
         .where((p) => p.tags.contains(widget.topic.topicTag))
         .toList();
@@ -33,7 +33,7 @@ class _TopicFeedListState extends State<_TopicFeedList> {
     if (_loading) return;
     setState(() => _loading = true);
     await Future<void>.delayed(const Duration(milliseconds: 250));
-    final data = context.read<DataService>();
+    final data = context.read<PostRepository>();
     final posts = data.posts
         .where((p) => p.tags.contains(widget.topic.topicTag))
         .toList();
@@ -46,7 +46,7 @@ class _TopicFeedListState extends State<_TopicFeedList> {
 
   @override
   Widget build(BuildContext context) {
-    final data = context.watch<DataService>();
+    final data = context.watch<PostRepository>();
     final posts = data.posts
         .where((p) => p.tags.contains(widget.topic.topicTag))
         .toList();
@@ -83,11 +83,11 @@ class _TopicFeedListState extends State<_TopicFeedList> {
                 ? null
                 : () async {
                     final String me = deriveHandleFromEmail(
-                      SimpleAuthService().currentUserEmail,
+                      context.read<AuthRepository>().currentUser?.email,
                       maxLength: 999,
                     );
                     final toggled = await context
-                        .read<DataService>()
+                        .read<PostRepository>()
                         .toggleRepost(postId: p.id, userHandle: me);
                     if (!context.mounted) return toggled;
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -433,7 +433,7 @@ class _TopicDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final data = context.watch<DataService>();
+    final data = context.watch<PostRepository>();
     final posts = data.posts
         .where((p) => p.tags.contains(topic.topicTag))
         .toList();

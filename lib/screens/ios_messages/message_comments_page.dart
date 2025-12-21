@@ -71,10 +71,10 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
     final handle = widget.currentUserHandle.trim();
     if (handle.isEmpty) return;
 
-    final data = context.read<DataService>();
+    final data = context.read<PostRepository>();
     final String targetId = widget.message.id;
 
-    final bool alreadyReposted = data.hasUserRetweeted(targetId, handle);
+    final bool alreadyReposted = data.hasUserReposted(targetId, handle);
     if (alreadyReposted) return;
 
     await data.toggleRepost(postId: targetId, userHandle: handle);

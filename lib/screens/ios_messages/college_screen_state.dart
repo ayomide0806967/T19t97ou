@@ -446,7 +446,7 @@ Mock exam briefing extended update: please review chapters one through five, pra
 
   String get _currentUserHandle {
     return deriveHandleFromEmail(
-      SimpleAuthService().currentUserEmail,
+      context.read<AuthRepository>().currentUser?.email,
       maxLength: 999,
     );
   }
@@ -943,7 +943,7 @@ Mock exam briefing extended update: please review chapters one through five, pra
       );
       return;
     }
-    final data = context.read<DataService>();
+    final data = context.read<PostRepository>();
     final String topicTag = _activeTopic!.topicTag;
     await data.addPost(
       author: _activeTopic!.tutorName,
