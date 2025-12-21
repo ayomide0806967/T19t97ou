@@ -2,9 +2,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
-import '../screens/compose_screen.dart';
-import '../screens/ios_messages_screen.dart';
-import '../screens/quiz_dashboard_screen.dart';
+import '../core/navigation/app_nav.dart';
 import 'hexagon_compose_button.dart';
 
 class ComposeFab extends StatefulWidget {
@@ -20,7 +18,7 @@ class _ComposeFabState extends State<ComposeFab> {
 
   Future<void> _openQuickComposer() async {
     final navigator = Navigator.of(context);
-    await navigator.push(MaterialPageRoute(builder: (_) => const ComposeScreen()));
+    await navigator.push(AppNav.compose());
   }
 
   Future<void> _showFabMenu() async {
@@ -61,11 +59,7 @@ class _ComposeFabState extends State<ComposeFab> {
               animationOrder: 2,
               onTap: () {
                 close();
-                navigator.push(
-                  MaterialPageRoute(
-                    builder: (_) => const IosMinimalistMessagePage(),
-                  ),
-                );
+                navigator.push(AppNav.classes());
               },
             ),
             _ComposeFabAction(
@@ -74,11 +68,7 @@ class _ComposeFabState extends State<ComposeFab> {
               animationOrder: 1,
               onTap: () {
                 close();
-                navigator.push(
-                  MaterialPageRoute(
-                    builder: (_) => const QuizDashboardScreen(),
-                  ),
-                );
+                navigator.push(AppNav.quizDashboard());
               },
             ),
             _ComposeFabAction(

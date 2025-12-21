@@ -2,7 +2,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:flutter/services.dart';
-import 'dart:convert';
 import 'package:image_picker/image_picker.dart';
 // Note: file_picker is optional. We avoid importing it so the app builds even
 // when the dependency hasn't been fetched. If you add file_picker to
@@ -28,108 +27,8 @@ import 'class_note_stepper_screen.dart';
 import '../widgets/equal_width_buttons_row.dart';
 import '../widgets/setting_switch_row.dart';
 import '../models/class_note.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../features/notes/class_notes_store.dart';
 // Removed unused tweet widgets imports
-
-// In-memory lecture note buckets shared between tabs for this demo.
-final List<ClassNoteSummary> _classNotes = <ClassNoteSummary>[];
-final List<ClassNoteSummary> _libraryNotes = <ClassNoteSummary>[];
-VoidCallback? _notifyClassNotesChanged;
-
-const String _classNotesStoragePrefix = 'lecture_notes_';
-
-Map<String, dynamic> _classNoteSectionToJson(ClassNoteSection s) => {
-  'title': s.title,
-  'subtitle': s.subtitle,
-  'bullets': s.bullets,
-  'imagePaths': s.imagePaths,
-};
-
-ClassNoteSection _classNoteSectionFromJson(Map<String, dynamic> json) =>
-    ClassNoteSection(
-      title: json['title'] as String,
-      subtitle: json['subtitle'] as String,
-      bullets: (json['bullets'] as List?)?.cast<String>() ?? const <String>[],
-      imagePaths:
-          (json['imagePaths'] as List?)?.cast<String>() ?? const <String>[],
-    );
-
-Map<String, dynamic> _classNoteSummaryToJson(ClassNoteSummary s) => {
-  'title': s.title,
-  'subtitle': s.subtitle,
-  'steps': s.steps,
-  'estimatedMinutes': s.estimatedMinutes,
-  'createdAt': s.createdAt.toIso8601String(),
-  'commentCount': s.commentCount,
-  'sections': s.sections.map(_classNoteSectionToJson).toList(),
-  'attachedQuizTitle': s.attachedQuizTitle,
-};
-
-ClassNoteSummary _classNoteSummaryFromJson(Map<String, dynamic> json) =>
-    ClassNoteSummary(
-      title: json['title'] as String,
-      subtitle: json['subtitle'] as String,
-      steps: (json['steps'] as num).toInt(),
-      estimatedMinutes: (json['estimatedMinutes'] as num).toInt(),
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      commentCount: (json['commentCount'] as num?)?.toInt() ?? 0,
-      sections:
-          (json['sections'] as List?)
-              ?.map((e) => _classNoteSectionFromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const <ClassNoteSection>[],
-      attachedQuizTitle: json['attachedQuizTitle'] as String?,
-    );
-
-Future<void> _loadNotesForCollege(String code) async {
-  final prefs = await SharedPreferences.getInstance();
-  final base = '$_classNotesStoragePrefix$code';
-  final rawClass = prefs.getString('${base}_class');
-  final rawLibrary = prefs.getString('${base}_library');
-
-  final List<ClassNoteSummary> classNotes;
-  final List<ClassNoteSummary> libraryNotes;
-
-  if (rawClass != null) {
-    final decoded = (jsonDecode(rawClass) as List)
-        .cast<Map<String, dynamic>>()
-        .map(_classNoteSummaryFromJson)
-        .toList();
-    classNotes = decoded;
-  } else {
-    classNotes = <ClassNoteSummary>[];
-  }
-
-  if (rawLibrary != null) {
-    final decoded = (jsonDecode(rawLibrary) as List)
-        .cast<Map<String, dynamic>>()
-        .map(_classNoteSummaryFromJson)
-        .toList();
-    libraryNotes = decoded;
-  } else {
-    libraryNotes = <ClassNoteSummary>[];
-  }
-
-  _classNotes
-    ..clear()
-    ..addAll(classNotes);
-  _libraryNotes
-    ..clear()
-    ..addAll(libraryNotes);
-}
-
-Future<void> _saveNotesForCollege(String code) async {
-  final prefs = await SharedPreferences.getInstance();
-  final base = '$_classNotesStoragePrefix$code';
-  final classJson = jsonEncode(
-    _classNotes.map(_classNoteSummaryToJson).toList(),
-  );
-  final libraryJson = jsonEncode(
-    _libraryNotes.map(_classNoteSummaryToJson).toList(),
-  );
-  await prefs.setString('${base}_class', classJson);
-  await prefs.setString('${base}_library', libraryJson);
-}
 
 // WhatsApp color palette for Classes screen
 const Color _whatsAppGreen = Color(0xFF25D366);
@@ -3656,19 +3555,21 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
   @override
   void initState() {
     super.initState();
-    _notifyClassNotesChanged = () {
+    ClassNotesStore.onChanged = () {
       if (mounted) setState(() {});
     };
     _initNotes();
   }
 
   Future<void> _initNotes() async {
-    await _loadNotesForCollege(widget.college.code);
+    await ClassNotesStore.loadForCollege(widget.college.code);
     if (!mounted) return;
     setState(() {
-      _visibleNotes = _classNotes.isEmpty
+      _visibleNotes = ClassNotesStore.classNotes.isEmpty
           ? 0
-          : (_classNotes.length < _pageSize ? _classNotes.length : _pageSize);
+          : (ClassNotesStore.classNotes.length < _pageSize
+              ? ClassNotesStore.classNotes.length
+              : _pageSize);
     });
   }
 
@@ -3722,9 +3623,9 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
     );
     if (confirmed != true) return;
     setState(() {
-      _classNotes.remove(note);
+      ClassNotesStore.classNotes.remove(note);
     });
-    await _saveNotesForCollege(widget.college.code);
+    await ClassNotesStore.saveForCollege(widget.college.code);
     if (!mounted) return;
     ScaffoldMessenger.of(
       context,
@@ -3733,7 +3634,7 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
 
   @override
   void dispose() {
-    _notifyClassNotesChanged = null;
+    ClassNotesStore.onChanged = null;
     super.dispose();
   }
 
@@ -3827,9 +3728,9 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
                               );
                           if (summary != null && mounted) {
                             setState(() {
-                              _classNotes.insert(0, summary);
+                              ClassNotesStore.classNotes.insert(0, summary);
                             });
-                            await _saveNotesForCollege(widget.college.code);
+                            await ClassNotesStore.saveForCollege(widget.college.code);
                           }
                         },
                       ),
@@ -3851,7 +3752,7 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
                   _TopicFeedList(topic: widget.activeTopic!),
                 const SizedBox(height: 16),
               ],
-              if (_classNotes.isEmpty) ...[
+              if (ClassNotesStore.classNotes.isEmpty) ...[
                 Text(
                   'Class notes you create will appear here.',
                   style: theme.textTheme.bodySmall?.copyWith(color: subtle),
@@ -3860,24 +3761,25 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
               ] else ...[
                 Column(
                   children: [
-                    for (final note in _classNotes) ...[
+                    for (final note in ClassNotesStore.classNotes) ...[
                       _ClassNotesCard(
                         summary: note,
                         onUpdated: (updated) {
                           setState(() {
-                            final int index = _classNotes.indexOf(note);
+                            final int index =
+                                ClassNotesStore.classNotes.indexOf(note);
                             if (index != -1) {
-                              _classNotes[index] = updated;
+                              ClassNotesStore.classNotes[index] = updated;
                             }
                           });
-                          _saveNotesForCollege(widget.college.code);
+                          ClassNotesStore.saveForCollege(widget.college.code);
                         },
                         onMoveToLibrary: () {
                           setState(() {
-                            _classNotes.remove(note);
+                            ClassNotesStore.classNotes.remove(note);
                           });
-                          _libraryNotes.insert(0, note);
-                          _saveNotesForCollege(widget.college.code);
+                          ClassNotesStore.libraryNotes.insert(0, note);
+                          ClassNotesStore.saveForCollege(widget.college.code);
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Moved to Library')),
                           );

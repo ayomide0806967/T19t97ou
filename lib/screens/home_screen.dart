@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../core/auth/auth_repository.dart';
 import '../core/user/handle.dart';
 import '../core/feed/post_repository.dart';
+import '../core/navigation/app_nav.dart';
 import '../models/post.dart';
 import '../state/app_settings.dart';
 import '../theme/app_theme.dart';
@@ -17,13 +18,9 @@ import '../widgets/floating_nav_bar.dart';
 import '../widgets/compose_fab.dart';
 import 'compose_screen.dart';
 import '../widgets/tweet_post_card.dart';
-import 'profile_screen.dart';
 import 'settings_screen.dart';
 import 'ios_messages_screen.dart';
 import 'neutral_page.dart';
-import 'notifications_screen.dart';
-import 'quiz_dashboard_screen.dart';
-import 'trending_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -161,11 +158,7 @@ class _HomeScreenState extends State<HomeScreen>
                     strokeWidthFactor: 0.10,
                   ),
                   onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const TrendingScreen(),
-                      ),
-                    );
+                    Navigator.of(context).push(AppNav.trending());
                   },
                 ),
               ),
@@ -376,9 +369,7 @@ class _HomeScreenState extends State<HomeScreen>
       onIndexChange: (index) {
         // Center button opens full-page composer (no modal)
         if (index == 2) {
-          Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: (_) => const ComposeScreen()));
+          Navigator.of(context).push(AppNav.compose());
           return;
         }
         if (mounted) {
@@ -421,11 +412,7 @@ class _HomeScreenState extends State<HomeScreen>
           icon: Icons.favorite_border_rounded,
           onTap: () {
             Navigator.of(context)
-                .push(
-                  MaterialPageRoute(
-                    builder: (context) => const NotificationsScreen(),
-                  ),
-                )
+                .push(AppNav.notifications())
                 .then((_) => resetToHome());
           },
         ),
@@ -433,11 +420,7 @@ class _HomeScreenState extends State<HomeScreen>
           icon: Icons.person_outline_rounded,
           onTap: () {
             Navigator.of(context)
-                .push(
-                  MaterialPageRoute(
-                    builder: (context) => const ProfileScreen(),
-                  ),
-                )
+                .push(AppNav.myProfile())
                 .then((_) {
                   resetToHome();
                 });
@@ -1048,9 +1031,7 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
         label: 'Class',
         onPressed: () async {
           Navigator.of(context).pop();
-          await Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const IosMinimalistMessagePage()),
-          );
+          await Navigator.of(context).push(AppNav.classes());
         },
       ),
       _QuickControlItem(
@@ -1066,9 +1047,7 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
         label: 'Quiz',
         onPressed: () async {
           Navigator.of(context).pop();
-          await Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const QuizDashboardScreen()),
-          );
+          await Navigator.of(context).push(AppNav.quizDashboard());
         },
       ),
       _QuickControlItem(
@@ -1092,9 +1071,7 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
         label: 'Messages',
         onPressed: () async {
           Navigator.of(context).pop();
-          await Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const IosMinimalistMessagePage()),
-          );
+          await Navigator.of(context).push(AppNav.classes());
         },
       ),
       _QuickControlItem(
@@ -1102,9 +1079,7 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
         label: 'Search',
         onPressed: () async {
           Navigator.of(context).pop();
-          await Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: (_) => TrendingScreen()));
+          await Navigator.of(context).push(AppNav.trending());
         },
       ),
       _QuickControlItem(

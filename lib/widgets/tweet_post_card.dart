@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import '../models/post.dart';
 import '../core/ui/app_toast.dart';
 import '../core/feed/post_repository.dart';
+import '../core/navigation/app_nav.dart';
 import '../theme/app_theme.dart';
 // Removed card-style shell for timeline layout
 import 'hexagon_avatar.dart';
@@ -18,7 +19,6 @@ import '../screens/quote_screen.dart';
 import 'icons/x_retweet_icon.dart';
 import 'icons/x_comment_icon.dart';
 import '../screens/post_activity_screen.dart';
-import '../screens/user_profile_screen.dart';
 import '../constants/toast_durations.dart';
 
 class TweetPostCard extends StatefulWidget {
@@ -772,9 +772,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
             ? handleForProfile
             : '@${handleForProfile}';
         Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => UserProfileScreen(handle: normalizedHandle),
-          ),
+          AppNav.userProfile(normalizedHandle),
         );
       },
       child: HexagonAvatar(
