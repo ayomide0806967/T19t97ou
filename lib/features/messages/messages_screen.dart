@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../screens/ios_messages_screen.dart';
+import 'legacy_messages_page.dart';
 
 /// Temporary wrapper to decouple the rest of the app from the legacy
 /// `ios_messages_screen.dart` mega-file. This will be replaced by a proper
