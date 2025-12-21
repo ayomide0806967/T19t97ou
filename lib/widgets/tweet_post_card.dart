@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../services/data_service.dart';
@@ -109,6 +110,13 @@ class _TweetPostCardState extends State<TweetPostCard> {
     setState(() {
       _bookmarked = !_bookmarked;
     });
+  }
+
+  void _toggleBookmarkWithToast() {
+    setState(() {
+      _bookmarked = !_bookmarked;
+    });
+    _showToast(_bookmarked ? 'Saved' : 'Removed from saved');
   }
 
   String _withAtPrefix(String handle) {
@@ -359,6 +367,202 @@ class _TweetPostCardState extends State<TweetPostCard> {
     );
   }
 
+  Future<void> _copyPostLink() async {
+    final link = 'https://academicnightingale.app/post/${widget.post.id}';
+    await Clipboard.setData(ClipboardData(text: link));
+    if (!mounted) return;
+    _showToast('Link copied');
+  }
+
+  Future<void> _openPostMoreSheet() async {
+    final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final Color sheetBg =
+        isDark ? theme.colorScheme.surface : const Color(0xFFF2F2F2);
+    final Color sheetSurface = isDark ? theme.colorScheme.surface : Colors.white;
+    final Color onSurface = theme.colorScheme.onSurface;
+    final Border boxBorder = Border.all(
+      color: theme.dividerColor.withValues(alpha: isDark ? 0.22 : 0.18),
+      width: 1,
+    );
+    final String rawHandle =
+        widget.post.handle.isNotEmpty ? widget.post.handle : widget.post.author;
+    final String handleLabel = _withAtPrefix(rawHandle);
+    final String displayLabel =
+        handleLabel.isEmpty ? 'account' : handleLabel;
+
+    Widget handleRow({
+      required BuildContext context,
+      required String title,
+      required IconData icon,
+      Color? textColor,
+      Color? iconColor,
+      VoidCallback? onTap,
+    }) {
+      return ListTile(
+        visualDensity: const VisualDensity(vertical: -1),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 18),
+        title: Text(
+          title,
+          style: theme.textTheme.bodyLarge?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: textColor ?? onSurface,
+          ),
+        ),
+        trailing: Icon(icon, color: iconColor ?? onSurface),
+        onTap: onTap == null
+            ? null
+            : () {
+                Navigator.of(context).pop();
+                onTap();
+              },
+      );
+    }
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: false,
+      showDragHandle: false,
+      backgroundColor: sheetBg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        final divider = Divider(
+          height: 1,
+          thickness: 1.2,
+          indent: 18,
+          endIndent: 18,
+          color: theme.dividerColor.withValues(alpha: isDark ? 0.22 : 0.32),
+        );
+
+        return SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 10, bottom: 6),
+                  child: Container(
+                    width: 46,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.22)
+                          : const Color(0xFFBDBDBD),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: sheetSurface,
+                      borderRadius: BorderRadius.circular(18),
+                      border: boxBorder,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        handleRow(
+                          context: sheetContext,
+                          title: 'Copy link',
+                          icon: Icons.link_rounded,
+                          onTap: _copyPostLink,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: sheetSurface,
+                      borderRadius: BorderRadius.circular(18),
+                      border: boxBorder,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        handleRow(
+                          context: sheetContext,
+                          title: _bookmarked ? 'Remove bookmark' : 'Save',
+                          icon: _bookmarked
+                              ? Icons.bookmark_rounded
+                              : Icons.bookmark_border_rounded,
+                          onTap: _toggleBookmarkWithToast,
+                        ),
+                        divider,
+                        handleRow(
+                          context: sheetContext,
+                          title: 'Hide',
+                          icon: Icons.visibility_off_outlined,
+                          onTap: () => _showToast('Hide post (coming soon)'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: sheetSurface,
+                      borderRadius: BorderRadius.circular(18),
+                      border: boxBorder,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        handleRow(
+                          context: sheetContext,
+                          title: 'Mute $displayLabel',
+                          icon: Icons.volume_off_outlined,
+                          onTap: () =>
+                              _showToast('Muted $displayLabel (coming soon)'),
+                        ),
+                        divider,
+                        handleRow(
+                          context: sheetContext,
+                          title: 'Restrict $displayLabel',
+                          icon: Icons.lock_person_outlined,
+                          onTap: () =>
+                              _showToast('Restricted $displayLabel (coming soon)'),
+                        ),
+                        divider,
+                        handleRow(
+                          context: sheetContext,
+                          title: 'Block $displayLabel',
+                          icon: Icons.block_rounded,
+                          textColor: Colors.red,
+                          iconColor: Colors.red,
+                          onTap: () =>
+                              _showToast('Blocked $displayLabel (coming soon)'),
+                        ),
+                        divider,
+                        handleRow(
+                          context: sheetContext,
+                          title: 'Report',
+                          icon: Icons.report_gmailerrorred_outlined,
+                          textColor: Colors.red,
+                          iconColor: Colors.red,
+                          onTap: () => _showToast('Report coming soon'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _openQuoteComposer() async {
     final post = widget.post;
     final initials = _initialsFrom(post.author);
@@ -526,7 +730,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
           ),
           InkWell(
             borderRadius: BorderRadius.circular(6),
-            onTap: () => _showToast('Post options coming soon'),
+            onTap: _openPostMoreSheet,
             child: Padding(
               padding: const EdgeInsets.only(left: 4),
               child: Icon(Icons.more_horiz, size: 18, color: controlIconColor),
@@ -574,7 +778,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
           ),
           InkWell(
             borderRadius: BorderRadius.circular(6),
-            onTap: () => _showToast('Post options coming soon'),
+            onTap: _openPostMoreSheet,
             child: Padding(
               padding: const EdgeInsets.only(left: 4),
               child: Icon(Icons.more_horiz, size: 18, color: controlIconColor),

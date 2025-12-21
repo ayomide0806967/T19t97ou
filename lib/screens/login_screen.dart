@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../services/simple_auth_service.dart';
 import '../widgets/swiss_bank_icon.dart';
+import 'login_email_entry_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -285,7 +286,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
       const SizedBox(height: 8),
       Text(
-        'Swiss helps you think, write, and create at your highest level.',
+        'From classroom notes to viral posts',
         style: theme.textTheme.bodyMedium?.copyWith(
           color: const Color(0xFF111827).withValues(alpha: 0.62),
         ),
@@ -293,8 +294,18 @@ class _LoginScreenState extends State<LoginScreen> {
       const SizedBox(height: 16),
       SizedBox(
         height: 56,
-        child: ElevatedButton.icon(
-          onPressed: _isLoading ? null : _signInWithApple,
+        child: ElevatedButton(
+          onPressed: _isLoading
+              ? null
+              : () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const LoginEmailEntryScreen(
+                        showPassword: true,
+                      ),
+                    ),
+                  );
+                },
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.black,
             foregroundColor: Colors.white,
@@ -302,8 +313,7 @@ class _LoginScreenState extends State<LoginScreen> {
               borderRadius: BorderRadius.circular(28),
             ),
           ),
-          icon: const Icon(Icons.apple),
-          label: const Text('Continue with Apple'),
+          child: const Text('Username and Password'),
         ),
       ),
       const SizedBox(height: 12),
@@ -335,9 +345,15 @@ class _LoginScreenState extends State<LoginScreen> {
         child: OutlinedButton(
           onPressed: _isLoading
               ? null
-              : () => setState(() {
-                    _showEmailForm = true;
-                  }),
+              : () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const LoginEmailEntryScreen(
+                        showPassword: false,
+                      ),
+                    ),
+                  );
+                },
           style: OutlinedButton.styleFrom(
             backgroundColor: const Color(0xFF111827).withValues(alpha: 0.06),
             foregroundColor: const Color(0xFF111827),
@@ -649,19 +665,14 @@ class _InstitutionBackgroundState extends State<_InstitutionBackground> {
                     key: ValueKey(_index),
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (message.icon != null)
-                        Icon(
-                          message.icon,
-                          size: 30,
-                          color: accent.withValues(alpha: 0.92),
-                        )
-                      else
+                      if (message.text.toUpperCase() == 'IN INSTITUTION')
                         SwissBankIcon(
                           size: 76,
                           color: accent.withValues(alpha: 0.92),
                           strokeWidthFactor: 0.085,
                         ),
-                      const SizedBox(height: 12),
+                      if (message.text.toUpperCase() == 'IN INSTITUTION')
+                        const SizedBox(height: 12),
                       _InstitutionHeroText(
                         text: message.text,
                         accent: accent,

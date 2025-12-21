@@ -12,6 +12,7 @@ import '../widgets/hexagon_avatar.dart';
 import '../services/class_service.dart';
 import '../widgets/swiss_bank_icon.dart';
 import '../widgets/floating_nav_bar.dart';
+import '../widgets/compose_fab.dart';
 import 'compose_screen.dart';
 import '../widgets/tweet_post_card.dart';
 import 'profile_screen.dart';
@@ -32,8 +33,9 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  final GlobalKey _composeFabKey = GlobalKey();
-  bool _isFabMenuOpen = false;
+  final ScrollController _outerScrollController = ScrollController();
+  final ScrollController _forYouScrollController = ScrollController();
+  final ScrollController _followingScrollController = ScrollController();
   int _selectedBottomNavIndex = 0;
   int _selectedFeedTabIndex = 0;
   final PageController _feedPageController = PageController();
@@ -74,6 +76,9 @@ class _HomeScreenState extends State<HomeScreen>
   void dispose() {
     _logoRefreshController.dispose();
     _feedPageController.dispose();
+    _outerScrollController.dispose();
+    _forYouScrollController.dispose();
+    _followingScrollController.dispose();
     super.dispose();
   }
 
@@ -96,6 +101,37 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
+  void _scrollFeedToTop() {
+    final futures = <Future<void>>[];
+
+    if (_outerScrollController.hasClients &&
+        _outerScrollController.offset > 0) {
+      futures.add(
+        _outerScrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 360),
+          curve: Curves.easeOutCubic,
+        ),
+      );
+    }
+
+    final controller = _selectedFeedTabIndex == 0
+        ? _forYouScrollController
+        : _followingScrollController;
+    if (controller.hasClients && controller.offset > 0) {
+      futures.add(
+        controller.animateTo(
+          0,
+          duration: const Duration(milliseconds: 360),
+          curve: Curves.easeOutCubic,
+        ),
+      );
+    }
+
+    if (futures.isEmpty) return;
+    Future.wait(futures);
+  }
+
   @override
   Widget build(BuildContext context) {
     final dataService = context.watch<DataService>();
@@ -105,6 +141,8 @@ class _HomeScreenState extends State<HomeScreen>
     return Scaffold(
       key: _scaffoldKey,
       body: NestedScrollView(
+        controller: _outerScrollController,
+        floatHeaderSlivers: true,
         physics: const ClampingScrollPhysics(),
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
           SliverAppBar(
@@ -267,21 +305,21 @@ class _HomeScreenState extends State<HomeScreen>
                 context,
                 _sortedTrending(baseTimeline),
                 currentUserHandle,
+                controller: _forYouScrollController,
               ),
-              _buildFeedList(context, baseTimeline, currentUserHandle),
+              _buildFeedList(
+                context,
+                baseTimeline,
+                currentUserHandle,
+                controller: _followingScrollController,
+              ),
             ],
           ),
         ),
       ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: KeyedSubtree(
-          key: _composeFabKey,
-          child: _HexagonComposeButton(
-            onTap: _showFabMenu,
-            showPlus: _isFabMenuOpen,
-          ),
-        ),
+      floatingActionButton: const Padding(
+        padding: EdgeInsets.only(bottom: 12),
+        child: ComposeFab(),
       ),
       bottomNavigationBar: _buildBottomNavigationBar(),
     );
@@ -291,7 +329,7 @@ class _HomeScreenState extends State<HomeScreen>
     BuildContext context,
     List<PostModel> posts,
     String currentUserHandle, {
-    Key? key,
+    ScrollController? controller,
   }) {
     final theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
@@ -328,19 +366,17 @@ class _HomeScreenState extends State<HomeScreen>
       );
     }
 
-    return KeyedSubtree(
-      key: key,
-      child: RefreshIndicator(
-        color: Colors.black,
-        notificationPredicate: (_) => true,
-        onRefresh: _handlePullToRefresh,
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(
-            parent: ClampingScrollPhysics(),
-          ),
-          padding: const EdgeInsets.only(top: 10),
-          children: children,
+    return RefreshIndicator(
+      color: Colors.black,
+      notificationPredicate: (_) => true,
+      onRefresh: _handlePullToRefresh,
+      child: ListView(
+        controller: controller,
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: ClampingScrollPhysics(),
         ),
+        padding: const EdgeInsets.only(top: 10),
+        children: children,
       ),
     );
   }
@@ -370,9 +406,17 @@ class _HomeScreenState extends State<HomeScreen>
         FloatingNavBarDestination(
           icon: Icons.home_filled,
           onTap: () {
+            if (_selectedBottomNavIndex == 0) {
+              _scrollFeedToTop();
+              return;
+            }
             if (mounted) {
               setState(() => _selectedBottomNavIndex = 0);
             }
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              _scrollFeedToTop();
+            });
           },
         ),
         // Messages
@@ -418,95 +462,6 @@ class _HomeScreenState extends State<HomeScreen>
         ),
       ],
     );
-  }
-
-  Future<void> _openQuickComposer() async {
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const ComposeScreen()));
-  }
-
-  void _showFabMenu() async {
-    if (_isFabMenuOpen) return;
-
-    final renderObject = _composeFabKey.currentContext?.findRenderObject();
-    if (renderObject is! RenderBox) return;
-
-    final Offset topLeft = renderObject.localToGlobal(Offset.zero);
-    final Size size = renderObject.size;
-    final Rect fabRect = topLeft & size;
-
-    final Size screenSize = MediaQuery.sizeOf(context);
-    final double right = screenSize.width - fabRect.right;
-    final double bottom = screenSize.height - fabRect.bottom;
-
-    if (mounted) {
-      setState(() => _isFabMenuOpen = true);
-    }
-
-    final navigator = Navigator.of(context);
-    await showGeneralDialog<void>(
-      context: context,
-      barrierLabel: 'Compose menu',
-      barrierDismissible: true,
-      barrierColor: Colors.transparent,
-      // Route itself has no animation; overlay animates internally on entry only.
-      transitionDuration: Duration.zero,
-      pageBuilder: (dialogContext, animation, secondaryAnimation) {
-        void close() => Navigator.of(dialogContext).pop();
-
-        return _ComposeFabMenuOverlay(
-          anchorRight: right,
-          anchorBottom: bottom,
-          onClose: close,
-          actions: [
-            _ComposeFabAction(
-              label: 'Go Class',
-              icon: Icons.school_rounded,
-              animationOrder: 2,
-              onTap: () {
-                close();
-                navigator.push(
-                  MaterialPageRoute(
-                    builder: (_) => const IosMinimalistMessagePage(),
-                  ),
-                );
-              },
-            ),
-            _ComposeFabAction(
-              label: 'Quizzes',
-              icon: Icons.quiz_outlined,
-              animationOrder: 1,
-              onTap: () {
-                close();
-                navigator.push(
-                  MaterialPageRoute(
-                    builder: (_) => const QuizDashboardScreen(),
-                  ),
-                );
-              },
-            ),
-            _ComposeFabAction(
-              label: 'Photos',
-              icon: Icons.photo_outlined,
-              animationOrder: 0,
-              showPlus: true,
-              onTap: () {
-                close();
-                _openQuickComposer();
-              },
-            ),
-          ],
-          onCompose: () {
-            close();
-            _openQuickComposer();
-          },
-        );
-      },
-    );
-
-    if (!mounted) return;
-    setState(() => _isFabMenuOpen = false);
   }
 
   void _showQuickControlPanel() {
@@ -778,6 +733,86 @@ class _HomeScreenState extends State<HomeScreen>
   void _showToast(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
+    );
+  }
+}
+
+class _StoryRail extends StatelessWidget {
+  const _StoryRail({required this.currentUserHandle});
+
+  final String currentUserHandle;
+
+  @override
+  Widget build(BuildContext context) {
+    final classes = ClassService.userColleges(currentUserHandle);
+    final List<_Story> stories = classes.map((c) => _Story(c.name)).toList();
+    final theme = Theme.of(context);
+
+    if (stories.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return SizedBox(
+      height: 112,
+      child: NotificationListener<ScrollNotification>(
+        onNotification: (_) => false,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          itemCount: stories.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 16),
+          itemBuilder: (context, index) {
+            final story = stories[index];
+            final Color borderColor = theme.colorScheme.primary.withValues(
+              alpha: 0.25,
+            );
+            final Color background = Theme.of(context).colorScheme.surface;
+
+            return GestureDetector(
+              onTap: () {
+                HapticFeedback.lightImpact();
+              },
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  HexagonAvatar(
+                    size: 56,
+                    backgroundColor: background,
+                    borderColor: borderColor,
+                    borderWidth: 1.1,
+                    child: Center(
+                      child: Text(
+                        story.initials,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: AppTheme.textPrimary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    width: 70,
+                    child: Text(
+                      story.label,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w500,
+                        color: AppTheme.textSecondary,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 }
@@ -1704,447 +1739,6 @@ class _ComposerFooterIcon extends StatelessWidget {
   }
 }
 */
-
-class _ComposeFabAction {
-  const _ComposeFabAction({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-    this.showPlus = false,
-    this.animationOrder = 0,
-  });
-
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-  final bool showPlus;
-  final int animationOrder;
-}
-
-class _ComposeFabMenuOverlay extends StatefulWidget {
-  const _ComposeFabMenuOverlay({
-    required this.anchorRight,
-    required this.anchorBottom,
-    required this.onClose,
-    required this.onCompose,
-    required this.actions,
-  });
-
-  final double anchorRight;
-  final double anchorBottom;
-  final VoidCallback onClose;
-  final VoidCallback onCompose;
-  final List<_ComposeFabAction> actions;
-
-  @override
-  State<_ComposeFabMenuOverlay> createState() => _ComposeFabMenuOverlayState();
-}
-
-class _ComposeFabMenuOverlayState extends State<_ComposeFabMenuOverlay>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _animation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 700),
-    );
-    _animation = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutCubic,
-    );
-    _controller.forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _animation,
-      builder: (context, child) {
-        final double t = _animation.value;
-        return Material(
-          type: MaterialType.transparency,
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: widget.onClose,
-                  child: BackdropFilter(
-                    filter: ui.ImageFilter.blur(sigmaX: 2 * t, sigmaY: 2 * t),
-                    child: Container(
-                      color: Colors.white.withValues(alpha: 0.94 * t),
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                right: widget.anchorRight,
-                bottom: widget.anchorBottom,
-                child: _ComposeFabMenu(
-                  animation: _animation,
-                  onClose: widget.onClose,
-                  onCompose: widget.onCompose,
-                  actions: widget.actions,
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _ComposeFabMenu extends StatelessWidget {
-  const _ComposeFabMenu({
-    required this.animation,
-    required this.onClose,
-    required this.onCompose,
-    required this.actions,
-  });
-
-  final Animation<double> animation;
-  final VoidCallback onClose;
-  final VoidCallback onCompose;
-  final List<_ComposeFabAction> actions;
-
-  @override
-  Widget build(BuildContext context) {
-    const double itemGap = 18;
-    final theme = Theme.of(context);
-    final Animation<double> buttonScale = Tween<double>(begin: 0.8, end: 1.0)
-        .animate(
-          CurvedAnimation(
-            parent: animation,
-            curve: Curves.easeOutBack,
-            reverseCurve: Curves.easeInCubic,
-          ),
-        );
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        for (int index = 0; index < actions.length; index++) ...[
-          _ComposeFabStaggeredEntry(
-            animation: animation,
-            index: actions[index].animationOrder,
-            child: _FabMenuItem(
-              label: actions[index].label,
-              icon: actions[index].icon,
-              showPlus: actions[index].showPlus,
-              onTap: actions[index].onTap,
-            ),
-          ),
-          if (index != actions.length - 1) const SizedBox(height: itemGap),
-        ],
-        const SizedBox(height: 14),
-        _ComposeFabStaggeredEntry(
-          animation: animation,
-          index: 0,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Transform.translate(
-                offset: const Offset(0, -10),
-                child: Text(
-                  'Post',
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: Colors.black,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              ScaleTransition(
-                scale: buttonScale,
-                child: _HexagonComposeButton(onTap: onCompose, showPlus: true),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ComposeFabStaggeredEntry extends StatelessWidget {
-  const _ComposeFabStaggeredEntry({
-    required this.animation,
-    required this.index,
-    required this.child,
-  });
-
-  final Animation<double> animation;
-  final int index;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    // Stagger each item clearly: 0 -> Photos, 1 -> Quizzes, 2 -> Go Class.
-    final double start = 0.10 + (index * 0.18);
-    final double end = (start + 0.40).clamp(0.0, 1.0);
-    final Animation<double> entry = CurvedAnimation(
-      parent: animation,
-      curve: Interval(start, end, curve: Curves.easeOutCubic),
-      // On dismiss, jump quickly from visible to hidden (no staggered fade).
-      reverseCurve: Threshold(0.999),
-    );
-
-    return FadeTransition(
-      opacity: entry,
-      child: SlideTransition(
-        position: Tween<Offset>(
-          // Slight upward + outward sweep
-          begin: const Offset(0.08, 0.20),
-          end: Offset.zero,
-        ).animate(entry),
-        child: RotationTransition(
-          // Fan-like swing from the side into place
-          turns: Tween<double>(
-            begin: 0.5, // half‑turn fan motion
-            end: 0.0,
-          ).animate(entry),
-          child: child,
-        ),
-      ),
-    );
-  }
-}
-
-class _HexagonComposeButton extends StatelessWidget {
-  const _HexagonComposeButton({required this.onTap, this.showPlus = false});
-
-  final VoidCallback onTap;
-  final bool showPlus;
-
-  @override
-  Widget build(BuildContext context) {
-    // Solid black rectangular composer button
-    final Color buttonColor = Colors.black;
-    final BorderRadius radius = BorderRadius.circular(12);
-
-    return SizedBox(
-      width: 64,
-      height: 64,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: radius,
-          splashColor: Colors.white.withValues(alpha: 0.15),
-          highlightColor: Colors.white.withValues(alpha: 0.08),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: buttonColor,
-              borderRadius: radius,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.18),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Center(
-              child: showPlus
-                  ? Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        const Icon(
-                          Icons.edit_rounded,
-                          color: Colors.white,
-                          size: 22,
-                        ),
-                        Transform.translate(
-                          offset: const Offset(-8, -6),
-                          child: const Icon(
-                            Icons.add_rounded,
-                            color: Colors.white,
-                            size: 14,
-                          ),
-                        ),
-                      ],
-                    )
-                  : const Icon(
-                      Icons.edit_rounded,
-                      color: Colors.white,
-                      size: 22,
-                    ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FabMenuItem extends StatelessWidget {
-  const _FabMenuItem({
-    required this.label,
-    required this.icon,
-    this.showPlus = false,
-    required this.onTap,
-  });
-
-  final String label;
-  final IconData icon;
-  final bool showPlus;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final bool isDark = theme.brightness == Brightness.dark;
-    // Keep popup labels black in both light and dark,
-    // to match the design of the overlay.
-    const Color labelColor = Colors.black;
-    final Color iconColor = isDark ? Colors.white : Colors.black;
-    final Color chipColor = isDark ? theme.colorScheme.surface : Colors.white;
-    // Stronger black shadow for popup icons in both modes.
-    final Color chipShadowColor = Colors.black.withValues(
-      alpha: isDark ? 0.85 : 0.5,
-    );
-    return GestureDetector(
-      onTap: onTap,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(
-            label,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: labelColor,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(width: 24),
-          Material(
-            color: chipColor,
-            shape: const CircleBorder(),
-            elevation: 12,
-            shadowColor: chipShadowColor,
-            child: SizedBox(
-              width: 44,
-              height: 44,
-              child: Center(
-                child: showPlus
-                    ? Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Icon(Icons.edit_rounded, color: iconColor, size: 24),
-                          Transform.translate(
-                            offset: Offset(-8, -6),
-                            child: Icon(
-                              Icons.add_rounded,
-                              color: iconColor,
-                              size: 14,
-                            ),
-                          ),
-                        ],
-                      )
-                    : Icon(icon, size: 24, color: iconColor),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Legacy hexagon button shapes removed after switching to rectangular FAB
-
-class _StoryRail extends StatelessWidget {
-  const _StoryRail({required this.currentUserHandle});
-
-  final String currentUserHandle;
-
-  @override
-  Widget build(BuildContext context) {
-    final classes = ClassService.userColleges(currentUserHandle);
-    final List<_Story> stories = classes.map((c) => _Story(c.name)).toList();
-    final theme = Theme.of(context);
-
-    if (stories.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return SizedBox(
-      height: 112,
-      child: NotificationListener<ScrollNotification>(
-        onNotification: (_) => false,
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(
-            parent: AlwaysScrollableScrollPhysics(),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          itemCount: stories.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 16),
-          itemBuilder: (context, index) {
-            final story = stories[index];
-            final Color borderColor = theme.colorScheme.primary.withValues(
-              alpha: 0.25,
-            );
-            final Color background = Theme.of(context).colorScheme.surface;
-
-            return GestureDetector(
-              onTap: () {
-                HapticFeedback.lightImpact();
-              },
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  HexagonAvatar(
-                    size: 56,
-                    backgroundColor: background,
-                    borderColor: borderColor,
-                    borderWidth: 1.1,
-                    child: Center(
-                      child: Text(
-                        story.initials,
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          color: AppTheme.textPrimary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  SizedBox(
-                    width: 70,
-                    child: Text(
-                      story.label,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w500,
-                        color: AppTheme.textSecondary,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-}
 
 class _PostCard extends StatelessWidget {
   const _PostCard({required this.post, required this.currentUserHandle});
