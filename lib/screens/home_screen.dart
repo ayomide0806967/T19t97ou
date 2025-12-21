@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../services/data_service.dart';
+import '../models/post.dart';
 import '../services/simple_auth_service.dart';
 import '../state/app_settings.dart';
 import '../theme/app_theme.dart';
@@ -728,12 +729,6 @@ class _HomeScreenState extends State<HomeScreen>
     // Keep the "For You" feed in the same order as the base timeline
     // so newly created posts appear at the top of the main feed.
     return List<PostModel>.from(posts);
-  }
-
-  void _showToast(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
-    );
   }
 }
 

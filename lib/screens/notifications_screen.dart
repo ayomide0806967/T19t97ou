@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../widgets/compose_fab.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -57,6 +58,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ),
           ),
         ],
+      ),
+      floatingActionButton: const Padding(
+        padding: EdgeInsets.only(bottom: 12),
+        child: ComposeFab(),
       ),
     );
   }

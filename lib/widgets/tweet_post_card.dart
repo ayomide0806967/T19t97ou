@@ -7,6 +7,8 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../services/data_service.dart';
+import '../models/post.dart';
+import '../core/ui/app_toast.dart';
 import '../theme/app_theme.dart';
 // Removed card-style shell for timeline layout
 import 'hexagon_avatar.dart';
@@ -16,7 +18,7 @@ import '../screens/quote_screen.dart';
 import 'icons/x_retweet_icon.dart';
 import 'icons/x_comment_icon.dart';
 import '../screens/post_activity_screen.dart';
-import '../screens/student_profile_screen.dart';
+import '../screens/user_profile_screen.dart';
 import '../constants/toast_durations.dart';
 
 class TweetPostCard extends StatefulWidget {
@@ -94,7 +96,10 @@ class _TweetPostCardState extends State<TweetPostCard> {
 
   @override
   void dispose() {
-    _toastEntry?.remove();
+    final entry = _toastEntry;
+    if (entry != null && entry.mounted) {
+      entry.remove();
+    }
     _toastEntry = null;
     super.dispose();
   }
@@ -225,54 +230,15 @@ class _TweetPostCardState extends State<TweetPostCard> {
 
   void _showToast(String message) {
     if (!mounted) return;
-    _toastEntry?.remove();
-    _toastEntry = null;
-
-    final overlay = Overlay.maybeOf(context, rootOverlay: true);
-    if (overlay == null) return;
-
-    final theme = Theme.of(context);
-    final entry = OverlayEntry(
-      builder: (ctx) => SafeArea(
-        bottom: false,
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: Material(
-              color: Colors.black87,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minWidth: 320),
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  child: Text(
-                    message,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
+    final entry = _toastEntry;
+    if (entry != null && entry.mounted) {
+      entry.remove();
+    }
+    _toastEntry = AppToast.showTopOverlay(
+      context,
+      message,
+      duration: widget.toastDuration,
     );
-
-    _toastEntry = entry;
-    overlay.insert(entry);
-
-    Future<void>.delayed(widget.toastDuration, () {
-      if (!mounted) return;
-      if (_toastEntry == entry) {
-        entry.remove();
-        _toastEntry = null;
-      }
-    });
   }
 
   Future<void> _showReinOptions() async {
@@ -807,7 +773,7 @@ class _TweetPostCardState extends State<TweetPostCard> {
             : '@${handleForProfile}';
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) => StudentProfileScreen(handle: normalizedHandle),
+            builder: (_) => UserProfileScreen(handle: normalizedHandle),
           ),
         );
       },

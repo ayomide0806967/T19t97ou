@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/data_service.dart';
+import '../models/post.dart';
 import '../services/simple_auth_service.dart';
 import '../state/app_settings.dart';
 import '../theme/app_theme.dart';

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
-import '../services/data_service.dart';
+import '../models/post.dart';
 import '../widgets/tweet_post_card.dart';
 import '../widgets/tweet_composer_card.dart';
 import '../models/comment.dart';

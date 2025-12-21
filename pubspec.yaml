@@ -44,14 +44,12 @@ dependencies:
   provider: ^6.1.2
 
   # Authentication
-  firebase_auth: ^6.1.2
-  google_sign_in: ^7.2.0
+  # (Supabase integration will replace Firebase; keep auth deps minimal for now)
 
   # File import
   file_picker: ^8.1.2
 
-  # Core Firebase
-  firebase_core: ^4.2.1
+  # Core backend (Supabase planned)
 
   # Local storage
   shared_preferences: ^2.3.2

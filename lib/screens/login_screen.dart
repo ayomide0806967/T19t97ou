@@ -277,7 +277,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return <Widget>[
       const Align(
         alignment: Alignment.centerLeft,
-        child: SwissBankIcon(size: 28),
+        child: SwissBankIcon(size: 34),
       ),
       const SizedBox(height: 10),
       Text(
@@ -382,7 +382,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return <Widget>[
       const Align(
         alignment: Alignment.centerLeft,
-        child: SwissBankIcon(size: 28),
+        child: SwissBankIcon(size: 34),
       ),
       const SizedBox(height: 10),
       Text(

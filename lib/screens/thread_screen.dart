@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../models/thread_entry.dart';
-import '../services/data_service.dart';
+import '../models/post.dart';
+import '../core/ui/app_toast.dart';
 import '../theme/app_theme.dart';
 import '../widgets/tweet_post_card.dart';
 import '../widgets/tweet_composer_card.dart';
@@ -132,7 +133,11 @@ class _ThreadScreenState extends State<ThreadScreen> {
       }
     });
 
-    _showToast('Reply added');
+    AppToast.showSnack(
+      context,
+      'Reply added',
+      duration: const Duration(milliseconds: 1200),
+    );
   }
 
   ThreadEntry _appendReply(
@@ -186,18 +191,6 @@ class _ThreadScreenState extends State<ThreadScreen> {
       return fallback.startsWith('@') ? fallback.substring(1) : fallback;
     }
     return handle.startsWith('@') ? handle.substring(1) : handle;
-  }
-
-  void _showToast(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(milliseconds: 1200),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      ),
-    );
   }
 
   void _scheduleFocus() {
@@ -318,8 +311,16 @@ class _ThreadScreenState extends State<ThreadScreen> {
               ),
             ],
             onSubmit: (_) => _handleSubmit(),
-            onImageTap: () => _showToast('Attach image coming soon'),
-            onGifTap: () => _showToast('GIF library coming soon'),
+            onImageTap: () => AppToast.showSnack(
+              context,
+              'Attach image coming soon',
+              duration: const Duration(milliseconds: 1200),
+            ),
+            onGifTap: () => AppToast.showSnack(
+              context,
+              'GIF library coming soon',
+              duration: const Duration(milliseconds: 1200),
+            ),
             textInputAction: TextInputAction.send,
           ),
         ),

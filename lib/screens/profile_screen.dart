@@ -5,7 +5,10 @@ import 'package:provider/provider.dart';
 
 import '../services/simple_auth_service.dart';
 import '../services/data_service.dart';
+import '../models/post.dart';
 import '../widgets/tweet_post_card.dart';
+import '../widgets/compose_fab.dart';
+import '../core/ui/app_toast.dart';
 import '../theme/app_theme.dart';
 import '../constants/toast_durations.dart';
 import 'edit_profile_screen.dart';
@@ -41,70 +44,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _notifyReplies = true;
   bool _pushNotificationsEnabled = false;
 
-  void _showToast(String message) {
-    if (!mounted) return;
-    final theme = Theme.of(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        backgroundColor: Colors.black,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        duration: ToastDurations.standard,
-      ),
-    );
-  }
-
   void _showHeaderToast(String message) {
-    if (!mounted) return;
-    final overlay = Overlay.maybeOf(context, rootOverlay: true);
-    if (overlay == null) return;
-    final theme = Theme.of(context);
-
-    final entry = OverlayEntry(
-      builder: (ctx) => SafeArea(
-        bottom: false,
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: Material(
-              color: Colors.black87,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minWidth: 320),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  child: Text(
-                    message,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-
-    overlay.insert(entry);
-    Future<void>.delayed(ToastDurations.standard, () {
-      if (!mounted) return;
-      entry.remove();
-    });
+    AppToast.showTopOverlay(context, message, duration: ToastDurations.standard);
   }
 
   Future<void> _handlePickProfileImage() async {
@@ -117,7 +58,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (file == null) return;
     final bytes = await file.readAsBytes();
     setState(() => _profileImage = bytes);
-    _showToast('Profile photo updated');
+    AppToast.showSnack(
+      context,
+      'Profile photo updated',
+      duration: ToastDurations.standard,
+    );
   }
 
   Future<void> _showProfilePhotoViewer() async {
@@ -216,7 +161,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onPressed: () {
                       Navigator.of(dialogContext).pop();
                       setState(() => _profileImage = null);
-                      _showToast('Profile photo removed');
+                      AppToast.showSnack(
+                        context,
+                        'Profile photo removed',
+                        duration: ToastDurations.standard,
+                      );
                     },
                     child: const Text('Remove current photo'),
                   ),
@@ -311,7 +260,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onPressed: () {
                       Navigator.of(dialogContext).pop();
                       setState(() => _headerImage = null);
-                      _showToast('Cover photo removed');
+                      AppToast.showSnack(
+                        context,
+                        'Cover photo removed',
+                        duration: ToastDurations.standard,
+                      );
                     },
                     child: const Text('Remove current photo'),
                   ),
@@ -497,11 +450,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() {
           _headerImage = bytes;
         });
-        _showToast('Cover photo updated');
+        AppToast.showSnack(
+          context,
+          'Cover photo updated',
+          duration: ToastDurations.standard,
+        );
         break;
       case _HeaderAction.removeImage:
         setState(() => _headerImage = null);
-        _showToast('Cover photo removed');
+        AppToast.showSnack(
+          context,
+          'Cover photo removed',
+          duration: ToastDurations.standard,
+        );
         break;
       case null:
         break;
@@ -643,7 +604,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _nameOverride = result.name.isEmpty ? null : result.name;
         _bioOverride = result.bio.isEmpty ? null : result.bio;
       });
-      _showToast('Profile changes saved (coming soon)');
+      AppToast.showSnack(
+        context,
+        'Profile changes saved (coming soon)',
+        duration: ToastDurations.standard,
+      );
     }
 
     void handleShareProfile() {
@@ -653,7 +618,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       Clipboard.setData(
         ClipboardData(text: 'https://academicnightingale.app/$sanitizedHandle'),
       );
-      _showToast('Profile link copied to clipboard');
+      AppToast.showSnack(
+        context,
+        'Profile link copied to clipboard',
+        duration: ToastDurations.standard,
+      );
     }
 
     void handleNotifications() {
@@ -804,6 +773,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
         ),
+      ),
+      floatingActionButton: const Padding(
+        padding: EdgeInsets.only(bottom: 12),
+        child: ComposeFab(),
       ),
     );
   }
@@ -1123,7 +1096,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           context: sheetContext,
                           title: 'QR Code',
                           icon: Icons.qr_code_2_rounded,
-                          onTap: () => _showToast('QR code coming soon'),
+                          onTap: () => AppToast.showSnack(
+                            context,
+                            'QR code coming soon',
+                            duration: ToastDurations.standard,
+                          ),
                         ),
                         divider,
                         handleRow(
@@ -1137,7 +1114,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           context: sheetContext,
                           title: 'Share to',
                           icon: Icons.ios_share_rounded,
-                          onTap: () => _showToast('Share sheet coming soon'),
+                          onTap: () => AppToast.showSnack(
+                            context,
+                            'Share sheet coming soon',
+                            duration: ToastDurations.standard,
+                          ),
                         ),
                       ],
                     ),
@@ -1184,8 +1165,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             icon: Icons.block_rounded,
                             textColor: Colors.red,
                             iconColor: Colors.red,
-                            onTap: () =>
-                                _showToast('Blocked $label (coming soon)'),
+                            onTap: () => AppToast.showSnack(
+                              context,
+                              'Blocked $label (coming soon)',
+                              duration: ToastDurations.standard,
+                            ),
                           ),
                           divider,
                           handleRow(
@@ -1194,8 +1178,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             icon: Icons.report_gmailerrorred_outlined,
                             textColor: Colors.red,
                             iconColor: Colors.red,
-                            onTap: () =>
-                                _showToast('Report $label (coming soon)'),
+                            onTap: () => AppToast.showSnack(
+                              context,
+                              'Report $label (coming soon)',
+                              duration: ToastDurations.standard,
+                            ),
                           ),
                         ],
                       ),

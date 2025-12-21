@@ -1,4 +1,4 @@
-import '../services/data_service.dart';
+import 'post.dart';
 
 class ThreadEntry {
   const ThreadEntry({

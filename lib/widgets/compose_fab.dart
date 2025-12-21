@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 
 import '../screens/compose_screen.dart';
 import '../screens/ios_messages_screen.dart';
-import '../screens/notifications_screen.dart';
 import '../screens/quiz_dashboard_screen.dart';
 import 'hexagon_compose_button.dart';
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/activity_user.dart';
-import '../services/data_service.dart';
+import '../models/post.dart';
 import '../widgets/hexagon_avatar.dart';
 import '../widgets/icons/x_retweet_icon.dart';
 

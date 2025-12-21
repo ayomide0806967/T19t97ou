@@ -3,6 +3,8 @@ import '../theme/app_theme.dart';
 import '../widgets/hexagon_avatar.dart';
 import 'package:provider/provider.dart';
 import '../services/data_service.dart';
+import '../models/post.dart';
+import '../core/ui/app_toast.dart';
 
 class QuoteScreen extends StatefulWidget {
   const QuoteScreen({
@@ -291,19 +293,31 @@ class _QuoteScreenState extends State<QuoteScreen> {
                 _ToolbarButton(
                   icon: Icons.image_outlined,
                   label: 'Media',
-                  onTap: () => _showToast('Media picker coming soon'),
+                  onTap: () => AppToast.showSnack(
+                    context,
+                    'Media picker coming soon',
+                    duration: const Duration(milliseconds: 1200),
+                  ),
                 ),
                 const SizedBox(width: 24),
                 _ToolbarButton(
                   icon: Icons.tag_outlined,
                   label: 'Tag',
-                  onTap: () => _showToast('Tag functionality coming soon'),
+                  onTap: () => AppToast.showSnack(
+                    context,
+                    'Tag functionality coming soon',
+                    duration: const Duration(milliseconds: 1200),
+                  ),
                 ),
                 const SizedBox(width: 24),
                 _ToolbarButton(
                   icon: Icons.emoji_emotions_outlined,
                   label: 'Emoji',
-                  onTap: () => _showToast('Emoji picker coming soon'),
+                  onTap: () => AppToast.showSnack(
+                    context,
+                    'Emoji picker coming soon',
+                    duration: const Duration(milliseconds: 1200),
+                  ),
                 ),
                 const Spacer(),
                 Text(
@@ -358,23 +372,6 @@ class _QuoteScreenState extends State<QuoteScreen> {
     Navigator.pop(context);
   }
 
-  void _showToast(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        backgroundColor: Colors.black,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        duration: const Duration(milliseconds: 1200),
-      ),
-    );
-  }
 }
 
 class _ToolbarButton extends StatelessWidget {

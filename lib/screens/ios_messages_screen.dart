@@ -12,6 +12,7 @@ import 'quiz_hub_screen.dart';
 import 'package:provider/provider.dart';
 import '../l10n/strings.dart';
 import '../services/data_service.dart';
+import '../models/post.dart';
 import '../widgets/tweet_post_card.dart';
 import '../widgets/icons/x_retweet_icon.dart';
 import '../theme/app_theme.dart';
@@ -21,7 +22,7 @@ import '../screens/post_activity_screen.dart';
 import '../screens/create_note_flow/teacher_note_creation_screen.dart';
 import '../services/members_service.dart';
 import '../services/invites_service.dart';
-import 'student_profile_screen.dart';
+import 'user_profile_screen.dart';
 import 'create_class_screen.dart';
 import 'class_note_stepper_screen.dart';
 import '../widgets/equal_width_buttons_row.dart';
@@ -9526,7 +9527,7 @@ class _ClassStudentsTabState extends State<_ClassStudentsTab> {
                     Navigator.of(ctx).pop();
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => StudentProfileScreen(handle: handle),
+                        builder: (_) => UserProfileScreen(handle: handle),
                       ),
                     );
                   },

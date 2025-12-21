@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../services/data_service.dart';
+import '../models/post.dart';
 
 class LectureNoteCard extends StatelessWidget {
   const LectureNoteCard({
