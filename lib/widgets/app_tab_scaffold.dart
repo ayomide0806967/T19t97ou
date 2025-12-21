@@ -35,17 +35,18 @@ class AppTabScaffold extends StatelessWidget {
       return;
     }
 
-    if (index == currentIndex) {
-      if (index == 0 && isHomeRoot) {
-        onHomeReselect?.call();
-      }
-      return;
-    }
-
     if (index == 0) {
+      if (isHomeRoot) {
+        if (currentIndex == 0) {
+          onHomeReselect?.call();
+        }
+        return;
+      }
       navigator.popUntil((route) => route.isFirst);
       return;
     }
+
+    if (index == currentIndex) return;
 
     final Route<void> route = switch (index) {
       1 => AppNav.hub(),
@@ -88,4 +89,3 @@ class AppTabScaffold extends StatelessWidget {
     );
   }
 }
-

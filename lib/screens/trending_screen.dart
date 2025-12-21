@@ -5,17 +5,12 @@ import 'package:provider/provider.dart';
 import '../core/auth/auth_repository.dart';
 import '../core/user/handle.dart';
 import '../core/feed/post_repository.dart';
+import '../core/navigation/app_nav.dart';
 import '../models/post.dart';
 import '../state/app_settings.dart';
 import '../theme/app_theme.dart';
-import '../widgets/floating_nav_bar.dart';
+import '../widgets/app_tab_scaffold.dart';
 import '../widgets/tweet_post_card.dart';
-import 'compose_screen.dart';
-import 'neutral_page.dart';
-import 'notifications_screen.dart';
-import 'profile_screen.dart';
-import 'quiz_dashboard_screen.dart';
-import '../features/messages/messages_screen.dart';
 
 class TrendingScreen extends StatefulWidget {
   const TrendingScreen({super.key});
@@ -28,7 +23,6 @@ class _TrendingScreenState extends State<TrendingScreen> {
   late final TextEditingController _searchController;
   late final ScrollController _scrollController;
   String _query = '';
-  int _selectedBottomNavIndex = 0;
 
   @override
   void initState() {
@@ -104,9 +98,7 @@ class _TrendingScreenState extends State<TrendingScreen> {
           theme: theme,
           appSettings: appSettings,
           onCompose: () async {
-            await navigator.push(
-              MaterialPageRoute(builder: (_) => const ComposeScreen()),
-            );
+            await navigator.push(AppNav.compose());
           },
           onBackToTop: () {
             _scrollController.animateTo(
@@ -186,7 +178,8 @@ class _TrendingScreenState extends State<TrendingScreen> {
 
     final topicItems = _topicItemsFor(topTopics, query: _query);
 
-    return Scaffold(
+    return AppTabScaffold(
+      currentIndex: 0,
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: theme.appBarTheme.backgroundColor,
@@ -430,63 +423,6 @@ class _TrendingScreenState extends State<TrendingScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(),
-    );
-  }
-
-  Widget _buildBottomNavigationBar() {
-    void resetToHome() {
-      if (_selectedBottomNavIndex != 0 && mounted) {
-        setState(() => _selectedBottomNavIndex = 0);
-      }
-    }
-
-    return FloatingNavBar(
-      currentIndex: _selectedBottomNavIndex,
-      onIndexChange: (index) {
-        if (index == 2) {
-          Navigator.of(context)
-              .push(MaterialPageRoute(builder: (_) => const ComposeScreen()))
-              .then((_) => resetToHome());
-          return;
-        }
-        if (mounted) setState(() => _selectedBottomNavIndex = index);
-      },
-      destinations: [
-        FloatingNavBarDestination(
-          icon: Icons.home_filled,
-          onTap: () {
-            if (!mounted) return;
-            setState(() => _selectedBottomNavIndex = 0);
-            Navigator.of(context).maybePop();
-          },
-        ),
-        FloatingNavBarDestination(
-          icon: Icons.mail_outline_rounded,
-          onTap: () {
-            Navigator.of(context)
-                .push(MaterialPageRoute(builder: (context) => const NeutralPage()))
-                .then((_) => resetToHome());
-          },
-        ),
-        const FloatingNavBarDestination(icon: Icons.add, onTap: null),
-        FloatingNavBarDestination(
-          icon: Icons.favorite_border_rounded,
-          onTap: () {
-            Navigator.of(context)
-                .push(MaterialPageRoute(builder: (context) => const NotificationsScreen()))
-                .then((_) => resetToHome());
-          },
-        ),
-        FloatingNavBarDestination(
-          icon: Icons.person_outline_rounded,
-          onTap: () {
-            Navigator.of(context)
-                .push(MaterialPageRoute(builder: (context) => const ProfileScreen()))
-                .then((_) => resetToHome());
-          },
-        ),
-      ],
     );
   }
 }
@@ -1066,9 +1002,7 @@ class _TrendingQuickControlPanelState
         label: 'Class',
         onPressed: () async {
           Navigator.of(context).pop();
-          await Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const MessagesScreen()),
-          );
+          await Navigator.of(context).push(AppNav.classes());
         },
       ),
       _QuickControlItem(
@@ -1084,9 +1018,7 @@ class _TrendingQuickControlPanelState
         label: 'Quiz',
         onPressed: () async {
           Navigator.of(context).pop();
-          await Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const QuizDashboardScreen()),
-          );
+          await Navigator.of(context).push(AppNav.quizDashboard());
         },
       ),
       _QuickControlItem(
@@ -1110,9 +1042,7 @@ class _TrendingQuickControlPanelState
         label: 'Messages',
         onPressed: () async {
           Navigator.of(context).pop();
-          await Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const MessagesScreen()),
-          );
+          await Navigator.of(context).push(AppNav.classes());
         },
       ),
       _QuickControlItem(
