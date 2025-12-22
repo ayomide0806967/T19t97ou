@@ -220,46 +220,16 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
   }
 
   Widget _buildQuickControlGrid() {
-    if (_items.isEmpty) return const SizedBox.shrink();
-
-    const maxColumns = 3;
-    final columns = _items.length < maxColumns ? _items.length : maxColumns;
-    final rows = (_items.length / columns).ceil();
-    final List<Widget> gridRows = [];
-
-    for (var row = 0; row < rows; row++) {
-      final int startIndex = row * columns;
-      if (startIndex >= _items.length) break;
-
-      final List<Widget> cells = [];
-      for (var column = 0; column < columns; column++) {
-        final index = startIndex + column;
-        final hasItem = index < _items.length;
-        cells.add(
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(right: column == columns - 1 ? 0 : 14),
-              child: hasItem
-                  ? _QuickControlButton(
-                      item: _items[index],
-                      isActive: _activeStates[index],
-                      onPressed: () => _handleItemInteraction(index),
-                    )
-                  : const SizedBox.shrink(),
-            ),
-          ),
+    return QuickControlGrid(
+      itemCount: _items.length,
+      itemBuilder: (context, index) {
+        return _QuickControlButton(
+          item: _items[index],
+          isActive: _activeStates[index],
+          onPressed: () => _handleItemInteraction(index),
         );
-      }
-
-      gridRows.add(
-        Padding(
-          padding: EdgeInsets.only(bottom: row == rows - 1 ? 0 : 10),
-          child: Row(children: cells),
-        ),
-      );
-    }
-
-    return Column(children: gridRows);
+      },
+    );
   }
 }
 
@@ -381,4 +351,3 @@ class _QuickControlButton extends StatelessWidget {
     );
   }
 }
-

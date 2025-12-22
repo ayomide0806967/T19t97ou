@@ -16,6 +16,7 @@ import '../../widgets/hexagon_avatar.dart';
 import '../../services/class_service.dart';
 import '../../widgets/swiss_bank_icon.dart';
 import '../../widgets/app_tab_scaffold.dart';
+import '../../widgets/quick_control_grid.dart';
 import '../../screens/compose_screen.dart';
 import '../../widgets/tweet_post_card.dart';
 import '../../screens/settings_screen.dart';

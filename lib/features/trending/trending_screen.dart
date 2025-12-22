@@ -11,6 +11,7 @@ import '../../state/app_settings.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_tab_scaffold.dart';
 import '../../widgets/tweet_post_card.dart';
+import '../../widgets/quick_control_grid.dart';
 
 part 'trending_screen_parts.dart';
 part 'trending_screen_quick_controls.dart';
