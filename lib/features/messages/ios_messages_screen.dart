@@ -46,6 +46,8 @@ part 'ios_messages/thread_models.dart';
 part 'ios_messages/interaction_widgets.dart';
 part 'ios_messages/message_comments_page.dart';
 part 'ios_messages/comment_tile.dart';
+part 'ios_messages/comment_tile_actions.dart';
+part 'ios_messages/comment_tile_build.dart';
 
 part 'ios_messages/class_notes_card.dart';
 part 'ios_messages/class_message_model.dart';
