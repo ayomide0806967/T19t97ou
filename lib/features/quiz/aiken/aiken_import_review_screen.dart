@@ -1,30 +1,34 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 
 import '../ui/quiz_palette.dart';
 import 'aiken_import_models.dart';
+
+part 'aiken_import_review_screen_actions.dart';
+part 'aiken_import_review_screen_build.dart';
 
 const Color _whatsAppTeal = quizWhatsAppTeal;
 
 /// A dedicated screen for reviewing and editing imported Aiken questions
 class AikenImportReviewScreen extends StatefulWidget {
-  const AikenImportReviewScreen({
-    super.key,
-    required this.questions,
-  });
+  const AikenImportReviewScreen({super.key, required this.questions});
 
   final List<ImportedQuestion> questions;
 
   @override
-  State<AikenImportReviewScreen> createState() => _AikenImportReviewScreenState();
+  State<AikenImportReviewScreen> createState() =>
+      _AikenImportReviewScreenState();
 }
 
-class _AikenImportReviewScreenState extends State<AikenImportReviewScreen> {
+abstract class _AikenImportReviewScreenStateBase
+    extends State<AikenImportReviewScreen> {
   late List<ImportedQuestion> _questions;
   int? _expandedIndex;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  final ImagePicker _imagePicker = ImagePicker();
 
   @override
   void initState() {
@@ -32,646 +36,15 @@ class _AikenImportReviewScreenState extends State<AikenImportReviewScreen> {
     _questions = widget.questions.map((q) => q.copy()).toList();
   }
 
-  bool _hasAnyQuestionContent() {
-    if (_questions.isEmpty) return false;
-    for (final q in _questions) {
-      if (q.prompt.text.trim().isNotEmpty) return true;
-      if (q.promptImage != null) return true;
-      for (final opt in q.options) {
-        if (opt.text.trim().isNotEmpty) return true;
-      }
-      if (q.optionImages.any((img) => img != null)) return true;
-    }
-    return false;
-  }
-
-  Future<bool> _showLeaveDialog() async {
-    final result = await showDialog<bool>(
-      context: context,
-      barrierDismissible: true,
-      builder: (ctx) {
-        final theme = Theme.of(ctx);
-        return Dialog(
-          backgroundColor: Colors.white,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'Leave without saving?',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'You\'ve uploaded questions from your Aiken file. '
-                  'If you close now, all of these questions and any edits on this page will be lost.',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: Colors.black.withValues(alpha: 0.75),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                FilledButton(
-                  onPressed: () {
-                    Navigator.of(ctx).pop(true); // discard
-                  },
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                  child: const Text(
-                    'Discard questions',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                OutlinedButton(
-                  onPressed: () {
-                    Navigator.of(ctx).pop(false); // keep editing
-                  },
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.black,
-                    side: const BorderSide(color: Colors.black),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                  child: const Text(
-                    'Keep editing',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-    return result ?? false;
-  }
-
-  Future<void> _handleClosePressed() async {
-    if (!_hasAnyQuestionContent()) {
-      Navigator.of(context).pop(null);
-      return;
-    }
-
-    final shouldLeave = await _showLeaveDialog();
-    if (shouldLeave && mounted) {
-      Navigator.of(context).pop(null);
-    }
-  }
-
-  Future<bool> _onWillPop() async {
-    if (!_hasAnyQuestionContent()) {
-      return true;
-    }
-    final shouldLeave = await _showLeaveDialog();
-    return shouldLeave;
-  }
-
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
   }
-
-  void _toggleExpand(int index) {
-    setState(() {
-      _expandedIndex = _expandedIndex == index ? null : index;
-    });
-  }
-
-  void _addOption(int questionIndex) {
-    setState(() {
-      _questions[questionIndex].options.add(TextEditingController());
-    });
-  }
-
-  void _removeOption(int questionIndex, int optionIndex) {
-    if (_questions[questionIndex].options.length <= 2) return;
-    setState(() {
-      final controller = _questions[questionIndex].options.removeAt(optionIndex);
-      controller.dispose();
-      if (_questions[questionIndex].correctIndex >= _questions[questionIndex].options.length) {
-        _questions[questionIndex].correctIndex = _questions[questionIndex].options.length - 1;
-      }
-    });
-  }
-
-  void _setCorrect(int questionIndex, int optionIndex) {
-    setState(() {
-      _questions[questionIndex].correctIndex = optionIndex;
-    });
-  }
-
-  void _removeQuestion(int index) {
-    if (_questions.length <= 1) {
-      _showSnack('You must have at least one question.');
-      return;
-    }
-    setState(() {
-      final removed = _questions.removeAt(index);
-      removed.dispose();
-      if (_expandedIndex == index) {
-        _expandedIndex = null;
-      } else if (_expandedIndex != null && _expandedIndex! > index) {
-        _expandedIndex = _expandedIndex! - 1;
-      }
-    });
-  }
-
-  void _addQuestion() {
-    setState(() {
-      _questions.add(ImportedQuestion.empty());
-      _expandedIndex = _questions.length - 1;
-    });
-  }
-
-  final ImagePicker _imagePicker = ImagePicker();
-
-  Future<void> _pickPromptImage(int questionIndex) async {
-    try {
-      final XFile? image = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 85,
-      );
-      if (image != null) {
-        setState(() {
-          _questions[questionIndex].promptImage = image.path;
-        });
-      }
-    } catch (e) {
-      _showSnack('Failed to pick image');
-    }
-  }
-
-  Future<void> _pickOptionImage(int questionIndex, int optionIndex) async {
-    try {
-      final XFile? image = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 800,
-        maxHeight: 800,
-        imageQuality: 85,
-      );
-      if (image != null) {
-        setState(() {
-          // Ensure optionImages list is long enough
-          while (_questions[questionIndex].optionImages.length <= optionIndex) {
-            _questions[questionIndex].optionImages.add(null);
-          }
-          _questions[questionIndex].optionImages[optionIndex] = image.path;
-        });
-      }
-    } catch (e) {
-      _showSnack('Failed to pick image');
-    }
-  }
-
-  void _removePromptImage(int questionIndex) {
-    setState(() {
-      _questions[questionIndex].promptImage = null;
-    });
-  }
-
-  void _removeOptionImage(int questionIndex, int optionIndex) {
-    setState(() {
-      if (optionIndex < _questions[questionIndex].optionImages.length) {
-        _questions[questionIndex].optionImages[optionIndex] = null;
-      }
-    });
-  }
-
-  void _showSnack(String message, {bool success = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-        ),
-        backgroundColor: success ? _whatsAppTeal : const Color(0xFFDC2626),
-        behavior: SnackBarBehavior.floating,
-        margin: EdgeInsets.only(
-          bottom: MediaQuery.of(context).size.height - 150,
-          left: 16,
-          right: 16,
-        ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      ),
-    );
-  }
-
-  bool _validate() {
-    for (int i = 0; i < _questions.length; i++) {
-      final q = _questions[i];
-      if (q.prompt.text.trim().isEmpty) {
-        _showSnack('Question ${i + 1} needs a prompt.');
-        return false;
-      }
-      for (int j = 0; j < q.options.length; j++) {
-        if (q.options[j].text.trim().isEmpty) {
-          _showSnack('Question ${i + 1}, Option ${String.fromCharCode(65 + j)} is empty.');
-          return false;
-        }
-      }
-    }
-    return true;
-  }
-
-  void _confirmImport({bool importMore = false}) {
-    if (!_validate()) return;
-    Navigator.of(context).pop(
-      AikenImportResult(
-        questions: _questions,
-        importMore: importMore,
-      ),
-    );
-  }
-
-  void _showActionsSheet() {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Quick actions',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black,
-                      ),
-                ),
-                const SizedBox(height: 12),
-                // Add question manually
-                InkWell(
-                  onTap: () {
-                    Navigator.of(ctx).pop();
-                    _addQuestion();
-                  },
-                  borderRadius: BorderRadius.circular(14),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: _whatsAppTeal.withValues(alpha: 0.25),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.add_circle_outline, color: _whatsAppTeal),
-                        const SizedBox(width: 10),
-                        const Text(
-                          'Add question manually',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: Colors.black,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                // Import more Aiken file
-                InkWell(
-                  onTap: () {
-                    Navigator.of(ctx).pop();
-                    _confirmImport(importMore: true);
-                  },
-                  borderRadius: BorderRadius.circular(14),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: Colors.black.withValues(alpha: 0.12),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.upload_file_rounded, color: Colors.black87),
-                        const SizedBox(width: 10),
-                        const Text(
-                          'Import more Aiken file',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: Colors.black,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final bool isDark = theme.brightness == Brightness.dark;
-    final Color background = isDark ? const Color(0xFF0B0D11) : Colors.white;
-
-    return WillPopScope(
-      onWillPop: _onWillPop,
-      child: Scaffold(
-        backgroundColor: background,
-        appBar: AppBar(
-          backgroundColor: background,
-          elevation: 0,
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: theme.colorScheme.onSurface),
-            onPressed: _handleClosePressed,
-            tooltip: 'Back',
-          ),
-        title: Text(
-          'Review Imported Questions',
-          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-        ),
-          centerTitle: false,
-          actions: const [
-            SizedBox(width: 8),
-          ],
-        ),
-        body: Column(
-        children: [
-          // Summary header + search
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              border: Border(
-                bottom: BorderSide(color: Color(0xFFE5E7EB)),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: _whatsAppTeal, width: 1.5),
-                      ),
-                      alignment: Alignment.center,
-                      child: Icon(
-                        Icons.check,
-                        size: 16,
-                        color: _whatsAppTeal,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        '${_questions.length} question${_questions.length == 1 ? '' : 's'} imported. Tap to expand and edit.',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: Colors.black,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: (value) {
-                          setState(() {
-                            _searchQuery = value;
-                          });
-                        },
-                        decoration: InputDecoration(
-                          hintText: 'Search imported questions',
-                          hintStyle: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
-                          ),
-                          prefixIcon: Icon(
-                            Icons.search,
-                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                          ),
-                          suffixIcon: _searchQuery.isNotEmpty
-                              ? IconButton(
-                                  icon: Icon(
-                                    Icons.close,
-                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                                  ),
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    setState(() {
-                                      _searchQuery = '';
-                                    });
-                                  },
-                                )
-                              : null,
-                          isDense: true,
-                          filled: true,
-                          // Light grey pill for the search input itself
-                          fillColor: const Color(0xFFF3F4F6),
-                          contentPadding:
-                              const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                          border: const OutlineInputBorder(
-                            borderRadius: BorderRadius.all(Radius.circular(999)),
-                            borderSide: BorderSide.none,
-                          ),
-                          enabledBorder: const OutlineInputBorder(
-                            borderRadius: BorderRadius.all(Radius.circular(999)),
-                            borderSide: BorderSide.none,
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: const BorderRadius.all(Radius.circular(999)),
-                            borderSide: BorderSide(
-                              color: _whatsAppTeal,
-                              width: 1.3,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    FilledButton(
-                      onPressed: _confirmImport,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Colors.black,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        textStyle: theme.textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                      ),
-                      child: const Text('Confirm'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          // Questions list (filtered by search)
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: (() {
-                final visible = List<int>.generate(_questions.length, (i) => i)
-                    .where((i) {
-                      if (_searchQuery.trim().isEmpty) return true;
-                      final q = _questions[i];
-                      final query = _searchQuery.toLowerCase();
-                      final prompt = q.prompt.text.toLowerCase();
-                      if (prompt.contains(query)) return true;
-                      for (final opt in q.options) {
-                        if (opt.text.toLowerCase().contains(query)) return true;
-                      }
-                      return false;
-                    })
-                    .toList();
-                // +2 for "add question manually" and "import more"
-                return visible.length + 2;
-              })(),
-              itemBuilder: (context, index) {
-                // Recompute visible indices for this builder
-                final visible = List<int>.generate(_questions.length, (i) => i)
-                    .where((i) {
-                      if (_searchQuery.trim().isEmpty) return true;
-                      final q = _questions[i];
-                      final query = _searchQuery.toLowerCase();
-                      final prompt = q.prompt.text.toLowerCase();
-                      if (prompt.contains(query)) return true;
-                      for (final opt in q.options) {
-                        if (opt.text.toLowerCase().contains(query)) return true;
-                      }
-                      return false;
-                    })
-                    .toList();
-
-                if (index == visible.length) {
-                  // Add question button
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: TextButton.icon(
-                      onPressed: _addQuestion,
-                      icon: const Icon(Icons.add_circle_outline),
-                      label: const Text('Add question manually'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: _whatsAppTeal,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(999),
-                          side: BorderSide(
-                            color: _whatsAppTeal.withValues(alpha: 0.4),
-                            width: 1.2,
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                }
-
-                if (index == visible.length + 1) {
-                  // Import more Aiken file button
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: TextButton.icon(
-                      onPressed: () => _confirmImport(importMore: true),
-                      icon: const Icon(Icons.upload_file_rounded),
-                      label: const Text('Import more Aiken file'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: _whatsAppTeal,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(999),
-                          side: BorderSide(
-                            color: _whatsAppTeal.withValues(alpha: 0.4),
-                            width: 1.2,
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                }
-
-                final questionIndex = visible[index];
-                final q = _questions[questionIndex];
-                final isExpanded = _expandedIndex == questionIndex;
-
-                return _QuestionCard(
-                  index: questionIndex,
-                  question: q,
-                  isExpanded: isExpanded,
-                  onToggleExpand: () => _toggleExpand(questionIndex),
-                  onAddOption: () => _addOption(questionIndex),
-                  onRemoveOption: (optIdx) => _removeOption(questionIndex, optIdx),
-                  onSetCorrect: (optIdx) => _setCorrect(questionIndex, optIdx),
-                  onRemove: () => _removeQuestion(questionIndex),
-                  onPickPromptImage: () => _pickPromptImage(questionIndex),
-                  onRemovePromptImage: () => _removePromptImage(questionIndex),
-                  onPickOptionImage: (optIdx) => _pickOptionImage(questionIndex, optIdx),
-                  onRemoveOptionImage: (optIdx) => _removeOptionImage(questionIndex, optIdx),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showActionsSheet,
-        backgroundColor: _whatsAppTeal,
-        child: const Icon(
-          Icons.add,
-          color: Colors.white,
-        ),
-      ),
-      ),
-    );
-  }
 }
+
+class _AikenImportReviewScreenState extends _AikenImportReviewScreenStateBase
+    with _AikenImportReviewScreenActions, _AikenImportReviewScreenBuild {}
 
 class _QuestionCard extends StatelessWidget {
   const _QuestionCard({
@@ -765,7 +138,9 @@ class _QuestionCard extends StatelessWidget {
                           'Question',
                           style: theme.textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w600,
-                            color: isExpanded ? theme.colorScheme.onSurface : Colors.white,
+                            color: isExpanded
+                                ? theme.colorScheme.onSurface
+                                : Colors.white,
                           ),
                         ),
                         if (promptText.isNotEmpty && !isExpanded) ...[
@@ -854,15 +229,22 @@ class _QuestionCard extends StatelessWidget {
                       fillColor: theme.colorScheme.surface,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: theme.dividerColor.withValues(alpha: 0.25)),
+                        borderSide: BorderSide(
+                          color: theme.dividerColor.withValues(alpha: 0.25),
+                        ),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: theme.dividerColor.withValues(alpha: 0.25)),
+                        borderSide: BorderSide(
+                          color: theme.dividerColor.withValues(alpha: 0.25),
+                        ),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: _whatsAppTeal, width: 1.5),
+                        borderSide: BorderSide(
+                          color: _whatsAppTeal,
+                          width: 1.5,
+                        ),
                       ),
                       suffixIcon: InkWell(
                         onTap: onPickPromptImage,
@@ -876,7 +258,9 @@ class _QuestionCard extends StatelessWidget {
                             size: 20,
                             color: question.promptImage != null
                                 ? _whatsAppTeal
-                                : theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                                : theme.colorScheme.onSurface.withValues(
+                                    alpha: 0.5,
+                                  ),
                           ),
                         ),
                       ),
@@ -906,17 +290,23 @@ class _QuestionCard extends StatelessWidget {
                                 width: 28,
                                 height: 28,
                                 decoration: BoxDecoration(
-                                  color: isCorrect ? _whatsAppTeal : theme.colorScheme.surface,
+                                  color: isCorrect
+                                      ? _whatsAppTeal
+                                      : theme.colorScheme.surface,
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: isCorrect ? _whatsAppTeal : theme.dividerColor,
+                                    color: isCorrect
+                                        ? _whatsAppTeal
+                                        : theme.dividerColor,
                                   ),
                                 ),
                                 alignment: Alignment.center,
                                 child: Text(
                                   String.fromCharCode(65 + optIdx),
                                   style: TextStyle(
-                                    color: isCorrect ? Colors.white : theme.colorScheme.onSurface,
+                                    color: isCorrect
+                                        ? Colors.white
+                                        : theme.colorScheme.onSurface,
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -931,7 +321,8 @@ class _QuestionCard extends StatelessWidget {
                                   maxLines: null, // auto-grow
                                   textInputAction: TextInputAction.newline,
                                   decoration: InputDecoration(
-                                    hintText: 'Option ${String.fromCharCode(65 + optIdx)}',
+                                    hintText:
+                                        'Option ${String.fromCharCode(65 + optIdx)}',
                                     isDense: true,
                                     filled: true,
                                     fillColor: theme.colorScheme.surface,
@@ -942,18 +333,25 @@ class _QuestionCard extends StatelessWidget {
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(10),
                                       borderSide: BorderSide(
-                                        color: theme.dividerColor.withValues(alpha: 0.25),
+                                        color: theme.dividerColor.withValues(
+                                          alpha: 0.25,
+                                        ),
                                       ),
                                     ),
                                     enabledBorder: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(10),
                                       borderSide: BorderSide(
-                                        color: theme.dividerColor.withValues(alpha: 0.25),
+                                        color: theme.dividerColor.withValues(
+                                          alpha: 0.25,
+                                        ),
                                       ),
                                     ),
                                     focusedBorder: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(10),
-                                      borderSide: BorderSide(color: _whatsAppTeal, width: 1.5),
+                                      borderSide: BorderSide(
+                                        color: _whatsAppTeal,
+                                        width: 1.5,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -966,17 +364,31 @@ class _QuestionCard extends StatelessWidget {
                                     onTap: () => onPickOptionImage(optIdx),
                                     borderRadius: BorderRadius.circular(999),
                                     child: Padding(
-                                      padding: const EdgeInsets.only(left: 2, top: 4, bottom: 4),
+                                      padding: const EdgeInsets.only(
+                                        left: 2,
+                                        top: 4,
+                                        bottom: 4,
+                                      ),
                                       child: Icon(
-                                        (optIdx < question.optionImages.length &&
-                                                question.optionImages[optIdx] != null)
+                                        (optIdx <
+                                                    question
+                                                        .optionImages
+                                                        .length &&
+                                                question.optionImages[optIdx] !=
+                                                    null)
                                             ? Icons.image
                                             : Icons.image_outlined,
                                         size: 20,
-                                        color: (optIdx < question.optionImages.length &&
-                                                question.optionImages[optIdx] != null)
+                                        color:
+                                            (optIdx <
+                                                    question
+                                                        .optionImages
+                                                        .length &&
+                                                question.optionImages[optIdx] !=
+                                                    null)
                                             ? _whatsAppTeal
-                                            : theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                                            : theme.colorScheme.onSurface
+                                                  .withValues(alpha: 0.4),
                                       ),
                                     ),
                                   ),
@@ -984,7 +396,11 @@ class _QuestionCard extends StatelessWidget {
                                     onTap: () => onSetCorrect(optIdx),
                                     borderRadius: BorderRadius.circular(999),
                                     child: Padding(
-                                      padding: const EdgeInsets.only(left: 2, top: 4, bottom: 4),
+                                      padding: const EdgeInsets.only(
+                                        left: 2,
+                                        top: 4,
+                                        bottom: 4,
+                                      ),
                                       child: Icon(
                                         isCorrect
                                             ? Icons.check_circle_rounded
@@ -992,7 +408,8 @@ class _QuestionCard extends StatelessWidget {
                                         size: 24,
                                         color: isCorrect
                                             ? _whatsAppTeal
-                                            : theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                                            : theme.colorScheme.onSurface
+                                                  .withValues(alpha: 0.4),
                                       ),
                                     ),
                                   ),
@@ -1007,7 +424,10 @@ class _QuestionCard extends StatelessWidget {
                                           top: 4,
                                           bottom: 4,
                                         ),
-                                        child: Icon(Icons.close_rounded, size: 22),
+                                        child: Icon(
+                                          Icons.close_rounded,
+                                          size: 22,
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -1038,11 +458,14 @@ class _QuestionCard extends StatelessWidget {
                                         top: 2,
                                         right: 2,
                                         child: InkWell(
-                                          onTap: () => onRemoveOptionImage(optIdx),
+                                          onTap: () =>
+                                              onRemoveOptionImage(optIdx),
                                           child: Container(
                                             padding: const EdgeInsets.all(2),
                                             decoration: BoxDecoration(
-                                              color: Colors.black.withValues(alpha: 0.6),
+                                              color: Colors.black.withValues(
+                                                alpha: 0.6,
+                                              ),
                                               shape: BoxShape.circle,
                                             ),
                                             child: const Icon(
