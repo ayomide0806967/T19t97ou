@@ -42,35 +42,14 @@ class _TrendingQuickControlPanel extends StatefulWidget {
 
 class _TrendingQuickControlPanelState
     extends State<_TrendingQuickControlPanel> {
-  late final List<_QuickControlItem> _items;
+  late final List<QuickControlItem> _items;
   late final List<bool> _activeStates;
-
-  Future<void> _showComingSoon(String feature) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final theme = Theme.of(context);
-    Navigator.of(context).pop();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(
-          '$feature is coming soon',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: Colors.black.withValues(alpha: 0.85),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
 
   @override
   void initState() {
     super.initState();
     _items = [
-      _QuickControlItem(
+      QuickControlItem(
         icon: Icons.school_rounded,
         label: 'Class',
         onPressed: () async {
@@ -78,7 +57,7 @@ class _TrendingQuickControlPanelState
           await Navigator.of(context).push(AppNav.classes());
         },
       ),
-      _QuickControlItem(
+      QuickControlItem(
         icon: Icons.mode_edit_outline_rounded,
         label: 'Post',
         onPressed: () async {
@@ -86,7 +65,7 @@ class _TrendingQuickControlPanelState
           widget.onCompose();
         },
       ),
-      _QuickControlItem(
+      QuickControlItem(
         icon: Icons.quiz_outlined,
         label: 'Quiz',
         onPressed: () async {
@@ -94,7 +73,7 @@ class _TrendingQuickControlPanelState
           await Navigator.of(context).push(AppNav.quizDashboard());
         },
       ),
-      _QuickControlItem(
+      QuickControlItem(
         icon: Icons.dark_mode_rounded,
         label: 'Dark Theme',
         onPressed: () async {
@@ -105,12 +84,12 @@ class _TrendingQuickControlPanelState
           });
         },
       ),
-      _QuickControlItem(
+      QuickControlItem(
         icon: Icons.notifications_none_outlined,
         label: 'Notifications',
-        onPressed: () async => _showComingSoon('Notifications'),
+        onPressed: () async => showComingSoonSnackBar(context, 'Notifications'),
       ),
-      _QuickControlItem(
+      QuickControlItem(
         icon: Icons.forum_outlined,
         label: 'Messages',
         onPressed: () async {
@@ -118,7 +97,7 @@ class _TrendingQuickControlPanelState
           await Navigator.of(context).push(AppNav.classes());
         },
       ),
-      _QuickControlItem(
+      QuickControlItem(
         icon: Icons.search_rounded,
         label: 'Search',
         onPressed: () async {
@@ -126,12 +105,12 @@ class _TrendingQuickControlPanelState
           // Already on search/trends page – just close the panel.
         },
       ),
-      _QuickControlItem(
+      QuickControlItem(
         icon: Icons.quiz_outlined,
         label: 'Settings',
-        onPressed: () async => _showComingSoon('Settings'),
+        onPressed: () async => showComingSoonSnackBar(context, 'Settings'),
       ),
-      _QuickControlItem(
+      QuickControlItem(
         icon: Icons.logout_outlined,
         label: 'Log out',
         onPressed: () async {
@@ -241,23 +220,6 @@ class _TrendingQuickControlPanelState
   }
 }
 
-class _QuickControlItem {
-  const _QuickControlItem({
-    required this.icon,
-    required this.label,
-    this.onPressed,
-  })  : isTogglable = false,
-        onToggle = null,
-        initialValue = false;
-
-  final IconData icon;
-  final String label;
-  final Future<void> Function()? onPressed;
-  final Future<void> Function(bool)? onToggle;
-  final bool isTogglable;
-  final bool initialValue;
-}
-
 class _QuickControlButton extends StatelessWidget {
   const _QuickControlButton({
     required this.item,
@@ -265,7 +227,7 @@ class _QuickControlButton extends StatelessWidget {
     required this.onPressed,
   });
 
-  final _QuickControlItem item;
+  final QuickControlItem item;
   final bool isActive;
   final Future<void> Function()? onPressed;
 
@@ -287,10 +249,12 @@ class _QuickControlButton extends StatelessWidget {
         : Colors.white.withValues(alpha: isActive ? 0.9 : 0.8);
 
     final Color iconColor = isLogoutTile ? Colors.white : baseIconColor;
-    final Color borderColor =
-        isLogoutTile ? const Color(0xFFF56565) : baseBorderColor;
-    final Color backgroundColor =
-        isLogoutTile ? const Color(0xFFF56565) : baseBackgroundColor;
+    final Color borderColor = isLogoutTile
+        ? const Color(0xFFF56565)
+        : baseBorderColor;
+    final Color backgroundColor = isLogoutTile
+        ? const Color(0xFFF56565)
+        : baseBackgroundColor;
 
     return Material(
       color: Colors.transparent,

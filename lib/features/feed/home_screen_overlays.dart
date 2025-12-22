@@ -20,35 +20,14 @@ class _QuickControlPanel extends StatefulWidget {
 }
 
 class _QuickControlPanelState extends State<_QuickControlPanel> {
-  late final List<_QuickControlItem> _items;
+  late final List<QuickControlItem> _items;
   late final List<bool> _activeStates;
-
-  Future<void> _showComingSoon(String feature) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final theme = Theme.of(context);
-    Navigator.of(context).pop();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(
-          '$feature is coming soon',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: Colors.black.withValues(alpha: 0.85),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
 
   @override
   void initState() {
     super.initState();
     _items = [
-      _QuickControlItem(
+      QuickControlItem(
         icon: Icons.school_rounded,
         label: 'Class',
         onPressed: () async {
@@ -56,7 +35,7 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
           await Navigator.of(context).push(AppNav.classes());
         },
       ),
-      _QuickControlItem(
+      QuickControlItem(
         icon: Icons.mode_edit_outline_rounded,
         label: 'Post',
         onPressed: () async {
@@ -64,7 +43,7 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
           widget.onCompose();
         },
       ),
-      _QuickControlItem(
+      QuickControlItem(
         icon: Icons.quiz_outlined,
         label: 'Quiz',
         onPressed: () async {
@@ -72,7 +51,7 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
           await Navigator.of(context).push(AppNav.quizDashboard());
         },
       ),
-      _QuickControlItem(
+      QuickControlItem(
         icon: Icons.dark_mode_rounded,
         label: 'Dark Theme',
         onPressed: () async {
@@ -83,12 +62,12 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
           });
         },
       ),
-      _QuickControlItem(
+      QuickControlItem(
         icon: Icons.notifications_none_outlined,
         label: 'Notifications',
-        onPressed: () async => _showComingSoon('Notifications'),
+        onPressed: () async => showComingSoonSnackBar(context, 'Notifications'),
       ),
-      _QuickControlItem(
+      QuickControlItem(
         icon: Icons.forum_outlined,
         label: 'Messages',
         onPressed: () async {
@@ -96,7 +75,7 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
           await Navigator.of(context).push(AppNav.classes());
         },
       ),
-      _QuickControlItem(
+      QuickControlItem(
         icon: Icons.search_rounded,
         label: 'Search',
         onPressed: () async {
@@ -104,12 +83,12 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
           await Navigator.of(context).push(AppNav.trending());
         },
       ),
-      _QuickControlItem(
+      QuickControlItem(
         icon: Icons.quiz_outlined,
         label: 'Settings',
-        onPressed: () async => _showComingSoon('Settings'),
+        onPressed: () async => showComingSoonSnackBar(context, 'Settings'),
       ),
-      _QuickControlItem(
+      QuickControlItem(
         icon: Icons.logout_outlined,
         label: 'Log out',
         onPressed: () async {
@@ -233,23 +212,6 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
   }
 }
 
-class _QuickControlItem {
-  const _QuickControlItem({
-    required this.icon,
-    required this.label,
-    this.onPressed,
-  }) : isTogglable = false,
-       onToggle = null,
-       initialValue = false;
-
-  final IconData icon;
-  final String label;
-  final Future<void> Function()? onPressed;
-  final Future<void> Function(bool)? onToggle;
-  final bool isTogglable;
-  final bool initialValue;
-}
-
 class _QuickControlButton extends StatelessWidget {
   const _QuickControlButton({
     required this.item,
@@ -257,7 +219,7 @@ class _QuickControlButton extends StatelessWidget {
     required this.onPressed,
   });
 
-  final _QuickControlItem item;
+  final QuickControlItem item;
   final bool isActive;
   final Future<void> Function()? onPressed;
 
@@ -274,8 +236,9 @@ class _QuickControlButton extends StatelessWidget {
     final Color activeBorder = theme.colorScheme.primary.withValues(
       alpha: isDark ? 0.38 : 0.45,
     );
-    final Color baseBackground =
-        isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white;
+    final Color baseBackground = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : Colors.white;
     final Color activeBackground = isDark
         ? Colors.white.withValues(alpha: 0.14)
         : theme.colorScheme.primary.withValues(alpha: 0.08);
@@ -305,7 +268,8 @@ class _QuickControlButton extends StatelessWidget {
         ? Colors.white
         : theme.colorScheme.onSurface.withValues(alpha: 0.82);
 
-    final TextStyle labelStyle = theme.textTheme.bodyMedium?.copyWith(
+    final TextStyle labelStyle =
+        theme.textTheme.bodyMedium?.copyWith(
           fontWeight: FontWeight.w600,
           fontSize: 11,
           color: labelColor,

@@ -7,6 +7,8 @@ import 'package:provider/provider.dart';
 import '../../core/auth/auth_repository.dart';
 import '../../core/user/handle.dart';
 import '../../core/ui/initials.dart';
+import '../../core/ui/snackbars.dart';
+import '../../core/ui/quick_controls/quick_control_item.dart';
 import '../../core/feed/post_repository.dart';
 import '../../core/navigation/app_nav.dart';
 import '../../models/post.dart';
@@ -148,8 +150,9 @@ class _HomeScreenState extends State<HomeScreen>
               size: 30,
               color: const Color(0xFF9CA3AF),
               strokeWidthFactor: 0.085,
-              refreshProgress:
-                  _isRefreshingFeed ? _logoRefreshController : null,
+              refreshProgress: _isRefreshingFeed
+                  ? _logoRefreshController
+                  : null,
             ),
             actions: [
               RepaintBoundary(

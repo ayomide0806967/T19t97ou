@@ -6,6 +6,8 @@ import '../../core/auth/auth_repository.dart';
 import '../../core/user/handle.dart';
 import '../../core/feed/post_repository.dart';
 import '../../core/navigation/app_nav.dart';
+import '../../core/ui/snackbars.dart';
+import '../../core/ui/quick_controls/quick_control_item.dart';
 import '../../models/post.dart';
 import '../../state/app_settings.dart';
 import '../../theme/app_theme.dart';
@@ -22,7 +24,6 @@ class TrendingScreen extends StatefulWidget {
   @override
   State<TrendingScreen> createState() => _TrendingScreenState();
 }
-
 
 class _TrendingScreenState extends State<TrendingScreen> {
   late final TextEditingController _searchController;
@@ -67,7 +68,10 @@ class _TrendingScreenState extends State<TrendingScreen> {
       }
       return List<_TopicItem>.generate(
         _fallbackTopics.length,
-        (i) => _TopicItem(topic: _fallbackTopics[i], count: _fallbackTopicCounts[i]),
+        (i) => _TopicItem(
+          topic: _fallbackTopics[i],
+          count: _fallbackTopicCounts[i],
+        ),
       );
     }
 
@@ -132,8 +136,9 @@ class _TrendingScreenState extends State<TrendingScreen> {
       return _score(b).compareTo(_score(a));
     });
 
-    final currentUserHandle =
-        deriveHandleFromEmail(context.read<AuthRepository>().currentUser?.email);
+    final currentUserHandle = deriveHandleFromEmail(
+      context.read<AuthRepository>().currentUser?.email,
+    );
 
     final Map<String, int> topicCounts = <String, int>{};
     for (final post in allPosts) {
@@ -161,8 +166,9 @@ class _TrendingScreenState extends State<TrendingScreen> {
                 p.tags.any((t) => t.toLowerCase().contains(q));
           }).toList();
 
-    final topPosts =
-        visiblePosts.length > 3 ? visiblePosts.sublist(0, 3) : visiblePosts;
+    final topPosts = visiblePosts.length > 3
+        ? visiblePosts.sublist(0, 3)
+        : visiblePosts;
 
     final List<PostModel> whoToFollow = <PostModel>[];
     final Set<String> seenHandles = <String>{};
@@ -218,8 +224,7 @@ class _TrendingScreenState extends State<TrendingScreen> {
         onHorizontalDragEnd: (details) {
           // A swipe from left to right (positive velocity) should
           // navigate back to the home feed.
-          if (details.primaryVelocity != null &&
-              details.primaryVelocity! > 0) {
+          if (details.primaryVelocity != null && details.primaryVelocity! > 0) {
             Navigator.of(context).maybePop();
           }
         },
@@ -257,8 +262,9 @@ class _TrendingScreenState extends State<TrendingScreen> {
                         child: Text(
                           'No topics found.',
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: 0.65),
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.65,
+                            ),
                           ),
                         ),
                       )
@@ -302,7 +308,8 @@ class _TrendingScreenState extends State<TrendingScreen> {
                               rows.add(
                                 Padding(
                                   padding: const EdgeInsets.symmetric(
-                                      vertical: 6),
+                                    vertical: 6,
+                                  ),
                                   child: Divider(
                                     height: 1,
                                     thickness: 1.2,
@@ -324,8 +331,9 @@ class _TrendingScreenState extends State<TrendingScreen> {
             ),
             SliverToBoxAdapter(
               child: _SectionDivider(
-                color:
-                    theme.dividerColor.withValues(alpha: isDark ? 0.30 : 0.22),
+                color: theme.dividerColor.withValues(
+                  alpha: isDark ? 0.30 : 0.22,
+                ),
               ),
             ),
             SliverToBoxAdapter(
@@ -346,47 +354,44 @@ class _TrendingScreenState extends State<TrendingScreen> {
               )
             else
               SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final post = topPosts[index];
-                    final bool isLast = index == topPosts.length - 1;
-                    return Column(
-                      children: [
-                        Padding(
-                          padding: EdgeInsets.fromLTRB(
-                            20,
-                            index == 0 ? 0 : 12,
-                            20,
-                            12,
-                          ),
-                          child: TweetPostCard(
-                            post: post,
-                            currentUserHandle: currentUserHandle,
-                            backgroundColor: theme.cardColor,
-                          ),
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final post = topPosts[index];
+                  final bool isLast = index == topPosts.length - 1;
+                  return Column(
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          20,
+                          index == 0 ? 0 : 12,
+                          20,
+                          12,
                         ),
-                        if (!isLast)
-                          Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 20),
-                            child: Divider(
-                              height: 1,
-                              thickness: 1,
-                              color: theme.dividerColor.withValues(
-                                alpha: isDark ? 0.30 : 0.22,
-                              ),
+                        child: TweetPostCard(
+                          post: post,
+                          currentUserHandle: currentUserHandle,
+                          backgroundColor: theme.cardColor,
+                        ),
+                      ),
+                      if (!isLast)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Divider(
+                            height: 1,
+                            thickness: 1,
+                            color: theme.dividerColor.withValues(
+                              alpha: isDark ? 0.30 : 0.22,
                             ),
                           ),
-                      ],
-                    );
-                  },
-                  childCount: topPosts.length,
-                ),
+                        ),
+                    ],
+                  );
+                }, childCount: topPosts.length),
               ),
             SliverToBoxAdapter(
               child: _SectionDivider(
-                color:
-                    theme.dividerColor.withValues(alpha: isDark ? 0.30 : 0.22),
+                color: theme.dividerColor.withValues(
+                  alpha: isDark ? 0.30 : 0.22,
+                ),
               ),
             ),
             SliverToBoxAdapter(
