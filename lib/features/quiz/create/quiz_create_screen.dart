@@ -20,7 +20,10 @@ import 'models/quiz_question_fields.dart';
 part 'quiz_create_screen_actions.dart';
 part 'quiz_create_screen_build.dart';
 part 'quiz_create_screen_cards.dart';
-part 'quiz_create_screen_steps.dart';
+part 'quiz_create_screen_step_details.dart';
+part 'quiz_create_screen_step_settings.dart';
+part 'quiz_create_screen_step_question_setup.dart';
+part 'quiz_create_screen_step_question_editing.dart';
 
 enum QuizVisibility { everyone, followers }
 
