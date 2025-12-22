@@ -55,6 +55,7 @@ part 'ios_messages/class_students_tab.dart';
 part 'ios_messages/college_screen_state.dart';
 
 part 'ios_messages/class_feed_tab.dart';
+part 'ios_messages/class_feed_tab_lecture_setup.dart';
 
 part 'ios_messages/topic_feed.dart';
 part 'ios_messages/class_composer.dart';
