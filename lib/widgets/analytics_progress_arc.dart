@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
 
 class AnalyticsProgressArc extends StatelessWidget {
   const AnalyticsProgressArc({
@@ -23,7 +22,7 @@ class AnalyticsProgressArc extends StatelessWidget {
     final bool isDark = theme.brightness == Brightness.dark;
     final ColorScheme colorScheme = theme.colorScheme;
 
-    const Color failGreen = Color(0xFF075E54);
+    const Color passGreen = Color(0xFF25D366);
     const Color passRed = Color(0xFFDC2626);
     final Color cardColor = isDark ? colorScheme.surface : Colors.white;
 
@@ -69,10 +68,9 @@ class AnalyticsProgressArc extends StatelessWidget {
             averageScore: averageScore,
             completionRate: completionRate,
             totalResponses: totalResponses,
-            // Swap colors so Pass uses the green
-            // and Fail uses the red accent.
+            // Pass uses brand orange; Fail uses red.
             failColor: passRed,
-            passColor: failGreen,
+            passColor: passGreen,
           ),
         ],
       ),
@@ -80,65 +78,7 @@ class AnalyticsProgressArc extends StatelessWidget {
   }
 }
 
-class _SmallMetricItem extends StatelessWidget {
-  const _SmallMetricItem({
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  final String label;
-  final String value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final bool isDark = theme.brightness == Brightness.dark;
-    final Color fill = isDark
-        ? theme.colorScheme.onSurface.withValues(alpha: 0.06)
-        : color.withValues(alpha: 0.08);
-    final Color border = isDark
-        ? theme.dividerColor.withValues(alpha: 0.35)
-        : color.withValues(alpha: 0.18);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: fill,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: border,
-        ),
-      ),
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            softWrap: false,
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: theme.textTheme.bodySmall?.copyWith(
-              fontSize: 11,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            softWrap: false,
-          ),
-        ],
-      ),
-    );
-  }
-}
+// _SmallMetricItem was unused; removed to keep this widget focused.
 
 class _BarChartSummary extends StatelessWidget {
   const _BarChartSummary({
@@ -246,8 +186,7 @@ class _BarChartSummary extends StatelessWidget {
         buildBar(
           label: 'Not completed',
           percent: remainingPercent,
-          // Brighter green, still aligned with toast accent.
-          color: const Color(0xFF86E29B),
+          color: const Color(0xFF111827),
           visualPercent: remainingPercent == 0 ? 10 : remainingPercent,
         ),
       ],

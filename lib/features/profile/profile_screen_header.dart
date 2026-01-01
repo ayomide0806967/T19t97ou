@@ -250,17 +250,17 @@ class _ProfileHeader extends StatelessWidget {
                                     .withValues(
                               alpha: isFollowing ? 0.28 : 1,
                             ),
-                            width: 1,
+                            width: 1.2,
                           );
 
-                          return OutlinedButton(
+                          return OutlinedButton.icon(
                             onPressed: onToggleFollow,
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 6,
+                                horizontal: 12,
+                                vertical: 8,
                               ),
-                              visualDensity: VisualDensity.compact,
+                              minimumSize: const Size(96, 36),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(999),
                               ),
@@ -268,11 +268,15 @@ class _ProfileHeader extends StatelessWidget {
                               foregroundColor: followFg,
                               backgroundColor: followBg,
                             ),
-                            child: Text(
+                            icon: Icon(
+                              isFollowing ? Icons.check_rounded : Icons.add_rounded,
+                              size: 16,
+                            ),
+                            label: Text(
                               isFollowing ? 'Following' : 'Follow',
                               style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
                                 letterSpacing: 0.2,
                               ),
                             ),
@@ -341,4 +345,3 @@ class _ProfileHeader extends StatelessWidget {
     );
   }
 }
-

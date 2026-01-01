@@ -1,26 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/thread_entry.dart';
-import '../models/post.dart';
 import '../core/ui/app_toast.dart';
 import '../theme/app_theme.dart';
 import '../widgets/tweet_post_card.dart';
 import '../widgets/tweet_composer_card.dart';
+import '../features/messages/application/thread_reply_controller.dart';
+import '../features/messages/application/thread_controller.dart';
 
-class ThreadScreen extends StatefulWidget {
+class ThreadScreen extends ConsumerStatefulWidget {
   const ThreadScreen({
     super.key,
-    required this.entry,
+    required this.postId,
     required this.currentUserHandle,
     this.initialReplyPostId,
   });
 
-  final ThreadEntry entry;
+  final String postId;
   final String currentUserHandle;
   final String? initialReplyPostId;
 
   static Route<void> route({
-    required ThreadEntry entry,
+    required String postId,
     required String currentUserHandle,
     String? initialReplyPostId,
   }) {
@@ -28,7 +30,7 @@ class ThreadScreen extends StatefulWidget {
       transitionDuration: const Duration(milliseconds: 110),
       reverseTransitionDuration: const Duration(milliseconds: 100),
       pageBuilder: (_, __, ___) => ThreadScreen(
-        entry: entry,
+        postId: postId,
         currentUserHandle: currentUserHandle,
         initialReplyPostId: initialReplyPostId,
       ),
@@ -44,10 +46,10 @@ class ThreadScreen extends StatefulWidget {
   }
 
   @override
-  State<ThreadScreen> createState() => _ThreadScreenState();
+  ConsumerState<ThreadScreen> createState() => _ThreadScreenState();
 }
 
-class _ThreadScreenState extends State<ThreadScreen> {
+class _ThreadScreenState extends ConsumerState<ThreadScreen> {
   late ThreadEntry _thread;
   ThreadEntry? _replyTarget;
 
@@ -58,7 +60,19 @@ class _ThreadScreenState extends State<ThreadScreen> {
   @override
   void initState() {
     super.initState();
-    _thread = widget.entry;
+    _thread = ref.read(threadControllerProvider(widget.postId));
+    ref.listen<ThreadEntry>(
+      threadControllerProvider(widget.postId),
+      (previous, next) {
+        setState(() {
+          _thread = next;
+          if (_replyTarget != null) {
+            _replyTarget =
+                _findEntryById(_thread, _replyTarget!.post.id) ?? _thread;
+          }
+        });
+      },
+    );
     final initialTargetId = widget.initialReplyPostId;
     if (initialTargetId != null) {
       _replyTarget = _findEntryById(_thread, initialTargetId) ?? _thread;
@@ -94,24 +108,15 @@ class _ThreadScreenState extends State<ThreadScreen> {
     final ThreadEntry target = _activeTarget;
     final bool replyingToRoot = target.post.id == _thread.post.id;
     final String targetId = target.post.id;
-    final ThreadEntry newReply = ThreadEntry(
-      post: PostModel(
-        id: '${targetId}_local_${DateTime.now().microsecondsSinceEpoch}',
-        author: 'You',
-        handle: _currentUserHandle(),
-        timeAgo: 'just now',
-        body: text,
-        tags: const <String>[],
-        replies: 0,
-        reposts: 0,
-        likes: 0,
-        views: 0,
-        bookmarks: 0,
-      ),
-      replyToHandle: target.post.handle,
-    );
 
-    final ThreadEntry updated = _appendReply(_thread, targetId, newReply);
+    final updated = ref
+        .read(threadReplyControllerProvider.notifier)
+        .addLocalReply(
+          root: _thread,
+          targetPostId: targetId,
+          currentUserHandle: widget.currentUserHandle,
+          body: text,
+        );
 
     setState(() {
       _thread = updated;
@@ -140,35 +145,6 @@ class _ThreadScreenState extends State<ThreadScreen> {
     );
   }
 
-  ThreadEntry _appendReply(
-    ThreadEntry node,
-    String targetId,
-    ThreadEntry reply,
-  ) {
-    if (node.post.id == targetId) {
-      final List<ThreadEntry> updatedReplies = List<ThreadEntry>.from(node.replies)
-        ..add(reply);
-      return node.copyWith(
-        post: node.post.copyWith(replies: node.post.replies + 1),
-        replies: updatedReplies,
-      );
-    }
-
-    bool modified = false;
-    final List<ThreadEntry> children = <ThreadEntry>[];
-    for (final ThreadEntry child in node.replies) {
-      final ThreadEntry updatedChild = _appendReply(child, targetId, reply);
-      if (!identical(child, updatedChild)) {
-        modified = true;
-      }
-      children.add(updatedChild);
-    }
-
-    if (!modified) return node;
-
-    return node.copyWith(replies: children);
-  }
-
   ThreadEntry? _findEntryById(ThreadEntry node, String id) {
     if (node.post.id == id) return node;
     for (final ThreadEntry child in node.replies) {
@@ -176,12 +152,6 @@ class _ThreadScreenState extends State<ThreadScreen> {
       if (result != null) return result;
     }
     return null;
-  }
-
-  String _currentUserHandle() {
-    final handle = widget.currentUserHandle.trim();
-    if (handle.isEmpty) return '@you';
-    return handle.startsWith('@') ? handle : '@$handle';
   }
 
   String _normalizeHandle(String handle) {
@@ -384,7 +354,7 @@ class ThreadReplyTile extends StatelessWidget {
                 onTap: () {
                   Navigator.of(context).push(
                     ThreadScreen.route(
-                      entry: entry,
+                      postId: entry.post.id,
                       currentUserHandle: currentUserHandle,
                       initialReplyPostId: entry.post.id,
                     ),

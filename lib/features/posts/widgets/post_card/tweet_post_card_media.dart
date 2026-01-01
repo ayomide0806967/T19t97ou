@@ -86,13 +86,48 @@ class _TweetMediaCarouselState extends State<_TweetMediaCarousel> {
   }
 }
 
-class _PostMediaGrid extends StatelessWidget {
+class _PostMediaGrid extends StatefulWidget {
   const _PostMediaGrid({required this.paths});
 
   final List<String> paths;
 
   @override
+  State<_PostMediaGrid> createState() => _PostMediaGridState();
+}
+
+class _PostMediaGridState extends State<_PostMediaGrid>
+    with AutomaticKeepAliveClientMixin<_PostMediaGrid> {
+  PageController? _controller;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  void _syncController(int itemCount) {
+    if (itemCount <= 1) {
+      _controller?.dispose();
+      _controller = null;
+      return;
+    }
+    _controller ??= PageController(viewportFraction: 0.75);
+  }
+
+  @override
+  void didUpdateWidget(covariant _PostMediaGrid oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final nextCount =
+        widget.paths.where((p) => p.trim().isNotEmpty).length;
+    _syncController(nextCount);
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final border = Border.all(
@@ -100,8 +135,9 @@ class _PostMediaGrid extends StatelessWidget {
       width: 0.8,
     );
 
-    final cleaned = paths.where((p) => p.trim().isNotEmpty).toList();
+    final cleaned = widget.paths.where((p) => p.trim().isNotEmpty).toList();
     if (cleaned.isEmpty) return const SizedBox.shrink();
+    _syncController(cleaned.length);
 
     Widget tile(String path, int index) {
       return GestureDetector(
@@ -123,17 +159,34 @@ class _PostMediaGrid extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           child: Container(
             decoration: BoxDecoration(border: border),
-            child: Image.file(
-              File(path),
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
-                alignment: Alignment.center,
-                child: Icon(
-                  Icons.broken_image_outlined,
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
-                ),
-              ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final dpr = MediaQuery.devicePixelRatioOf(context);
+                final int? cacheWidth = constraints.maxWidth.isFinite
+                    ? (constraints.maxWidth * dpr).round()
+                    : null;
+
+                return Stack(
+                  children: [
+                    Positioned.fill(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.04,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned.fill(
+                      child: _PostMediaImage(
+                        path: path,
+                        cacheWidth: cacheWidth,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ),
@@ -147,14 +200,12 @@ class _PostMediaGrid extends StatelessWidget {
       );
     }
 
-    final PageController controller = PageController(viewportFraction: 0.75);
-
     return SizedBox(
       width: double.infinity,
       height: 230,
       child: PageView.builder(
         itemCount: cleaned.length,
-        controller: controller,
+        controller: _controller,
         padEnds: false,
         itemBuilder: (context, index) {
           final path = cleaned[index];
@@ -195,10 +246,7 @@ class _FullScreenMediaViewer extends StatelessWidget {
                 final path = paths[index];
                 return Center(
                   child: InteractiveViewer(
-                    child: Image.file(
-                      File(path),
-                      fit: BoxFit.contain,
-                    ),
+                    child: _PostMediaImage(path: path, fit: BoxFit.contain),
                   ),
                 );
               },
@@ -218,3 +266,62 @@ class _FullScreenMediaViewer extends StatelessWidget {
   }
 }
 
+class _PostMediaImage extends StatelessWidget {
+  const _PostMediaImage({
+    required this.path,
+    required this.fit,
+    this.cacheWidth,
+  });
+
+  final String path;
+  final BoxFit fit;
+  final int? cacheWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final trimmed = path.trim();
+
+    Widget placeholder() => Container(
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
+          alignment: Alignment.center,
+          child: Icon(
+            Icons.broken_image_outlined,
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
+          ),
+        );
+
+    if (trimmed.isEmpty) return placeholder();
+
+    final uri = Uri.tryParse(trimmed);
+    if (uri != null && (uri.scheme == 'http' || uri.scheme == 'https')) {
+      return CachedNetworkImage(
+        imageUrl: trimmed,
+        fit: fit,
+        placeholder: (_, __) => Container(
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.04),
+        ),
+        errorWidget: (_, __, ___) => placeholder(),
+      );
+    }
+
+    final File file;
+    if (uri != null && uri.scheme == 'file') {
+      file = File.fromUri(uri);
+    } else {
+      file = File(trimmed);
+    }
+
+    if (!file.existsSync()) return placeholder();
+
+    return Image.file(
+      file,
+      key: ValueKey<String>(trimmed),
+      fit: fit,
+      gaplessPlayback: true,
+      filterQuality: FilterQuality.medium,
+      cacheWidth: cacheWidth != null && cacheWidth! > 0 ? cacheWidth : null,
+      errorBuilder: (_, __, ___) => placeholder(),
+    );
+  }
+}

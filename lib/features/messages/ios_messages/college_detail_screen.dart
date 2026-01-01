@@ -11,11 +11,11 @@ class CollegeDetailScreen extends StatelessWidget {
   }
 }
 
-class _CollegeScreen extends StatefulWidget {
+class _CollegeScreen extends ConsumerStatefulWidget {
   const _CollegeScreen({required this.college});
 
   final College college;
 
   @override
-  State<_CollegeScreen> createState() => _CollegeScreenState();
+  ConsumerState<_CollegeScreen> createState() => _CollegeScreenState();
 }

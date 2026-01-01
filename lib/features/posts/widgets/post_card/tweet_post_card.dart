@@ -2,12 +2,13 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../constants/toast_durations.dart';
-import '../../../../core/feed/post_repository.dart';
 import '../../../../core/navigation/app_nav.dart';
 import '../../../../core/ui/app_toast.dart';
 import '../../../../core/ui/initials.dart';
@@ -21,6 +22,7 @@ import '../../../../widgets/hexagon_avatar.dart';
 // import '../screens/post_detail_screen.dart'; // no longer used for replies
 import '../../../../widgets/icons/x_comment_icon.dart';
 import '../../../../widgets/icons/x_retweet_icon.dart';
+import '../../../messages/application/message_thread_controller.dart';
 
 part 'tweet_post_card_media.dart';
 part 'tweet_post_card_metrics.dart';
@@ -29,7 +31,7 @@ part 'tweet_post_card_utils.dart';
 part 'tweet_post_card_actions.dart';
 part 'tweet_post_card_build.dart';
 
-class TweetPostCard extends StatefulWidget {
+class TweetPostCard extends ConsumerStatefulWidget {
   const TweetPostCard({
     super.key,
     required this.post,
@@ -67,10 +69,10 @@ class TweetPostCard extends StatefulWidget {
   final bool showRepostToast;
 
   @override
-  State<TweetPostCard> createState() => _TweetPostCardState();
+  ConsumerState<TweetPostCard> createState() => _TweetPostCardState();
 }
 
-abstract class _TweetPostCardStateBase extends State<TweetPostCard> {
+abstract class _TweetPostCardStateBase extends ConsumerState<TweetPostCard> {
   static final math.Random _viewRandom = math.Random();
 
   late int _replies = widget.post.replies;

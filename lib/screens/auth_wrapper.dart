@@ -1,24 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:provider/provider.dart';
-
-import '../core/auth/auth_repository.dart';
+import '../features/auth/application/auth_controller.dart';
 import 'home_screen.dart';
 import 'login_screen.dart';
 
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends ConsumerWidget {
   const AuthWrapper({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final auth = context.watch<AuthRepository>();
-    return StreamBuilder<AppUser?>(
-      stream: auth.authStateChanges,
-      initialData: auth.currentUser,
-      builder: (context, snapshot) {
-        final isLoggedIn = snapshot.data != null;
-        return isLoggedIn ? const HomeScreen() : const LoginScreen();
-      },
+  Widget build(BuildContext context, WidgetRef ref) {
+    final asyncAuth = ref.watch(authStateProvider);
+
+    return asyncAuth.when(
+      data: (user) =>
+          user != null ? const HomeScreen() : const LoginScreen(),
+      loading: () => const LoginScreen(),
+      error: (_, __) => const LoginScreen(),
     );
   }
 }

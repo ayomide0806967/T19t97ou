@@ -23,13 +23,25 @@ class _InstitutionHeroText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (text.toUpperCase() == 'IN INSTITUTION') {
-      return _OutlinedText(
-        text: 'IN INSTITUTION',
-        fill: Colors.white,
-        stroke: Colors.black,
-        style: titleStyle.copyWith(
-          fontWeight: FontWeight.w900,
-          letterSpacing: 0.6,
+      final baseFontSize = titleStyle.fontSize ?? 34;
+      final baseStyle = titleStyle.copyWith(
+        fontSize: baseFontSize * 0.9,
+        fontWeight: FontWeight.w900,
+        letterSpacing: 0.6,
+      );
+      return RichText(
+        textAlign: TextAlign.center,
+        text: TextSpan(
+          children: [
+            TextSpan(
+              text: 'IN ',
+              style: baseStyle.copyWith(color: const Color(0xFFFF7A1A)),
+            ),
+            TextSpan(
+              text: 'INSTITUTION',
+              style: baseStyle.copyWith(color: Colors.white),
+            ),
+          ],
         ),
       );
     }

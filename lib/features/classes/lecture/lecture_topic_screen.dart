@@ -1,30 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-
-import '../../../core/auth/auth_repository.dart';
-import '../../../core/feed/post_repository.dart';
-import '../../../core/user/handle.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/class_topic.dart';
 import '../../../widgets/lecture_note_card.dart';
 import '../../messages/replies/message_replies_route.dart';
+import '../../auth/application/session_providers.dart';
 import 'class_note_stepper_screen.dart';
 import 'create/create_note_welcome_screen.dart';
+import '../application/class_topic_posts_controller.dart';
 
-class LectureTopicScreen extends StatelessWidget {
+class LectureTopicScreen extends ConsumerWidget {
   const LectureTopicScreen({super.key, required this.topic});
 
   final ClassTopic topic;
 
   @override
-  Widget build(BuildContext context) {
-    final data = context.watch<PostRepository>();
-    final posts =
-        data.posts.where((p) => p.tags.contains(topic.topicTag)).toList();
-
-    final String currentUserHandle = deriveHandleFromEmail(
-      context.read<AuthRepository>().currentUser?.email,
-      fallback: '@yourprofile',
-    );
+  Widget build(BuildContext context, WidgetRef ref) {
+    final postsState =
+        ref.watch(classTopicPostsControllerProvider(topic.topicTag));
+    final posts = postsState.posts;
+    final String currentUserHandle = ref.watch(currentUserHandleProvider);
 
     return Scaffold(
       appBar: AppBar(

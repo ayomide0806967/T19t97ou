@@ -8,6 +8,7 @@ create table if not exists public.profiles (
   handle text unique not null,
   full_name text,
   bio text,
+  profession text,
   avatar_url text,
   header_url text,
   created_at timestamptz not null default now(),
@@ -66,6 +67,7 @@ create table if not exists public.posts (
   body text not null,
   tags text[] not null default '{}'::text[],
   media_paths text[] not null default '{}'::text[],
+  quote_id uuid references public.posts(id) on delete set null,
   created_at timestamptz not null default now()
 );
 
@@ -97,7 +99,7 @@ select
   0::int as views,
   0::int as bookmarks,
   null::text as reposted_by,
-  null::text as original_id
+  p.quote_id::text as original_id
 from public.posts p
 join public.profiles pr on pr.user_id = p.author_id;
 
@@ -162,3 +164,129 @@ on public.post_reposts for delete
 to authenticated
 using (auth.uid() = user_id);
 
+-- =============================================================================
+-- QUIZ SYSTEM
+-- =============================================================================
+create table if not exists public.quiz_drafts (
+  id uuid primary key default gen_random_uuid(),
+  author_id uuid references auth.users(id) on delete cascade,
+  title text not null,
+  question_count int default 0,
+  is_timed boolean default false,
+  timer_minutes int,
+  closing_date timestamptz,
+  require_pin boolean default false,
+  pin text,
+  visibility text default 'public',
+  restricted_audience text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.quiz_results (
+  id uuid primary key default gen_random_uuid(),
+  author_id uuid references auth.users(id) on delete cascade,
+  title text not null,
+  responses int default 0,
+  average_score decimal default 0,
+  completion_rate decimal default 0,
+  last_updated timestamptz not null default now()
+);
+
+create table if not exists public.quiz_questions (
+  id uuid primary key default gen_random_uuid(),
+  quiz_id uuid references public.quiz_results(id) on delete cascade,
+  order_index int not null,
+  prompt text not null,
+  options text[] not null,
+  answer_index int not null
+);
+
+alter table public.quiz_drafts enable row level security;
+alter table public.quiz_results enable row level security;
+alter table public.quiz_questions enable row level security;
+
+create policy "quiz_drafts_select" on public.quiz_drafts for select using (auth.uid() = author_id);
+create policy "quiz_drafts_insert" on public.quiz_drafts for insert with check (auth.uid() = author_id);
+create policy "quiz_drafts_update" on public.quiz_drafts for update using (auth.uid() = author_id);
+create policy "quiz_drafts_delete" on public.quiz_drafts for delete using (auth.uid() = author_id);
+
+create policy "quiz_results_select" on public.quiz_results for select using (auth.uid() = author_id);
+create policy "quiz_results_insert" on public.quiz_results for insert with check (auth.uid() = author_id);
+create policy "quiz_results_update" on public.quiz_results for update using (auth.uid() = author_id);
+create policy "quiz_results_delete" on public.quiz_results for delete using (auth.uid() = author_id);
+
+create policy "quiz_questions_select" on public.quiz_questions for select using (true);
+create policy "quiz_questions_insert" on public.quiz_questions for insert with check (true);
+create policy "quiz_questions_delete" on public.quiz_questions for delete using (true);
+
+-- =============================================================================
+-- CLASSES SYSTEM
+-- =============================================================================
+create table if not exists public.classes (
+  id uuid primary key default gen_random_uuid(),
+  code text unique not null,
+  name text not null,
+  facilitator text,
+  delivery_mode text default 'online',
+  upcoming_exam text,
+  member_count int default 0,
+  member_handles text[] default '{}'::text[],
+  resources jsonb default '[]'::jsonb,
+  lecture_notes jsonb default '[]'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.class_invites (
+  id uuid primary key default gen_random_uuid(),
+  class_code text not null,
+  invite_code text unique not null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.class_memberships (
+  id uuid primary key default gen_random_uuid(),
+  class_code text not null,
+  user_handle text not null,
+  joined_at timestamptz not null default now(),
+  unique(class_code, user_handle)
+);
+
+create table if not exists public.class_roles (
+  id uuid primary key default gen_random_uuid(),
+  class_code text not null,
+  user_handle text not null,
+  role text not null default 'member',
+  created_at timestamptz not null default now(),
+  unique(class_code, user_handle, role)
+);
+
+alter table public.classes enable row level security;
+alter table public.class_invites enable row level security;
+alter table public.class_memberships enable row level security;
+alter table public.class_roles enable row level security;
+
+create policy "classes_select" on public.classes for select using (true);
+create policy "classes_insert" on public.classes for insert with check (auth.uid() is not null);
+create policy "classes_update" on public.classes for update using (auth.uid() is not null);
+
+create policy "class_invites_select" on public.class_invites for select using (true);
+create policy "class_invites_insert" on public.class_invites for insert with check (auth.uid() is not null);
+
+create policy "class_memberships_all" on public.class_memberships for all using (auth.uid() is not null);
+
+create policy "class_roles_all" on public.class_roles for all using (auth.uid() is not null);
+
+-- =============================================================================
+-- INDEXES
+-- =============================================================================
+create index if not exists idx_quiz_drafts_author on public.quiz_drafts(author_id);
+create index if not exists idx_quiz_results_author on public.quiz_results(author_id);
+create index if not exists idx_classes_code on public.classes(code);
+create index if not exists idx_class_memberships_class on public.class_memberships(class_code);
+
+-- =============================================================================
+-- STORAGE BUCKET (run in Supabase Dashboard > Storage > New Bucket)
+-- Name: avatars, Public: true
+-- =============================================================================

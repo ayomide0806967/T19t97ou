@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'state/app_settings.dart';
+import 'core/di/app_providers.dart';
+import 'core/ui/theme_mode_controller.dart';
+import 'navigation_drawer_screen_parts.dart';
 import 'widgets/brand_mark.dart';
 
-part 'navigation_drawer_screen_parts.dart';
 
-class NavigationDrawerScreen extends StatefulWidget {
+class NavigationDrawerScreen extends ConsumerStatefulWidget {
   const NavigationDrawerScreen({super.key});
 
   @override
-  State<NavigationDrawerScreen> createState() => _NavigationDrawerScreenState();
+  ConsumerState<NavigationDrawerScreen> createState() =>
+      _NavigationDrawerScreenState();
 }
 
-class _NavigationDrawerScreenState extends State<NavigationDrawerScreen>
-    with _NavigationDrawerBuildHelpers {
+class _NavigationDrawerScreenState extends ConsumerState<NavigationDrawerScreen>
+    with NavigationDrawerBuildHelpers {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
@@ -89,17 +91,17 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildWelcomeSection(theme, onSurface),
+            buildWelcomeSection(theme, onSurface),
             const SizedBox(height: 32),
-            _buildStatsGrid(theme, onSurface),
+            buildStatsGrid(theme, onSurface),
             const SizedBox(height: 32),
-            _buildRecentActivity(theme, onSurface, subtle),
+            buildRecentActivity(theme, onSurface, subtle),
             const SizedBox(height: 32),
-            _buildQuickActions(theme, onSurface),
+            buildQuickActions(theme, onSurface),
           ],
         ),
       ),
-      drawer: _buildNavigationDrawer(theme, surface, onSurface, subtle),
+      drawer: buildNavigationDrawer(theme, surface, onSurface, subtle),
     );
   }
 }

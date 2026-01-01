@@ -2,14 +2,17 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../../services/quiz_repository.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../models/quiz.dart';
+import '../application/quiz_providers.dart';
 import '../results/quiz_correction_screen.dart';
 
 part 'quiz_take_calculator_sheet.dart';
 part 'quiz_take_question_navigator_sheet.dart';
 part 'quiz_take_screen_ui.dart';
 
-class QuizTakeScreen extends StatefulWidget {
+class QuizTakeScreen extends ConsumerStatefulWidget {
   const QuizTakeScreen({super.key, this.title, this.subtitle, this.questions});
 
   final String? title;
@@ -17,10 +20,10 @@ class QuizTakeScreen extends StatefulWidget {
   final List<QuizTakeQuestion>? questions;
 
   @override
-  State<QuizTakeScreen> createState() => _QuizTakeScreenState();
+  ConsumerState<QuizTakeScreen> createState() => _QuizTakeScreenState();
 }
 
-class _QuizTakeScreenState extends State<QuizTakeScreen> {
+class _QuizTakeScreenState extends ConsumerState<QuizTakeScreen> {
   late final List<QuizTakeQuestion> _questions;
   final Map<int, int> _responses = <int, int>{};
   int _currentIndex = 0;
@@ -32,7 +35,8 @@ class _QuizTakeScreenState extends State<QuizTakeScreen> {
   @override
   void initState() {
     super.initState();
-    _questions = widget.questions ?? QuizRepository.sampleQuestions;
+    _questions =
+        widget.questions ?? ref.read(quizSourceProvider).sampleQuestions;
     _totalDuration = const Duration(minutes: 12);
     _timeLeft = _totalDuration;
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {

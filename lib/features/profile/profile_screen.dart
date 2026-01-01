@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:provider/provider.dart';
 
 import '../../core/auth/auth_repository.dart';
+import '../../core/di/app_providers.dart';
 import '../../core/user/handle.dart';
-import '../../core/feed/post_repository.dart';
+import '../feed/domain/post_repository.dart';
 import '../../core/ui/initials.dart';
 import '../../models/post.dart';
 import '../../widgets/tweet_post_card.dart';
@@ -25,17 +26,17 @@ part 'profile_screen_actions.dart';
 part 'profile_screen_images.dart';
 part 'profile_screen_sheets.dart';
 
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key, this.handleOverride, this.readOnly = false});
 
   final String? handleOverride;
   final bool readOnly;
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   int _selectedTab = 0;
   Uint8List? _headerImage;
   Uint8List? _profileImage;
@@ -50,7 +51,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   String get _authHandle {
     return deriveHandleFromEmail(
-      context.read<AuthRepository>().currentUser?.email,
+      ref.read(authRepositoryProvider).currentUser?.email,
       fallback: '@yourprofile',
     );
   }
@@ -84,10 +85,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final dataService = context.watch<PostRepository>();
+    final dataService = ref.watch(postRepositoryProvider);
     final currentUserHandle = _currentUserHandle;
     final email =
-        context.read<AuthRepository>().currentUser?.email ??
+        ref.read(authRepositoryProvider).currentUser?.email ??
         'user@institution.edu';
     final initials = initialsFrom(widget.handleOverride ?? email);
     final posts = dataService.postsForHandle(currentUserHandle);

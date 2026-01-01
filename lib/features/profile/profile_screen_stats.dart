@@ -49,8 +49,8 @@ class _ProfileLevelStat extends StatelessWidget {
       alpha: theme.brightness == Brightness.dark ? 0.25 : 0.15,
     );
     final clamped = progress.clamp(0.0, 1.0);
-    // Color-coded indicator fills the grey track as progress grows
-    final Color barFg = _progressColor(theme, clamped);
+    // Use brand accent color for the progress fill
+    const Color barFg = Color(0xFFFF7A1A);
     return InkWell(
       onTap: interactive ? () => _openLevelDetails(context) : null,
       borderRadius: BorderRadius.circular(8),
@@ -89,15 +89,8 @@ class _ProfileLevelStat extends StatelessWidget {
   }
 
   Color _progressColor(ThemeData theme, double value) {
-    final p = value.clamp(0.0, 1.0);
-    if (p <= 0.30) {
-      return Colors.red;
-    }
-    if (p <= 0.60) {
-      // Dark cyan for mid-range progress
-      return const Color(0xFF00838F);
-    }
-    return Colors.green;
+    // Keep modal details in sync with the main bar color.
+    return const Color(0xFFFF7A1A);
   }
 
   void _openLevelDetails(BuildContext context) {
@@ -569,4 +562,3 @@ class _ProfileLevelStat extends StatelessWidget {
     );
   }
 }
-

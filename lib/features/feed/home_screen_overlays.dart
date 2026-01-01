@@ -1,25 +1,35 @@
-part of 'home_screen.dart';
+import 'dart:ui' as ui;
 
-class _QuickControlPanel extends StatefulWidget {
-  const _QuickControlPanel({
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/navigation/app_nav.dart';
+import '../../core/ui/quick_controls/quick_control_item.dart';
+import '../../core/ui/theme_mode_controller.dart';
+import '../../widgets/quick_control_grid.dart';
+import '../../screens/settings_screen.dart';
+
+
+class QuickControlPanel extends ConsumerStatefulWidget {
+  const QuickControlPanel({super.key,
     required this.theme,
-    required this.appSettings,
     required this.userCard,
     required this.onNavigateHome,
     required this.onCompose,
+    required this.onSignOut,
   });
 
   final ThemeData theme;
-  final AppSettings appSettings;
   final Widget userCard;
   final VoidCallback onNavigateHome;
   final VoidCallback onCompose;
+  final Future<void> Function() onSignOut;
 
   @override
-  State<_QuickControlPanel> createState() => _QuickControlPanelState();
+  ConsumerState<QuickControlPanel> createState() => QuickControlPanelState();
 }
 
-class _QuickControlPanelState extends State<_QuickControlPanel> {
+class QuickControlPanelState extends ConsumerState<QuickControlPanel> {
   late final List<QuickControlItem> _items;
   late final List<bool> _activeStates;
 
@@ -55,17 +65,24 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
         icon: Icons.dark_mode_rounded,
         label: 'Dark Theme',
         onPressed: () async {
-          final next = !widget.appSettings.isDarkMode;
-          await widget.appSettings.toggleDarkMode(next);
+          final controller =
+              ref.read(themeModeControllerProvider.notifier);
+          final isDark =
+              ref.read(themeModeControllerProvider) == ThemeMode.dark;
+          final next = !isDark;
+          await controller.toggleDarkMode(next);
           setState(() {
             _activeStates[3] = next;
           });
         },
       ),
       QuickControlItem(
-        icon: Icons.notifications_none_outlined,
-        label: 'Notifications',
-        onPressed: () async => showComingSoonSnackBar(context, 'Notifications'),
+        icon: Icons.inbox_outlined,
+        label: 'Inbox',
+        onPressed: () async {
+          Navigator.of(context).pop();
+          await Navigator.of(context).push(AppNav.inbox());
+        },
       ),
       QuickControlItem(
         icon: Icons.forum_outlined,
@@ -84,16 +101,23 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
         },
       ),
       QuickControlItem(
-        icon: Icons.quiz_outlined,
+        icon: Icons.settings_outlined,
         label: 'Settings',
-        onPressed: () async => showComingSoonSnackBar(context, 'Settings'),
+        onPressed: () async {
+          Navigator.of(context).pop();
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const SettingsScreen(),
+            ),
+          );
+        },
       ),
       QuickControlItem(
         icon: Icons.logout_outlined,
         label: 'Log out',
         onPressed: () async {
           Navigator.of(context).pop();
-          await context.read<AuthRepository>().signOut();
+          await widget.onSignOut();
         },
       ),
     ];
@@ -202,7 +226,7 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
     return QuickControlGrid(
       itemCount: _items.length,
       itemBuilder: (context, index) {
-        return _QuickControlButton(
+        return QuickControlButton(
           item: _items[index],
           isActive: _activeStates[index],
           onPressed: () => _handleItemInteraction(index),
@@ -212,8 +236,8 @@ class _QuickControlPanelState extends State<_QuickControlPanel> {
   }
 }
 
-class _QuickControlButton extends StatelessWidget {
-  const _QuickControlButton({
+class QuickControlButton extends StatelessWidget {
+  const QuickControlButton({super.key,
     required this.item,
     required this.isActive,
     required this.onPressed,

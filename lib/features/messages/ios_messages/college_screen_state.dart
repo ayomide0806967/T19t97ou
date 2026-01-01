@@ -1,29 +1,19 @@
 part of '../ios_messages_screen.dart';
 
-class _CollegeScreenState extends State<_CollegeScreen> {
+class _CollegeScreenState extends ConsumerState<_CollegeScreen> {
   final TextEditingController _composer = TextEditingController();
-  late Set<String> _members;
   final List<_ClassMessage> _notes = <_ClassMessage>[];
-  // New UI state
-  ClassTopic? _activeTopic;
-  final List<ClassTopic> _archivedTopics = <ClassTopic>[];
-  // Role + settings
-  late final Set<String> _admins;
-  bool _adminOnlyPosting = true;
-  bool _allowReplies = true;
-  bool _allowMedia = false;
-  bool _approvalRequired = false;
-  bool _isPrivate = true;
-  bool _autoArchiveOnEnd = true;
-  final Set<String> _unlockedTopicTags = <String>{};
+
+  CollegeUiState get _uiState =>
+      ref.watch(collegeScreenControllerProvider(widget.college.code));
+
+  CollegeScreenController get _uiController =>
+      ref.read(collegeScreenControllerProvider(widget.college.code).notifier);
 
   @override
   void initState() {
     super.initState();
-    _members = Set<String>.from(widget.college.memberHandles);
-    _admins = <String>{_currentUserHandle};
-    _bootstrapAdmins();
-    _bootstrapMembers();
+    _bootstrapRoom();
     // Seed demo comments to match the provided reference image.
     if (_notes.isEmpty && widget.college.code == 'CVE220') {
       _notes.addAll(<_ClassMessage>[
@@ -167,41 +157,13 @@ Mock exam briefing extended update: please review chapters one through five, pra
     }
   }
 
-  // Removed unused admin/suspend member sheets.
-
-  Future<void> _bootstrapAdmins() async {
-    final code = widget.college.code;
-    final saved = await RolesService.getAdminsFor(code);
-    if (saved.isEmpty) {
-      // Initialize with current user as admin and persist
-      _admins = <String>{_currentUserHandle};
-      await RolesService.saveAdminsFor(code, _admins);
-    } else {
-      setState(() {
-        _admins = saved;
-      });
-    }
-  }
-
-  Future<void> _bootstrapMembers() async {
-    final code = widget.college.code;
-    final saved = await MembersService.getMembersFor(code);
-    if (saved.isEmpty) {
-      final initial = <String>{
-        ...widget.college.memberHandles,
-        _currentUserHandle,
-      };
-      _members = initial;
-      await MembersService.saveMembersFor(code, _members);
-    } else {
-      setState(() {
-        _members = saved;
-      });
-    }
-  }
-
-  Future<void> _persistMembers() async {
-    await MembersService.saveMembersFor(widget.college.code, _members);
+  Future<void> _bootstrapRoom() async {
+    final controller =
+        ref.read(classRoomControllerProvider(widget.college.code).notifier);
+    await controller.bootstrap(
+      initialMemberHandles: widget.college.memberHandles,
+      currentUserHandle: _currentUserHandle,
+    );
   }
 
   @override
@@ -211,27 +173,28 @@ Mock exam briefing extended update: please review chapters one through five, pra
   }
 
   String get _currentUserHandle {
-    return deriveHandleFromEmail(
-      context.read<AuthRepository>().currentUser?.email,
-      maxLength: 999,
-    );
+    return ref.read(currentUserHandleProvider);
   }
 
-  bool get _isCurrentUserAdmin => _admins.contains(_currentUserHandle);
+  ClassRoomState get _roomState =>
+      ref.watch(classRoomControllerProvider(widget.college.code));
+
+  Set<String> get _members => _roomState.members;
+
+  bool get _isCurrentUserAdmin =>
+      _roomState.admins.contains(_currentUserHandle);
 
   @override
   Widget build(BuildContext context) {
     final college = widget.college;
+    final activeTopic = _uiState.activeTopic;
     // Auto-archive if schedule passed
-    if (_activeTopic != null && _activeTopic!.autoArchiveAt != null) {
-      final at = _activeTopic!.autoArchiveAt!;
+    if (activeTopic != null && activeTopic.autoArchiveAt != null) {
+      final at = activeTopic.autoArchiveAt!;
       if (DateTime.now().isAfter(at)) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
-          setState(() {
-            _archivedTopics.add(_activeTopic!);
-            _activeTopic = null;
-          });
+          _uiController.archiveActiveTopic();
         });
       }
     }
@@ -332,21 +295,21 @@ Mock exam briefing extended update: please review chapters one through five, pra
             _ClassFeedTab(
               college: college,
               notes: _notes,
-              activeTopic: _activeTopic,
+              activeTopic: _uiState.activeTopic,
               onSend: (text) => _handleSubmitLectureNote(context, text),
               isAdmin: _isCurrentUserAdmin,
               settings: _ClassSettings(
-                adminOnlyPosting: _adminOnlyPosting,
-                allowReplies: _allowReplies,
-                allowMedia: _allowMedia,
-                approvalRequired: _approvalRequired,
-                isPrivate: _isPrivate,
-                autoArchiveOnEnd: _autoArchiveOnEnd,
+                adminOnlyPosting: _uiState.adminOnlyPosting,
+                allowReplies: _uiState.allowReplies,
+                allowMedia: _uiState.allowMedia,
+                approvalRequired: _uiState.approvalRequired,
+                isPrivate: _uiState.isPrivate,
+                autoArchiveOnEnd: _uiState.autoArchiveOnEnd,
               ),
               memberCount: _members.length,
               onStartLecture: (course, tutor, topic, s) {
-                setState(() {
-                  _activeTopic = ClassTopic(
+                _uiController.startLecture(
+                  ClassTopic(
                     courseName: course,
                     tutorName: tutor.isEmpty ? 'Admin' : tutor,
                     topicTitle: topic,
@@ -355,15 +318,12 @@ Mock exam briefing extended update: please review chapters one through five, pra
                     requirePin: s.requirePin,
                     pinCode: s.pinCode,
                     autoArchiveAt: s.autoArchiveAt,
-                  );
-                });
+                  ),
+                );
               },
               onArchiveTopic: () {
-                if (_activeTopic == null) return;
-                setState(() {
-                  _archivedTopics.add(_activeTopic!);
-                  _activeTopic = null;
-                });
+                if (_uiState.activeTopic == null) return;
+                _uiController.archiveActiveTopic();
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Moved to Library')),
                 );
@@ -374,17 +334,17 @@ Mock exam briefing extended update: please review chapters one through five, pra
                   context,
                 ).showSnackBar(SnackBar(content: Text(S.useRepostToast)));
               },
-              requiresPin: _activeTopic?.requirePin ?? false,
-              pinCode: _activeTopic?.pinCode,
-              unlocked: _activeTopic == null
+              requiresPin: _uiState.activeTopic?.requirePin ?? false,
+              pinCode: _uiState.activeTopic?.pinCode,
+              unlocked: _uiState.activeTopic == null
                   ? true
-                  : _unlockedTopicTags.contains(_activeTopic!.topicTag),
+                  : _uiState.unlockedTopicTags
+                      .contains(_uiState.activeTopic!.topicTag),
               onUnlock: (attempt) {
-                if (_activeTopic?.pinCode != null &&
-                    attempt.trim() == _activeTopic!.pinCode) {
-                  setState(() {
-                    _unlockedTopicTags.add(_activeTopic!.topicTag);
-                  });
+                final active = _uiState.activeTopic;
+                if (active?.pinCode != null &&
+                    attempt.trim() == active!.pinCode) {
+                  _uiController.unlockTopicTag(active.topicTag);
                   return true;
                 }
                 ScaffoldMessenger.of(
@@ -393,14 +353,18 @@ Mock exam briefing extended update: please review chapters one through five, pra
                 return false;
               },
             ),
-            _ClassLibraryTab(college: college, topics: _archivedTopics),
+            _ClassLibraryTab(college: college, topics: _uiState.archivedTopics),
             _ClassStudentsTab(
               members: _members,
               onAdd: _addMember,
               onExit: _exitClass,
               onSuspend: (h) {
-                setState(() => _members.remove(h));
-                _persistMembers();
+                ref
+                    .read(
+                      classRoomControllerProvider(widget.college.code)
+                          .notifier,
+                    )
+                    .removeMember(h);
                 ScaffoldMessenger.of(
                   context,
                 ).showSnackBar(SnackBar(content: Text('Suspended $h')));
@@ -415,9 +379,9 @@ Mock exam briefing extended update: please review chapters one through five, pra
   void _openSettingsSheet(BuildContext context) {
     final theme = Theme.of(context);
     // Local snapshot so the bottom sheet can rebuild independently.
-    var adminOnlyPosting = _adminOnlyPosting;
-    var allowReplies = _allowReplies;
-    var isPrivate = _isPrivate;
+    var adminOnlyPosting = _uiState.adminOnlyPosting;
+    var allowReplies = _uiState.allowReplies;
+    var isPrivate = _uiState.isPrivate;
 
     showModalBottomSheet<void>(
       context: context,
@@ -457,9 +421,7 @@ Mock exam briefing extended update: please review chapters one through five, pra
                           setSheetState(() {
                             adminOnlyPosting = v;
                           });
-                          setState(() {
-                            _adminOnlyPosting = v;
-                          });
+                          _uiController.setAdminOnlyPosting(v);
                         },
                       ),
                       SettingSwitchRow(
@@ -469,9 +431,7 @@ Mock exam briefing extended update: please review chapters one through five, pra
                           setSheetState(() {
                             allowReplies = v;
                           });
-                          setState(() {
-                            _allowReplies = v;
-                          });
+                          _uiController.setAllowReplies(v);
                         },
                       ),
                       SettingSwitchRow(
@@ -481,9 +441,7 @@ Mock exam briefing extended update: please review chapters one through five, pra
                           setSheetState(() {
                             isPrivate = v;
                           });
-                          setState(() {
-                            _isPrivate = v;
-                          });
+                          _uiController.setIsPrivate(v);
                         },
                       ),
                       const SizedBox(height: 20),
@@ -515,7 +473,7 @@ Mock exam briefing extended update: please review chapters one through five, pra
                                 Navigator.of(ctx).pop();
                                 await Navigator.of(context).push(
                                   MaterialPageRoute(
-                                    builder: (_) => const _CreateClassPage(
+                                    builder: (_) => const CreateClassScreen(
                                       initialStep: 1,
                                     ),
                                   ),
@@ -543,10 +501,9 @@ Mock exam briefing extended update: please review chapters one through five, pra
                               label: const Text('Invite by code'),
                               onPressed: () async {
                                 Navigator.of(ctx).pop();
-                                final code =
-                                    await InvitesService.getOrCreateCode(
-                                  widget.college.code,
-                                );
+                                final code = await ref
+                                    .read(classInvitesSourceProvider)
+                                    .getOrCreateCode(widget.college.code);
                                 if (!context.mounted) return;
                                 showModalBottomSheet<void>(
                                   context: context,
@@ -701,7 +658,8 @@ Mock exam briefing extended update: please review chapters one through five, pra
       );
       return;
     }
-    if (_activeTopic == null) {
+    final activeTopic = _uiState.activeTopic;
+    if (activeTopic == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Start a lecture above before adding notes'),
@@ -709,17 +667,17 @@ Mock exam briefing extended update: please review chapters one through five, pra
       );
       return;
     }
-    final data = context.read<PostRepository>();
-    final String topicTag = _activeTopic!.topicTag;
-    await data.addPost(
-      author: _activeTopic!.tutorName,
-      handle: _currentUserHandle,
-      body: text,
-      tags: <String>[topicTag, widget.college.code],
-    );
+    final String topicTag = activeTopic.topicTag;
+    await ref.read(classNotesControllerProvider.notifier).publishLectureNote(
+          tutorName: activeTopic.tutorName,
+          currentUserHandle: _currentUserHandle,
+          body: text,
+          topicTag: topicTag,
+          classCode: widget.college.code,
+        );
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Added note to "${_activeTopic!.topicTitle}"')),
+      SnackBar(content: Text('Added note to "${activeTopic.topicTitle}"')),
     );
   }
 
@@ -740,13 +698,16 @@ Mock exam briefing extended update: please review chapters one through five, pra
             onPressed: () => Navigator.of(ctx).pop(),
             child: const Text('Cancel'),
           ),
-          FilledButton(
+              FilledButton(
             onPressed: () {
               String h = controller.text.trim();
               if (h.isEmpty) return;
               if (!h.startsWith('@')) h = '@$h';
-              setState(() => _members.add(h));
-              _persistMembers();
+              ref
+                  .read(
+                    classRoomControllerProvider(widget.college.code).notifier,
+                  )
+                  .addMember(h);
               Navigator.of(ctx).pop();
               ScaffoldMessenger.of(
                 context,

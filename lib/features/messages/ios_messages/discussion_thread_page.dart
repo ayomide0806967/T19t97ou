@@ -1,7 +1,7 @@
 part of '../ios_messages_screen.dart';
 
 /// Shared "chat-style" discussion thread UI used by the class note stepper.
-class ClassDiscussionThreadPage extends StatefulWidget {
+class ClassDiscussionThreadPage extends ConsumerStatefulWidget {
   const ClassDiscussionThreadPage({
     super.key,
     required this.title,
@@ -12,11 +12,12 @@ class ClassDiscussionThreadPage extends StatefulWidget {
   final String subtitle;
 
   @override
-  State<ClassDiscussionThreadPage> createState() =>
+  ConsumerState<ClassDiscussionThreadPage> createState() =>
       _ClassDiscussionThreadPageState();
 }
 
-class _ClassDiscussionThreadPageState extends State<ClassDiscussionThreadPage> {
+class _ClassDiscussionThreadPageState
+    extends ConsumerState<ClassDiscussionThreadPage> {
   final TextEditingController _composer = TextEditingController();
   final FocusNode _composerFocusNode = FocusNode();
   _ThreadNode? _replyTarget;
@@ -36,10 +37,7 @@ class _ClassDiscussionThreadPageState extends State<ClassDiscussionThreadPage> {
   }
 
   String get _currentUserHandle {
-    return deriveHandleFromEmail(
-      context.read<AuthRepository>().currentUser?.email,
-      maxLength: 999,
-    );
+    return ref.read(currentUserHandleProvider);
   }
 
   void _setReplyTarget(_ThreadNode node) {

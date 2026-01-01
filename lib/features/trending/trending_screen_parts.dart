@@ -101,6 +101,8 @@ const List<int> _fallbackTopicCounts = [
   4210,
   3125,
   2760,
+  1980,
+  1640,
 ];
 
 class _SectionHeader extends StatelessWidget {
@@ -502,4 +504,3 @@ class _TrendingEmptyState extends StatelessWidget {
     );
   }
 }
-

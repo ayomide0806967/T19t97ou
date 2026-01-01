@@ -1,14 +1,20 @@
-part of 'home_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
-class _StoryRail extends StatelessWidget {
-  const _StoryRail({required this.currentUserHandle});
+import '../../core/ui/initials.dart';
+import '../../models/college.dart';
+import '../../theme/app_theme.dart';
+import '../../widgets/hexagon_avatar.dart';
 
-  final String currentUserHandle;
+
+class StoryRail extends StatelessWidget {
+  const StoryRail({super.key, required this.colleges});
+
+  final List<College> colleges;
 
   @override
   Widget build(BuildContext context) {
-    final classes = ClassService.userColleges(currentUserHandle);
-    final List<_Story> stories = classes.map((c) => _Story(c.name)).toList();
+    final List<Story> stories = colleges.map((c) => Story(c.name)).toList();
     final theme = Theme.of(context);
 
     if (stories.isEmpty) {
@@ -80,8 +86,8 @@ class _StoryRail extends StatelessWidget {
   }
 }
 
-class _FeedTabBar extends StatefulWidget {
-  const _FeedTabBar({
+class FeedTabBar extends StatefulWidget {
+  const FeedTabBar({super.key,
     required this.selectedIndex,
     required this.onChanged,
     required this.pageController,
@@ -92,14 +98,14 @@ class _FeedTabBar extends StatefulWidget {
   final PageController pageController;
 
   @override
-  State<_FeedTabBar> createState() => _FeedTabBarState();
+  State<FeedTabBar> createState() => FeedTabBarState();
 }
 
-class _FeedTabBarState extends State<_FeedTabBar> {
+class FeedTabBarState extends State<FeedTabBar> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final Color accent = theme.colorScheme.primary;
+    const Color accent = Color(0xFFFF7A1A);
 
     final TextStyle baseStyle =
         theme.textTheme.titleMedium ??
@@ -173,7 +179,7 @@ class _FeedTabBarState extends State<_FeedTabBar> {
                     bottom: 0,
                     child: RepaintBoundary(
                       child: Container(
-                        height: 4,
+                        height: 2,
                         width: indicatorWidth,
                         decoration: BoxDecoration(
                           color: accent,
@@ -192,22 +198,22 @@ class _FeedTabBarState extends State<_FeedTabBar> {
   }
 }
 
-class _TwoLineMenuIcon extends StatelessWidget {
-  const _TwoLineMenuIcon();
+class TwoLineMenuIcon extends StatelessWidget {
+  const TwoLineMenuIcon({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        children: const [_MenuLine(), SizedBox(height: 6), _MenuLine()],
+        children: const [MenuLine(), SizedBox(height: 6), MenuLine()],
       ),
     );
   }
 }
 
-class _SearchIcon extends StatelessWidget {
-  const _SearchIcon({
+class SearchIcon extends StatelessWidget {
+  const SearchIcon({super.key,
     this.size = 28,
     required this.color,
     this.strokeWidthFactor = 0.06,
@@ -223,7 +229,7 @@ class _SearchIcon extends StatelessWidget {
       width: size,
       height: size,
       child: CustomPaint(
-        painter: _SearchIconPainter(
+        painter: SearchIconPainter(
           color: color,
           strokeWidthFactor: strokeWidthFactor,
         ),
@@ -232,8 +238,8 @@ class _SearchIcon extends StatelessWidget {
   }
 }
 
-class _SearchIconPainter extends CustomPainter {
-  _SearchIconPainter({required this.color, required this.strokeWidthFactor});
+class SearchIconPainter extends CustomPainter {
+  SearchIconPainter({required this.color, required this.strokeWidthFactor});
 
   final Color color;
   final double strokeWidthFactor;
@@ -259,13 +265,13 @@ class _SearchIconPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_SearchIconPainter oldDelegate) =>
+  bool shouldRepaint(SearchIconPainter oldDelegate) =>
       oldDelegate.color != color ||
       oldDelegate.strokeWidthFactor != strokeWidthFactor;
 }
 
-class _MenuLine extends StatelessWidget {
-  const _MenuLine();
+class MenuLine extends StatelessWidget {
+  const MenuLine({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -280,11 +286,10 @@ class _MenuLine extends StatelessWidget {
   }
 }
 
-class _Story {
-  const _Story(this.label);
+class Story {
+  const Story(this.label);
 
   final String label;
 
   String get initials => initialsFrom(label, fallback: 'IN');
 }
-

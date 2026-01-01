@@ -1,33 +1,35 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../core/auth/auth_repository.dart';
-import '../../core/user/handle.dart';
-import '../../core/feed/post_repository.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/di/app_providers.dart';
 import '../../core/navigation/app_nav.dart';
-import '../../core/ui/snackbars.dart';
 import '../../core/ui/quick_controls/quick_control_item.dart';
+import '../../core/ui/snackbars.dart';
+import '../../core/ui/theme_mode_controller.dart';
 import '../../models/post.dart';
-import '../../state/app_settings.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_tab_scaffold.dart';
-import '../../widgets/tweet_post_card.dart';
 import '../../widgets/quick_control_grid.dart';
+import '../../widgets/tweet_post_card.dart';
+import '../auth/application/auth_controller.dart';
+import '../auth/application/session_providers.dart';
+import '../feed/application/feed_controller.dart';
 
 part 'trending_screen_parts.dart';
 part 'trending_screen_quick_controls.dart';
 part 'trending_screen_actions.dart';
 part 'trending_screen_build.dart';
 
-class TrendingScreen extends StatefulWidget {
+class TrendingScreen extends ConsumerStatefulWidget {
   const TrendingScreen({super.key});
 
   @override
-  State<TrendingScreen> createState() => _TrendingScreenState();
+  ConsumerState<TrendingScreen> createState() => _TrendingScreenState();
 }
 
-abstract class _TrendingScreenStateBase extends State<TrendingScreen> {
+abstract class _TrendingScreenStateBase extends ConsumerState<TrendingScreen> {
   late final TextEditingController _searchController;
   late final ScrollController _scrollController;
   String _query = '';

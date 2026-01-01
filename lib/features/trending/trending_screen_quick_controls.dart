@@ -20,28 +20,28 @@ class _QuickControlIcon extends StatelessWidget {
   }
 }
 
-class _TrendingQuickControlPanel extends StatefulWidget {
+class _TrendingQuickControlPanel extends ConsumerStatefulWidget {
   const _TrendingQuickControlPanel({
     required this.theme,
-    required this.appSettings,
     required this.onCompose,
     required this.onBackToTop,
     required this.onClearSearch,
+    required this.onSignOut,
   });
 
   final ThemeData theme;
-  final AppSettings appSettings;
   final VoidCallback onCompose;
   final VoidCallback onBackToTop;
   final VoidCallback onClearSearch;
+  final Future<void> Function() onSignOut;
 
   @override
-  State<_TrendingQuickControlPanel> createState() =>
+  ConsumerState<_TrendingQuickControlPanel> createState() =>
       _TrendingQuickControlPanelState();
 }
 
 class _TrendingQuickControlPanelState
-    extends State<_TrendingQuickControlPanel> {
+    extends ConsumerState<_TrendingQuickControlPanel> {
   late final List<QuickControlItem> _items;
   late final List<bool> _activeStates;
 
@@ -77,8 +77,12 @@ class _TrendingQuickControlPanelState
         icon: Icons.dark_mode_rounded,
         label: 'Dark Theme',
         onPressed: () async {
-          final next = !widget.appSettings.isDarkMode;
-          await widget.appSettings.toggleDarkMode(next);
+          final controller =
+              ref.read(themeModeControllerProvider.notifier);
+          final isDark =
+              ref.read(themeModeControllerProvider) == ThemeMode.dark;
+          final next = !isDark;
+          await controller.toggleDarkMode(next);
           setState(() {
             _activeStates[3] = next;
           });
@@ -115,7 +119,7 @@ class _TrendingQuickControlPanelState
         label: 'Log out',
         onPressed: () async {
           Navigator.of(context).pop();
-          await context.read<AuthRepository>().signOut();
+          await widget.onSignOut();
         },
       ),
     ];

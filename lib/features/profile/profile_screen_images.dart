@@ -21,7 +21,7 @@ extension _ProfileScreenImages on _ProfileScreenState {
   Future<void> _showProfilePhotoViewer() async {
     final bool hasImage = _profileImage != null;
     final String initials = initialsFrom(
-      (context.read<AuthRepository>().currentUser?.email ??
+      (ref.read(authRepositoryProvider).currentUser?.email ??
           'user@institution.edu'),
     );
 

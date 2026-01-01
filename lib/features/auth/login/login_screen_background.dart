@@ -62,7 +62,7 @@ class _InstitutionBackgroundState extends State<_InstitutionBackground> {
 
   @override
   Widget build(BuildContext context) {
-    final base = const DecoratedBox(
+    const base = DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -173,14 +173,6 @@ class _InstitutionBackgroundState extends State<_InstitutionBackground> {
                     key: ValueKey(_index),
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (message.text.toUpperCase() == 'IN INSTITUTION')
-                        SwissBankIcon(
-                          size: 76,
-                          color: accent.withValues(alpha: 0.92),
-                          strokeWidthFactor: 0.085,
-                        ),
-                      if (message.text.toUpperCase() == 'IN INSTITUTION')
-                        const SizedBox(height: 12),
                       _InstitutionHeroText(
                         text: message.text,
                         accent: accent,

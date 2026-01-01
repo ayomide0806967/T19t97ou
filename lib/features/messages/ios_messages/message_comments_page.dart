@@ -2,7 +2,7 @@ part of '../ios_messages_screen.dart';
 
 // Repost now rendered as text label "repost"
 
-class _MessageCommentsPage extends StatefulWidget {
+class _MessageCommentsPage extends ConsumerStatefulWidget {
   const _MessageCommentsPage({
     required this.message,
     required this.currentUserHandle,
@@ -12,10 +12,11 @@ class _MessageCommentsPage extends StatefulWidget {
   final String currentUserHandle;
 
   @override
-  State<_MessageCommentsPage> createState() => _MessageCommentsPageState();
+  ConsumerState<_MessageCommentsPage> createState() =>
+      _MessageCommentsPageState();
 }
 
-class _MessageCommentsPageState extends State<_MessageCommentsPage> {
+class _MessageCommentsPageState extends ConsumerState<_MessageCommentsPage> {
   final TextEditingController _composer = TextEditingController();
   final FocusNode _composerFocusNode = FocusNode();
   _ThreadNode? _replyTarget;
@@ -71,13 +72,12 @@ class _MessageCommentsPageState extends State<_MessageCommentsPage> {
     final handle = widget.currentUserHandle.trim();
     if (handle.isEmpty) return;
 
-    final data = context.read<PostRepository>();
-    final String targetId = widget.message.id;
-
-    final bool alreadyReposted = data.hasUserReposted(targetId, handle);
-    if (alreadyReposted) return;
-
-    await data.toggleRepost(postId: targetId, userHandle: handle);
+    await ref
+        .read(messageThreadControllerProvider.notifier)
+        .ensureRepostForReply(
+          postId: widget.message.id,
+          userHandle: handle,
+        );
   }
 
   void _setReplyTarget(_ThreadNode node) {

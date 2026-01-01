@@ -94,13 +94,13 @@ class FloatingNavBar extends StatelessWidget {
                                 ),
                                 child: Icon(
                                   destination.icon,
-                                  size: 28,
+                                  size: 32,
                                   color: centralIconColor,
                                 ),
                               )
                             : Icon(
                                 destination.icon,
-                                size: isActive ? 30 : 28,
+                                size: isActive ? 34 : 32,
                                 color: isActive ? activeColor : inactiveColor,
                               ),
                       ),

@@ -97,34 +97,31 @@ class _LoginEmailEntryScreenState extends State<LoginEmailEntryScreen> {
                     children: [
                       Expanded(
                         child: SingleChildScrollView(
-                          padding: const EdgeInsets.only(top: 36),
+                          padding: const EdgeInsets.only(top: 24),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               Center(
-                                child: Container(
-                                  width: 72,
-                                  height: 72,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.black.withValues(alpha: 0.04),
-                                  ),
-                                  child: Center(
-                                    child: SwissBankIcon(
-                                      size: 40,
+                                child: SizedBox(
+                                  width: 96,
+                                  height: 84,
+                                  child: Align(
+                                    alignment: Alignment.bottomCenter,
+                                    child: const SwissBankIcon(
+                                      size: 64,
                                       color: Colors.black,
                                       strokeWidthFactor: 0.09,
                                     ),
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: 28),
+                              const SizedBox(height: 8),
                               Text(
                                 'Log in or sign up',
                                 textAlign: TextAlign.center,
                                 style: theme.textTheme.headlineSmall?.copyWith(
                                   fontWeight: FontWeight.w700,
-                                  color: Colors.black,
+                                  color: const Color(0xFFFF7A1A),
                                 ),
                               ),
                               const SizedBox(height: 10),
@@ -132,6 +129,10 @@ class _LoginEmailEntryScreenState extends State<LoginEmailEntryScreen> {
                                 'From classroom notes to viral posts, do it all in one place.',
                                 textAlign: TextAlign.center,
                                 style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontSize:
+                                      (theme.textTheme.bodyMedium?.fontSize ??
+                                              14) *
+                                          0.9,
                                   color: muted,
                                   height: 1.35,
                                 ),

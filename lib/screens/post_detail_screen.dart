@@ -96,7 +96,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         XComment(
           id: 'local_${DateTime.now().microsecondsSinceEpoch}',
           author: 'You',
-          handle: '@yourprofile',
+          handle: '@you',
           timeAgo: 'just now',
           body: content,
           avatarColors: [

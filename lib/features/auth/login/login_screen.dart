@@ -2,25 +2,24 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/auth/auth_repository.dart';
+import '../application/auth_controller.dart';
 import '../../../widgets/swiss_bank_icon.dart';
 import 'login_email_entry_screen.dart';
 
 part 'login_screen_background.dart';
 part 'login_screen_hero.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
-  bool _isLoading = false;
-  bool _cardCollapsed = false;
+class _LoginScreenState extends ConsumerState<LoginScreen> {
+  bool _cardCollapsed = true;
   bool _isDraggingCard = false;
   double _cardDragOffset = 0;
 
@@ -37,9 +36,8 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _signInWithGoogle() async {
-    setState(() => _isLoading = true);
     try {
-      await context.read<AuthRepository>().signInWithGoogle();
+      await ref.read(authControllerProvider.notifier).signInWithGoogle();
     } catch (e) {
       if (!mounted) return;
       final message = e.toString().replaceFirst('Exception: ', '');
@@ -59,15 +57,13 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       );
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final authUi = ref.watch(authControllerProvider);
+    final isLoading = authUi.isLoading;
     final theme = Theme.of(context);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -170,10 +166,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           bottom: 12,
                           child: SafeArea(
                             top: false,
-                            child: SizedBox(
+                              child: SizedBox(
                               height: 56,
                               child: ElevatedButton(
-                                onPressed: _isLoading ? null : _expandCard,
+                                onPressed: isLoading ? null : _expandCard,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.white,
                                   foregroundColor: const Color(0xFF111827),
@@ -218,13 +214,18 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   List<Widget> _buildGetStarted(ThemeData theme) {
+    final authUi = ref.watch(authControllerProvider);
+    final isLoading = authUi.isLoading;
     return <Widget>[
       const Align(
         alignment: Alignment.centerLeft,
-        child: SwissBankIcon(size: 34),
+        child: SwissBankIcon(size: 44),
       ),
       const SizedBox(height: 10),
-      Text('Get Started', style: theme.textTheme.headlineSmall),
+      Text(
+        'Get into an institution',
+        style: theme.textTheme.headlineSmall?.copyWith(color: Colors.black),
+      ),
       const SizedBox(height: 8),
       Text(
         'From classroom notes to viral posts',
@@ -236,7 +237,7 @@ class _LoginScreenState extends State<LoginScreen> {
       SizedBox(
         height: 56,
         child: ElevatedButton(
-          onPressed: _isLoading
+          onPressed: isLoading
               ? null
               : () {
                   Navigator.of(context).push(
@@ -260,7 +261,7 @@ class _LoginScreenState extends State<LoginScreen> {
       SizedBox(
         height: 56,
         child: OutlinedButton.icon(
-          onPressed: _isLoading ? null : _signInWithGoogle,
+          onPressed: isLoading ? null : _signInWithGoogle,
           icon: Image.asset(
             'assets/images/google_image.png',
             height: 36,
@@ -283,7 +284,7 @@ class _LoginScreenState extends State<LoginScreen> {
       SizedBox(
         height: 56,
         child: OutlinedButton(
-          onPressed: _isLoading
+          onPressed: isLoading
               ? null
               : () {
                   Navigator.of(context).push(

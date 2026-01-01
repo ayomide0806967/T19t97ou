@@ -63,7 +63,7 @@ class _VerticalActionMenuState extends State<VerticalActionMenu> {
                   widget.isQuizActive ? 'Active' : 'Inactive',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: widget.isQuizActive
-                        ? const Color(0xFF075E54)
+                        ? const Color(0xFF111827)
                         : theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     fontWeight: FontWeight.w600,
                   ),
@@ -72,9 +72,10 @@ class _VerticalActionMenuState extends State<VerticalActionMenu> {
                 Switch(
                   value: widget.isQuizActive,
                   onChanged: widget.onQuizStatusChanged,
-                  activeThumbColor: const Color(0xFF075E54),
-                  activeTrackColor:
-                      const Color(0xFF075E54).withValues(alpha: 0.3),
+                  activeThumbColor: Colors.white,
+                  activeTrackColor: const Color(0xFF25D366).withValues(
+                    alpha: 0.35,
+                  ),
                   inactiveThumbColor: Colors.black,
                   inactiveTrackColor:
                       theme.dividerColor.withValues(alpha: 0.6),
@@ -102,6 +103,7 @@ class _VerticalActionMenuState extends State<VerticalActionMenu> {
             icon: Icons.leaderboard_outlined,
             label: 'Monitor live quiz',
             onTap: widget.onViewResult,
+            backgroundColor: const Color(0xFF25D366),
           ),
           Divider(height: 1, thickness: 1, color: dividerColor),
           _MenuTile(
@@ -148,6 +150,7 @@ class _MenuTile extends StatelessWidget {
     this.isLastItem = false,
     this.iconColor,
     this.textColor,
+    this.backgroundColor,
   });
 
   final IconData icon;
@@ -158,6 +161,7 @@ class _MenuTile extends StatelessWidget {
   final bool isLastItem;
   final Color? iconColor;
   final Color? textColor;
+  final Color? backgroundColor;
 
   @override
   Widget build(BuildContext context) {
@@ -172,6 +176,7 @@ class _MenuTile extends StatelessWidget {
     return ListTile(
       onTap: onTap,
       shape: RoundedRectangleBorder(borderRadius: radius),
+      tileColor: backgroundColor?.withValues(alpha: 0.18),
       leading: Icon(
         icon,
         size: 22,
@@ -203,25 +208,25 @@ class _AnswerCountBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
-    const Color green = Color(0xFF075E54);
+    const Color accent = Color(0xFF25D366);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         border: Border.all(
           color: isDark
               ? theme.colorScheme.onSurface.withValues(alpha: 0.25)
-              : green,
+              : accent,
           width: 1,
         ),
         borderRadius: BorderRadius.circular(16),
         color: isDark
             ? theme.colorScheme.onSurface.withValues(alpha: 0.06)
-            : green.withValues(alpha: 0.08),
+            : accent.withValues(alpha: 0.14),
       ),
       child: Text(
         '$count',
         style: theme.textTheme.bodySmall?.copyWith(
-          color: isDark ? theme.colorScheme.onSurface : green,
+          color: isDark ? theme.colorScheme.onSurface : accent,
           fontWeight: FontWeight.w600,
         ),
       ),

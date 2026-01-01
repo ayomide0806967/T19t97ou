@@ -40,8 +40,7 @@ mixin _TweetPostCardBuild on _TweetPostCardStateBase, _TweetPostCardActions {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final repo = context.watch<PostRepository>();
-    final repostedByUser = _userHasReposted(repo);
+    final repostedByUser = _userHasReposted();
     // Repost highlighting is currently disabled; no special casing needed.
     final Color? cardBackground = widget.backgroundColor;
     final bool usesLightCardOnDarkTheme =

@@ -1,5 +1,71 @@
 part of '../ios_messages_screen.dart';
 
+Future<void> _openCreateClass(BuildContext context) async {
+  await Navigator.of(context).push(
+    MaterialPageRoute(builder: (_) => const CreateClassScreen()),
+  );
+}
+
+Future<void> _joinClassFlow(BuildContext context, WidgetRef ref) async {
+  final handle = ref.read(currentUserHandleProvider);
+  final code = await _promptForInviteCode(context);
+  if (code == null) return;
+
+  final resolvedCode = await ref
+      .read(classExperienceControllerProvider.notifier)
+      .joinWithInviteCode(
+        inviteCode: code,
+        currentUserHandle: handle,
+      );
+  if (resolvedCode == null) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(S.invalidInviteCode)));
+    }
+    return;
+  }
+
+  final classSource = ref.read(classSourceProvider);
+  final match =
+      classSource.findByCode(resolvedCode) ?? classSource.allColleges().first;
+
+  if (context.mounted) {
+    Navigator.of(
+      context,
+    ).push(
+      MaterialPageRoute(builder: (_) => _CollegeScreen(college: match)),
+    );
+  }
+}
+
+Future<String?> _promptForInviteCode(BuildContext context) async {
+  final controller = TextEditingController();
+  final result = await showDialog<String>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.white,
+      title: Text(S.enterInviteCode),
+      content: TextField(
+        controller: controller,
+        decoration: const InputDecoration(hintText: 'e.g. AB23YZ'),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: Text(S.cancel),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
+          child: Text(S.join),
+        ),
+      ],
+    ),
+  );
+  return result == null || result.isEmpty ? null : result;
+}
+
 class _ClassHeaderChip extends StatelessWidget {
   const _ClassHeaderChip({required this.icon, required this.label});
 
@@ -32,16 +98,17 @@ class _ClassHeaderChip extends StatelessWidget {
   }
 }
 
-class _ClassesExperience extends StatefulWidget {
+class _ClassesExperience extends ConsumerStatefulWidget {
   const _ClassesExperience({this.showSearchAndJoin = true});
 
   final bool showSearchAndJoin;
 
   @override
-  State<_ClassesExperience> createState() => _ClassesExperienceState();
+  ConsumerState<_ClassesExperience> createState() =>
+      _ClassesExperienceState();
 }
 
-class _ClassesExperienceState extends State<_ClassesExperience> {
+class _ClassesExperienceState extends ConsumerState<_ClassesExperience> {
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -51,16 +118,12 @@ class _ClassesExperienceState extends State<_ClassesExperience> {
   }
 
   List<College> _filteredColleges() {
-    final query = _searchController.text.trim().toLowerCase();
-    if (query.isEmpty) return _demoColleges;
-    return _demoColleges.where((college) {
-      final name = college.name.toLowerCase();
-      final facilitator = college.facilitator.toLowerCase();
-      final upcoming = college.upcomingExam.toLowerCase();
-      return name.contains(query) ||
-          facilitator.contains(query) ||
-          upcoming.contains(query);
-    }).toList();
+    final query = _searchController.text.trim();
+    final classSource = ref.read(classSourceProvider);
+    if (query.isEmpty) {
+      return classSource.allColleges();
+    }
+    return classSource.searchPublicColleges(query);
   }
 
   @override
@@ -141,14 +204,14 @@ class _ClassesExperienceState extends State<_ClassesExperience> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Join a class',
+                      'Create a class',
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Join a class space with an invite code.',
+                      'Start a new class space for your students.',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: Colors.black.withValues(alpha: 0.55),
                       ),
@@ -158,9 +221,8 @@ class _ClassesExperienceState extends State<_ClassesExperience> {
                       children: [
                         Expanded(
                           child: ElevatedButton.icon(
-                            onPressed: () => _handleJoinClass(context),
+                            onPressed: () => _openCreateClass(context),
                             icon: const Icon(Icons.group_add_rounded, size: 22),
-                            label: const Text('Join a class'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF7DD3E8),
                               foregroundColor: Colors.black87,
@@ -175,6 +237,7 @@ class _ClassesExperienceState extends State<_ClassesExperience> {
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
+                            label: const Text('Create a class'),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -182,7 +245,7 @@ class _ClassesExperienceState extends State<_ClassesExperience> {
                           height: 48,
                           width: 48,
                           child: ElevatedButton(
-                            onPressed: () => _handleCreateClass(context),
+                            onPressed: () => _joinClassFlow(context, ref),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF7DD3E8),
                               foregroundColor: Colors.black87,
@@ -201,7 +264,7 @@ class _ClassesExperienceState extends State<_ClassesExperience> {
               const SizedBox(height: 18),
             ],
             Text(
-              'Your classes',
+              'My classes',
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
@@ -249,69 +312,7 @@ class _ClassesExperienceState extends State<_ClassesExperience> {
       ),
     );
   }
-}
 
-Future<void> _handleCreateClass(BuildContext context) async {
-  await Navigator.of(context).push(
-    MaterialPageRoute(builder: (_) => const CreateClassScreen()),
-  );
-}
-
-Future<void> _handleJoinClass(BuildContext context) async {
-  final handle = deriveHandleFromEmail(
-    context.read<AuthRepository>().currentUser?.email,
-    maxLength: 999,
-  );
-  final code = await _promptForInviteCode(context);
-  if (code == null) return;
-  final resolved = await InvitesService.resolve(code);
-  if (resolved == null) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(S.invalidInviteCode)));
-    }
-    return;
-  }
-  final match = _demoColleges.firstWhere(
-    (c) => c.code.toUpperCase() == resolved.toUpperCase(),
-    orElse: () => _demoColleges.first,
-  );
-  final members = await MembersService.getMembersFor(match.code);
-  members.add(handle);
-  await MembersService.saveMembersFor(match.code, members);
-  if (context.mounted) {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => _CollegeScreen(college: match)));
-  }
-}
-
-Future<String?> _promptForInviteCode(BuildContext context) async {
-  final controller = TextEditingController();
-  final result = await showDialog<String>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      backgroundColor: Colors.white,
-      surfaceTintColor: Colors.white,
-      title: Text(S.enterInviteCode),
-      content: TextField(
-        controller: controller,
-        decoration: const InputDecoration(hintText: 'e.g. AB23YZ'),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(ctx).pop(),
-          child: Text(S.cancel),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
-          child: Text(S.join),
-        ),
-      ],
-    ),
-  );
-  return result == null || result.isEmpty ? null : result;
 }
 
 // Modern card design matching the reference - alternating dark/light

@@ -13,7 +13,7 @@ class HexagonComposeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const Color buttonColor = Colors.black;
+    const Color buttonColor = Color(0xFFFF7A1A);
     final BorderRadius radius = BorderRadius.circular(12);
 
     return SizedBox(

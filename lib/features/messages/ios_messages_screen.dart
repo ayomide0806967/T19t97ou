@@ -2,15 +2,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 // Note: file_picker is optional. We avoid importing it so the app builds even
 // when the dependency hasn't been fetched. If you add file_picker to
 // pubspec and run `flutter pub get`, you can re-enable file attachments by
 // switching _handleAttachFile() to use FilePicker.
-import 'package:provider/provider.dart';
-import '../../core/auth/auth_repository.dart';
-import '../../core/feed/post_repository.dart';
-import '../../core/user/handle.dart';
 import '../../l10n/strings.dart';
 import '../../models/class_note.dart';
 import '../../models/class_topic.dart';
@@ -21,15 +18,21 @@ import '../../screens/create_class_screen.dart';
 import '../../screens/create_note_flow/teacher_note_creation_screen.dart';
 import '../../screens/post_activity_screen.dart';
 import '../../screens/user_profile_screen.dart';
-import '../../services/invites_service.dart';
-import '../../services/members_service.dart';
-import '../../services/roles_service.dart';
+import '../classes/application/class_providers.dart';
+import '../classes/application/class_room_controller.dart';
+import '../classes/application/class_room_state.dart';
+import '../classes/application/class_topic_posts_controller.dart';
+import '../classes/application/class_experience_controller.dart';
+import '../classes/application/class_notes_controller.dart';
+import '../auth/application/session_providers.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/equal_width_buttons_row.dart';
 import '../../widgets/icons/x_retweet_icon.dart';
 import '../../widgets/setting_switch_row.dart';
 import '../../widgets/tweet_post_card.dart';
-import '../notes/class_notes_store.dart';
+import '../notes/application/class_notes_shelf_controller.dart';
+import 'application/message_thread_controller.dart';
+import 'application/college_screen_controller.dart';
 // Removed unused tweet widgets imports
 
 part 'ios_messages/replies_route.dart';
@@ -38,7 +41,6 @@ part 'ios_messages/full_page_classes_screen.dart';
 part 'ios_messages/spotify_style_hero.dart';
 part 'ios_messages/inbox_list.dart';
 part 'ios_messages/classes_experience.dart';
-part 'ios_messages/create_class_page.dart';
 part 'ios_messages/college_detail_screen.dart';
 part 'ios_messages/discussion_thread_page.dart';
 part 'ios_messages/thread_models.dart';

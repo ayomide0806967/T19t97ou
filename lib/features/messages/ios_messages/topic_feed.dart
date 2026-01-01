@@ -1,60 +1,20 @@
 part of '../ios_messages_screen.dart';
 
-class _TopicFeedList extends StatefulWidget {
+class _TopicFeedList extends ConsumerWidget {
   const _TopicFeedList({required this.topic});
   final ClassTopic topic;
-  @override
-  State<_TopicFeedList> createState() => _TopicFeedListState();
-}
-
-class _TopicFeedListState extends State<_TopicFeedList> {
-  static const int _pageSize = 10;
-  int _visible = 0;
-  bool _loading = false;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final data = context.watch<PostRepository>();
-    final posts = data.posts
-        .where((p) => p.tags.contains(widget.topic.topicTag))
-        .toList();
-    final initial = posts.isEmpty
-        ? 0
-        : (posts.length < _pageSize ? posts.length : _pageSize);
-    if (_visible == 0 && initial != 0) {
-      _visible = initial;
-    } else if (_visible > posts.length) {
-      _visible = posts.length;
-    }
-  }
-
-  Future<void> _loadMore() async {
-    if (_loading) return;
-    setState(() => _loading = true);
-    await Future<void>.delayed(const Duration(milliseconds: 250));
-    if (!mounted) return;
-    final data = context.read<PostRepository>();
-    final posts = data.posts
-        .where((p) => p.tags.contains(widget.topic.topicTag))
-        .toList();
-    final next = _visible + _pageSize;
-    setState(() {
-      _visible = next > posts.length ? posts.length : next;
-      _loading = false;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final data = context.watch<PostRepository>();
-    final posts = data.posts
-        .where((p) => p.tags.contains(widget.topic.topicTag))
-        .toList();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state =
+        ref.watch(classTopicPostsControllerProvider(topic.topicTag));
+    final posts = state.posts;
     if (posts.isEmpty) {
       return const SizedBox.shrink();
     }
-    final slice = posts.take(_visible == 0 ? posts.length : _visible).toList();
+    final visibleCount =
+        state.visibleCount == 0 ? posts.length : state.visibleCount;
+    final slice = posts.take(visibleCount).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -79,17 +39,18 @@ class _TopicFeedListState extends State<_TopicFeedList> {
               heartbreaks: 0,
             ),
             onShare: () async {},
-            repostEnabled: !widget.topic.privateLecture,
-            onRepost: widget.topic.privateLecture
+            repostEnabled: !topic.privateLecture,
+            onRepost: topic.privateLecture
                 ? null
                 : () async {
-                    final String me = deriveHandleFromEmail(
-                      context.read<AuthRepository>().currentUser?.email,
-                      maxLength: 999,
-                    );
-                    final toggled = await context
-                        .read<PostRepository>()
-                        .toggleRepost(postId: p.id, userHandle: me);
+                    final String me =
+                        ref.read(currentUserHandleProvider);
+                    final toggled = await ref
+                        .read(messageThreadControllerProvider.notifier)
+                        .toggleRepost(
+                          postId: p.id,
+                          userHandle: me,
+                        );
                     if (!context.mounted) return toggled;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -105,15 +66,21 @@ class _TopicFeedListState extends State<_TopicFeedList> {
           ),
           const SizedBox(height: 8),
         ],
-        if ((_visible == 0 && posts.length > _pageSize) ||
-            (_visible > 0 && _visible < posts.length)) ...[
+        if (state.visibleCount < posts.length) ...[
           Center(
             child: SizedBox(
               width: 200,
               height: 36,
               child: OutlinedButton(
-                onPressed: _loading ? null : _loadMore,
-                child: _loading
+                onPressed: state.isLoading
+                    ? null
+                    : () => ref
+                        .read(
+                          classTopicPostsControllerProvider(topic.topicTag)
+                              .notifier,
+                        )
+                        .loadMore(),
+                child: state.isLoading
                     ? const SizedBox(
                         width: 16,
                         height: 16,

@@ -1,6 +1,6 @@
 part of '../ios_messages_screen.dart';
 
-class _ClassFeedTab extends StatefulWidget {
+class _ClassFeedTab extends ConsumerStatefulWidget {
   const _ClassFeedTab({
     required this.college,
     required this.notes,
@@ -39,23 +39,20 @@ class _ClassFeedTab extends StatefulWidget {
   final bool Function(String attempt)? onUnlock;
 
   @override
-  State<_ClassFeedTab> createState() => _ClassFeedTabState();
+  ConsumerState<_ClassFeedTab> createState() => _ClassFeedTabState();
 }
 
-class _ClassFeedTabState extends State<_ClassFeedTab> {
+class _ClassFeedTabState extends ConsumerState<_ClassFeedTab> {
   @override
   void initState() {
     super.initState();
-    ClassNotesStore.onChanged = () {
-      if (mounted) setState(() {});
-    };
     _initNotes();
   }
 
   Future<void> _initNotes() async {
-    await ClassNotesStore.loadForCollege(widget.college.code);
-    if (!mounted) return;
-    setState(() {});
+    await ref
+        .read(classNotesShelfControllerProvider(widget.college.code).notifier)
+        .load();
   }
 
   Future<void> _confirmDeleteNote(ClassNoteSummary note) async {
@@ -82,20 +79,13 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
       ),
     );
     if (confirmed != true) return;
-    setState(() {
-      ClassNotesStore.classNotes.remove(note);
-    });
-    await ClassNotesStore.saveForCollege(widget.college.code);
+    await ref
+        .read(classNotesShelfControllerProvider(widget.college.code).notifier)
+        .deleteClassNote(note);
     if (!mounted) return;
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Lecture note deleted')));
-  }
-
-  @override
-  void dispose() {
-    ClassNotesStore.onChanged = null;
-    super.dispose();
   }
 
   @override
@@ -105,6 +95,8 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
     final subtle = onSurface.withValues(
       alpha: theme.brightness == Brightness.dark ? 0.6 : 0.55,
     );
+    final notesState =
+        ref.watch(classNotesShelfControllerProvider(widget.college.code));
     return Column(
       children: [
         Expanded(
@@ -185,12 +177,13 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
                                 ),
                               );
                           if (summary != null && mounted) {
-                            setState(() {
-                              ClassNotesStore.classNotes.insert(0, summary);
-                            });
-                            await ClassNotesStore.saveForCollege(
-                              widget.college.code,
-                            );
+                            await ref
+                                .read(
+                                  classNotesShelfControllerProvider(
+                                    widget.college.code,
+                                  ).notifier,
+                                )
+                                .addClassNote(summary);
                           }
                         },
                       ),
@@ -212,7 +205,7 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
                   _TopicFeedList(topic: widget.activeTopic!),
                 const SizedBox(height: 16),
               ],
-              if (ClassNotesStore.classNotes.isEmpty) ...[
+              if (notesState.classNotes.isEmpty) ...[
                 Text(
                   'Class notes you create will appear here.',
                   style: theme.textTheme.bodySmall?.copyWith(color: subtle),
@@ -221,25 +214,26 @@ class _ClassFeedTabState extends State<_ClassFeedTab> {
               ] else ...[
                 Column(
                   children: [
-                    for (final note in ClassNotesStore.classNotes) ...[
+                    for (final note in notesState.classNotes) ...[
                       _ClassNotesCard(
                         summary: note,
                         onUpdated: (updated) {
-                          setState(() {
-                            final int index = ClassNotesStore.classNotes
-                                .indexOf(note);
-                            if (index != -1) {
-                              ClassNotesStore.classNotes[index] = updated;
-                            }
-                          });
-                          ClassNotesStore.saveForCollege(widget.college.code);
+                          ref
+                              .read(
+                                classNotesShelfControllerProvider(
+                                  widget.college.code,
+                                ).notifier,
+                              )
+                              .updateClassNote(note, updated);
                         },
-                        onMoveToLibrary: () {
-                          setState(() {
-                            ClassNotesStore.classNotes.remove(note);
-                          });
-                          ClassNotesStore.libraryNotes.insert(0, note);
-                          ClassNotesStore.saveForCollege(widget.college.code);
+                        onMoveToLibrary: () async {
+                          await ref
+                              .read(
+                                classNotesShelfControllerProvider(
+                                  widget.college.code,
+                                ).notifier,
+                              )
+                              .moveToLibrary(note);
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Moved to Library')),
                           );

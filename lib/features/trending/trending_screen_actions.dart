@@ -4,7 +4,6 @@ mixin _TrendingScreenActions on _TrendingScreenStateBase {
   Future<void> _showQuickControls() async {
     final theme = Theme.of(context);
     final navigator = Navigator.of(context);
-    final appSettings = context.read<AppSettings>();
 
     showModalBottomSheet<void>(
       context: context,
@@ -13,7 +12,6 @@ mixin _TrendingScreenActions on _TrendingScreenStateBase {
       builder: (context) {
         return _TrendingQuickControlPanel(
           theme: theme,
-          appSettings: appSettings,
           onCompose: () async {
             await navigator.push(AppNav.compose());
           },
@@ -26,6 +24,9 @@ mixin _TrendingScreenActions on _TrendingScreenStateBase {
           },
           onClearSearch: () {
             _searchController.clear();
+          },
+          onSignOut: () async {
+            await ref.read(authControllerProvider.notifier).signOut();
           },
         );
       },

@@ -1,7 +1,7 @@
 part of '../ios_messages_screen.dart';
 
-class _FullPageClassesScreen extends StatelessWidget {
-  const _FullPageClassesScreen();
+class FullPageClassesScreen extends StatelessWidget {
+  const FullPageClassesScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

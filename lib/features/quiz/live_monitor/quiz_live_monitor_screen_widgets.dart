@@ -60,12 +60,14 @@ class _FilterChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool selected = value == groupValue;
     final theme = Theme.of(context);
+    const Color blackText = Color(0xFF111827);
     return ChoiceChip(
       label: Text(label),
       selected: selected,
       onSelected: (_) => onSelected(value),
       labelStyle: theme.textTheme.bodySmall?.copyWith(
         fontWeight: FontWeight.w600,
+        color: blackText,
       ),
       backgroundColor: theme.colorScheme.surface,
       selectedColor: const Color(0xFF075E54).withValues(alpha: 0.12),
@@ -94,6 +96,7 @@ class _ParticipantTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    const Color blackText = Color(0xFF111827);
     final Color statusColor = _statusColor(theme, participant.status);
     final String statusLabel = _statusLabel(participant.status);
 
@@ -128,6 +131,7 @@ class _ParticipantTile extends StatelessWidget {
                       participant.name,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w700,
+                        color: blackText,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -186,6 +190,7 @@ class _ParticipantTile extends StatelessWidget {
                         '${(participant.progress * 100).round()}%',
                         style: theme.textTheme.bodySmall?.copyWith(
                           fontWeight: FontWeight.w600,
+                          color: blackText,
                         ),
                       ),
                     ],

@@ -41,6 +41,8 @@ dependencies:
   lottie: ^3.1.2
 
   # State management
+  flutter_riverpod: ^3.0.0-dev.3
+  riverpod_annotation: ^3.0.0-dev.3
   provider: ^6.1.2
 
   # Authentication
@@ -61,6 +63,7 @@ dependencies:
   # Image handling
   cached_network_image: ^3.3.1
   image_picker: ^1.2.1
+  path_provider: ^2.1.4
   emoji_picker_flutter: ^4.4.0
   docx_to_text: ^1.0.1
   syncfusion_flutter_pdf: ^31.2.18
@@ -76,11 +79,15 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  riverpod_generator: ^3.0.0-dev.3
+  build_runner: ^2.4.11
+  flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.4.1
 
-# For information on the generic Dart part of this file, see the
-# following page: https://dart.dev/tools/pub/pubspec
+  # For information on the generic Dart part of this file, see the
+  # following page: https://dart.dev/tools/pub/pubspec
 
-# The following section is specific to Flutter packages.
+  # The following section is specific to Flutter packages.
 flutter:
 
   # The following line ensures that the Material Icons font is
@@ -94,6 +101,7 @@ flutter:
     # Explicitly include the logos to ensure they’re bundled
     - assets/images/in_logo.png
     - assets/images/google_image.png
+    - assets/images/homelogo.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -120,3 +128,18 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/in_logo.png"
+  min_sdk_android: 21
+
+flutter_native_splash:
+  color: "#000000"
+  image: assets/images/splash_logo_padded.png
+  android_gravity: center
+  ios_content_mode: center
+  android_12:
+    image: assets/images/splash_logo_padded.png
+    icon_background_color: "#000000"

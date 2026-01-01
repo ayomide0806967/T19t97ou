@@ -1,20 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 
-import '../../../services/quiz_repository.dart';
+import '../../../models/quiz.dart';
 import '../../../widgets/analytics_progress_arc.dart';
 import '../../../widgets/vertical_action_menu.dart';
 import '../answers/quiz_answers_screen.dart';
+import '../application/quiz_providers.dart';
 import '../create/quiz_create_screen.dart';
 import '../live_monitor/quiz_live_monitor_screen.dart';
 
-class QuizResultsScreen extends StatefulWidget {
+class QuizResultsScreen extends ConsumerStatefulWidget {
   const QuizResultsScreen({super.key});
 
   @override
-  State<QuizResultsScreen> createState() => _QuizResultsScreenState();
+  ConsumerState<QuizResultsScreen> createState() =>
+      _QuizResultsScreenState();
 }
 
-class _QuizResultsScreenState extends State<QuizResultsScreen> {
+class _QuizResultsScreenState extends ConsumerState<QuizResultsScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -36,7 +40,8 @@ class _QuizResultsScreenState extends State<QuizResultsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final results = _filteredResults(QuizRepository.results);
+    final quizSource = ref.watch(quizSourceProvider);
+    final results = _filteredResults(quizSource.results);
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -86,7 +91,29 @@ class _QuizResultsScreenState extends State<QuizResultsScreen> {
             ),
           ),
           const SizedBox(height: 18),
-          _MyQuizzesHeader(),
+          Align(
+            alignment: Alignment.centerRight,
+            child: SizedBox(
+              height: 46,
+              child: FilledButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const QuizCreateScreen(),
+                    ),
+                  );
+                },
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF111827),
+                  foregroundColor: Colors.white,
+                  shape: const StadiumBorder(),
+                  elevation: 0,
+                ),
+                icon: const Icon(Icons.add_rounded, size: 20),
+                label: const Text('Create a quiz'),
+              ),
+            ),
+          ),
           const SizedBox(height: 18),
           Text(
             'Previous quizzes',
@@ -106,65 +133,6 @@ class _QuizResultsScreenState extends State<QuizResultsScreen> {
   }
 }
 
-class _MyQuizzesHeader extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 18),
-      child: Card(
-        elevation: 1.5,
-        color: theme.cardColor,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Create a new quiz',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Start a fresh quiz for your learners.',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                height: 46,
-                child: FilledButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const QuizCreateScreen(),
-                      ),
-                    );
-                  },
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF075E54),
-                    foregroundColor: Colors.white,
-                    shape: const StadiumBorder(),
-                    elevation: 2,
-                  ),
-                  icon: const Icon(Icons.add_rounded, size: 20),
-                  label: const Text('Create a quiz'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _ResultCard extends StatelessWidget {
   const _ResultCard({
     required this.result,
@@ -178,18 +146,32 @@ class _ResultCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
-    final Color border = theme.dividerColor.withValues(alpha: isDark ? 0.35 : 0.2);
+    const bool isActive = true;
+    final Color border = switch (index % 3) {
+      0 => const Color(0xFFE5E7EB), // off-white
+      1 => const Color(0xFF25D366), // green
+      _ => const Color(0xFFFF7A1A), // logo orange
+    };
+    final BorderSide borderSide = BorderSide(
+      color: isDark ? theme.dividerColor.withValues(alpha: 0.35) : border,
+      width: 1.6,
+    );
+    final Color menuColor =
+        isDark ? theme.colorScheme.onSurface.withValues(alpha: 0.55) : border;
+    const Color activeAccent = Color(0xFF25D366);
+    final Color activeTextColor =
+        isDark ? Colors.white.withValues(alpha: 0.95) : activeAccent;
     return Card(
       margin: const EdgeInsets.only(bottom: 18),
       color: theme.cardColor,
-      elevation: isDark ? 0 : 1.5,
+      elevation: 6,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
-        side: BorderSide(color: border),
+        borderRadius: BorderRadius.circular(6),
+        side: borderSide,
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(6),
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute(
@@ -202,52 +184,58 @@ class _ResultCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '$index. ${result.title}',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
+              SizedBox(
+                width: double.infinity,
+                child: Stack(
+                  children: [
+                    Text(
+                      result.title,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 6),
               Row(
                 children: [
-                  Container(
-                    width: 10,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Container(
-                    width: 10,
-                    height: 16,
-                    decoration: BoxDecoration(
-                      color: Colors.cyan,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Container(
-                    width: 10,
-                    height: 20,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF075E54),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Created ${_formatDate(result.lastUpdated)}',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.7,
+                        ),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  if (isActive) ...[
+                    const SizedBox(width: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: activeAccent.withValues(alpha: 0.10),
+                        border: Border.all(
+                          color: activeAccent.withValues(alpha: 0.65),
+                        ),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        'Active',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: activeTextColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                  // removed mini bars
                 ],
               ),
             ],
@@ -292,16 +280,19 @@ class _ResultCard extends StatelessWidget {
   }
 }
 
-class QuizResultDetailsScreen extends StatefulWidget {
+
+class QuizResultDetailsScreen extends ConsumerStatefulWidget {
   const QuizResultDetailsScreen({super.key, required this.result});
 
   final QuizResultSummary result;
 
   @override
-  State<QuizResultDetailsScreen> createState() => _QuizResultDetailsScreenState();
+  ConsumerState<QuizResultDetailsScreen> createState() =>
+      _QuizResultDetailsScreenState();
 }
 
-class _QuizResultDetailsScreenState extends State<QuizResultDetailsScreen> {
+class _QuizResultDetailsScreenState
+    extends ConsumerState<QuizResultDetailsScreen> {
   bool _isQuizActive = true;
 
   @override
@@ -341,8 +332,12 @@ class _QuizResultDetailsScreenState extends State<QuizResultDetailsScreen> {
                       );
                     },
                     onShareQuiz: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Share quiz coming soon')),
+                      final link = Uri.parse(
+                        'https://quiz.myapp.local/share/${Uri.encodeComponent(widget.result.title)}',
+                      );
+                      Share.share(
+                        'Try this quiz: ${widget.result.title}\n$link',
+                        subject: widget.result.title,
                       );
                     },
                     onViewAnswers: () {
@@ -365,9 +360,9 @@ class _QuizResultDetailsScreenState extends State<QuizResultDetailsScreen> {
                       );
                     },
                     onEditQuiz: () {
-                      final questions = QuizRepository.questionsForTitle(
-                        widget.result.title,
-                      );
+                      final questions = ref
+                          .read(quizSourceProvider)
+                          .questionsForTitle(widget.result.title);
                       if (questions == null || questions.isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
@@ -423,7 +418,9 @@ class _QuizResultDetailsScreenState extends State<QuizResultDetailsScreen> {
                         ),
                       );
                       if (confirmed != true) return;
-                      QuizRepository.deleteQuiz(widget.result.title);
+                      ref
+                          .read(quizSourceProvider)
+                          .deleteQuiz(widget.result.title);
                       if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Quiz deleted')),
@@ -460,7 +457,7 @@ void _showStatusToast(BuildContext context, String message) {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFFDCF8C6),
+              color: const Color(0xFFF3F4F6),
               borderRadius: BorderRadius.circular(999),
               boxShadow: [
                 BoxShadow(
@@ -475,7 +472,7 @@ void _showStatusToast(BuildContext context, String message) {
               children: [
                 const Icon(
                   Icons.check_circle_rounded,
-                  color: Color(0xFF075E54),
+                  color: Color(0xFF111827),
                   size: 20,
                 ),
                 const SizedBox(width: 8),
@@ -483,7 +480,7 @@ void _showStatusToast(BuildContext context, String message) {
                   child: Text(
                     message,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xFF075E54),
+                      color: const Color(0xFF111827),
                       fontWeight: FontWeight.w600,
                     ),
                     maxLines: 2,

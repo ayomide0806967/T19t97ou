@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../features/posts/application/quote_controller.dart';
+import '../core/ui/app_toast.dart';
+import '../models/post.dart';
 import '../theme/app_theme.dart';
 import '../widgets/hexagon_avatar.dart';
-import 'package:provider/provider.dart';
-import '../models/post.dart';
-import '../core/ui/app_toast.dart';
-import '../core/feed/post_repository.dart';
+import '../features/auth/application/session_providers.dart';
 
-class QuoteScreen extends StatefulWidget {
+class QuoteScreen extends ConsumerStatefulWidget {
   const QuoteScreen({
     super.key,
     required this.author,
@@ -27,10 +29,10 @@ class QuoteScreen extends StatefulWidget {
   final Function(String comment)? onPostQuote;
 
   @override
-  State<QuoteScreen> createState() => _QuoteScreenState();
+  ConsumerState<QuoteScreen> createState() => _QuoteScreenState();
 }
 
-class _QuoteScreenState extends State<QuoteScreen> {
+class _QuoteScreenState extends ConsumerState<QuoteScreen> {
   final TextEditingController _controller = TextEditingController();
   bool _isPosting = false;
 
@@ -350,23 +352,19 @@ class _QuoteScreenState extends State<QuoteScreen> {
       _isPosting = true;
     });
 
-    // Simulate posting delay
-    await Future.delayed(const Duration(seconds: 1));
-
-    if (!mounted) return;
-
-    await context.read<PostRepository>().addQuote(
-      author: 'You',
-      handle: '@yourprofile',
-      comment: _controller.text.trim(),
-      original: PostSnapshot(
-        author: widget.author,
-        handle: widget.handle,
-        timeAgo: widget.timeAgo,
-        body: widget.body,
-        tags: widget.tags,
-      ),
-    );
+    final handle = ref.read(currentUserHandleProvider);
+    await ref.read(quoteControllerProvider.notifier).addQuote(
+          author: handle.isEmpty ? 'You' : handle,
+          handle: handle,
+          comment: _controller.text.trim(),
+          original: PostSnapshot(
+            author: widget.author,
+            handle: widget.handle,
+            timeAgo: widget.timeAgo,
+            body: widget.body,
+            tags: widget.tags,
+          ),
+        );
 
     if (!mounted) return;
     Navigator.pop(context);

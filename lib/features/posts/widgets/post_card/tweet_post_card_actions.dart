@@ -26,27 +26,10 @@ mixin _TweetPostCardActions on _TweetPostCardStateBase {
     if (handle.isEmpty) {
       return;
     }
-
-    final repo = context.read<PostRepository>();
     final targetId = widget.post.originalId ?? widget.post.id;
-
-    final alreadyReposted = repo.hasUserReposted(targetId, handle);
-    if (alreadyReposted) {
-      return;
-    }
-
-    final toggled = await repo.toggleRepost(
-      postId: targetId,
-      userHandle: handle,
-    );
-
-    if (!mounted || !toggled) return;
-
-    if (widget.post.originalId == null) {
-      setState(() {
-        _reposts = _reposts + 1;
-      });
-    }
+    await ref
+        .read(messageThreadControllerProvider.notifier)
+        .ensureRepostForReply(postId: targetId, userHandle: handle);
   }
 
   Future<void> _performReinstitute() async {
@@ -58,10 +41,9 @@ mixin _TweetPostCardActions on _TweetPostCardStateBase {
       return;
     }
     final targetId = widget.post.originalId ?? widget.post.id;
-    final toggled = await context.read<PostRepository>().toggleRepost(
-      postId: targetId,
-      userHandle: handle,
-    );
+    final toggled = await ref
+        .read(messageThreadControllerProvider.notifier)
+        .toggleRepost(postId: targetId, userHandle: handle);
     if (!mounted) return;
     if (widget.showRepostToast) {
       _showToast(toggled ? 'Reposted!' : 'Removed repost');
@@ -96,9 +78,7 @@ mixin _TweetPostCardActions on _TweetPostCardStateBase {
 
   Future<void> _showReinOptions() async {
     final theme = Theme.of(context);
-    final bool repostedByUser = _userHasReposted(
-      context.read<PostRepository>(),
-    );
+    final bool repostedByUser = _userHasReposted();
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -405,27 +385,31 @@ mixin _TweetPostCardActions on _TweetPostCardStateBase {
     );
   }
 
-  bool _userHasReposted(PostRepository service) {
+  bool _userHasReposted() {
     final handle = widget.currentUserHandle;
     if (handle.isEmpty) return false;
     final targetId = widget.post.originalId ?? widget.post.id;
-    return service.hasUserReposted(targetId, handle);
+    return ref
+        .read(messageThreadControllerProvider.notifier)
+        .hasUserReposted(postId: targetId, userHandle: handle);
   }
 
   Future<void> _openReplyComposer() async {
     // Open the same thread view used in profile, focusing the composer
-    final repo = context.read<PostRepository>();
-    final thread = repo.buildThreadForPost(widget.post.id);
     await Navigator.of(context).push(
       ThreadScreen.route(
-        entry: thread,
+        postId: widget.post.id,
         currentUserHandle: widget.currentUserHandle,
         initialReplyPostId: widget.post.id,
       ),
     );
     // After returning, refresh reply count from service to reflect potential changes
     if (!mounted) return;
-    final updated = repo.buildThreadForPost(widget.post.id).post.replies;
+    final updated = ref
+        .read(messageThreadControllerProvider.notifier)
+        .buildThread(widget.post.id)
+        .post
+        .replies;
     setState(() => _replies = updated);
   }
 }

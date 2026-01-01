@@ -487,7 +487,10 @@ mixin _QuizCreateScreenActions on _QuizCreateScreenStateBase {
       );
     }).toList();
 
-    QuizRepository.recordPublishedQuiz(title: title, questions: takeQuestions);
+    ref.read(quizSourceProvider).recordPublishedQuiz(
+          title: title,
+          questions: takeQuestions,
+        );
 
     // If we were launched from the note-creation flow, just return
     // the title to the caller without sharing or navigating.
@@ -568,7 +571,8 @@ mixin _QuizCreateScreenActions on _QuizCreateScreenStateBase {
       pin: _requiresPin ? _pinController.text.trim() : null,
       visibility: _visibility.name,
     );
-    QuizRepository.saveDraft(draft);
+
+    ref.read(quizSourceProvider).saveDraft(draft);
     _showSnack('Draft saved', success: true);
   }
 }

@@ -1,24 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // import '../widgets/step_rail.dart'; // no longer used in this screen
 import '../../../models/college.dart';
-import '../../../services/data_service.dart';
 import '../../../widgets/equal_width_buttons_row.dart';
 import '../../../widgets/setting_switch_row.dart';
 import '../college_detail_screen.dart';
+import '../../auth/application/session_providers.dart';
+import '../../../core/user/handle.dart';
 
 /// Create a class flow (4-step wizard) matching the provided reference.
-class CreateClassScreen extends StatefulWidget {
+class CreateClassScreen extends ConsumerStatefulWidget {
   const CreateClassScreen({super.key, this.initialStep = 0});
 
   final int initialStep;
 
   @override
-  State<CreateClassScreen> createState() => _CreateClassScreenState();
+  ConsumerState<CreateClassScreen> createState() => _CreateClassScreenState();
 }
 
-class _CreateClassScreenState extends State<CreateClassScreen> {
+class _CreateClassScreenState extends ConsumerState<CreateClassScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   // Step state
@@ -68,7 +69,6 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
 
   void _create() {
     if (!_formKey.currentState!.validate()) return;
-    final data = context.read<DataService?>();
     final String name = _name.text.trim();
     final String codeRaw = _code.text.trim();
     final String code = codeRaw.isEmpty
@@ -81,12 +81,11 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
     debugPrint(
       'Create class: name=$name, code=$code, facilitator=$facilitator',
     );
+    // Integrate with your backing store here if desired, e.g.:
+    // data.createClass(...);
 
-    if (data != null) {
-      // Integrate with your backing store here if desired, e.g.:
-      // data.createClass(...);
-    }
-
+    final String currentHandle =
+        ensureAtPrefix(ref.read(currentUserHandleProvider));
     final college = College(
       name: name,
       code: code,
@@ -95,7 +94,7 @@ class _CreateClassScreenState extends State<CreateClassScreen> {
       deliveryMode: _isPrivate ? 'Private' : 'Open',
       upcomingExam: '',
       resources: const <CollegeResource>[],
-      memberHandles: <String>{'@yourprofile'},
+      memberHandles: <String>{currentHandle},
     );
 
     if (!mounted) return;

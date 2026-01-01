@@ -1,7 +1,12 @@
-part of 'navigation_drawer_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-mixin _NavigationDrawerBuildHelpers on State<NavigationDrawerScreen> {
-  Widget _buildNavigationDrawer(
+import 'core/ui/theme_mode_controller.dart';
+import 'navigation_drawer_screen.dart';
+
+
+mixin NavigationDrawerBuildHelpers on ConsumerState<NavigationDrawerScreen> {
+  Widget buildNavigationDrawer(
     ThemeData theme,
     Color surface,
     Color onSurface,
@@ -20,7 +25,7 @@ mixin _NavigationDrawerBuildHelpers on State<NavigationDrawerScreen> {
           child: Column(
             children: [
               const SizedBox(height: 20),
-              _buildSearchBar(theme, onSurface, subtle),
+              buildSearchBar(theme, onSurface, subtle),
               const SizedBox(height: 32),
               Expanded(
                 child: SingleChildScrollView(
@@ -28,9 +33,9 @@ mixin _NavigationDrawerBuildHelpers on State<NavigationDrawerScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildNavigationItems(theme, onSurface, subtle),
+                      buildNavigationItems(theme, onSurface, subtle),
                       const SizedBox(height: 32),
-                      _buildSection(theme, 'Pinned', [
+                      buildSection(theme, 'Pinned', [
                         NavigationItem(
                           icon: Icons.analytics_outlined,
                           title: 'Research & Analysis',
@@ -48,7 +53,7 @@ mixin _NavigationDrawerBuildHelpers on State<NavigationDrawerScreen> {
                         ),
                       ]),
                       const SizedBox(height: 24),
-                      _buildSection(theme, 'Recents', [
+                      buildSection(theme, 'Recents', [
                         NavigationItem(
                           icon: Icons.person_search_outlined,
                           title: 'User research analysis',
@@ -66,7 +71,7 @@ mixin _NavigationDrawerBuildHelpers on State<NavigationDrawerScreen> {
                         ),
                       ]),
                       const SizedBox(height: 24),
-                      _buildSection(theme, 'Yesterday', [
+                      buildSection(theme, 'Yesterday', [
                         NavigationItem(
                           icon: Icons.trending_up_outlined,
                           title: 'Market trends analysis',
@@ -88,7 +93,7 @@ mixin _NavigationDrawerBuildHelpers on State<NavigationDrawerScreen> {
                   ),
                 ),
               ),
-              _buildUserProfileCard(theme, onSurface, subtle),
+              buildUserProfileCard(theme, onSurface, subtle),
             ],
           ),
         ),
@@ -96,7 +101,7 @@ mixin _NavigationDrawerBuildHelpers on State<NavigationDrawerScreen> {
     );
   }
 
-  Widget _buildSearchBar(ThemeData theme, Color onSurface, Color subtle) {
+  Widget buildSearchBar(ThemeData theme, Color onSurface, Color subtle) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
@@ -124,7 +129,7 @@ mixin _NavigationDrawerBuildHelpers on State<NavigationDrawerScreen> {
     );
   }
 
-  Widget _buildNavigationItems(
+  Widget buildNavigationItems(
     ThemeData theme,
     Color onSurface,
     Color subtle,
@@ -153,7 +158,7 @@ mixin _NavigationDrawerBuildHelpers on State<NavigationDrawerScreen> {
     );
   }
 
-  Widget _buildSection(ThemeData theme, String title, List<Widget> items) {
+  Widget buildSection(ThemeData theme, String title, List<Widget> items) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -177,7 +182,7 @@ mixin _NavigationDrawerBuildHelpers on State<NavigationDrawerScreen> {
     );
   }
 
-  Widget _buildUserProfileCard(
+  Widget buildUserProfileCard(
     ThemeData theme,
     Color onSurface,
     Color subtle,
@@ -200,7 +205,7 @@ mixin _NavigationDrawerBuildHelpers on State<NavigationDrawerScreen> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          onTap: () => _showProfileDropdown(),
+          onTap: () => showProfileDropdown(),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -286,8 +291,7 @@ mixin _NavigationDrawerBuildHelpers on State<NavigationDrawerScreen> {
     );
   }
 
-  void _showProfileDropdown() {
-    final appSettings = context.read<AppSettings>();
+  void showProfileDropdown() {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -330,39 +334,43 @@ mixin _NavigationDrawerBuildHelpers on State<NavigationDrawerScreen> {
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
-                      _buildDropdownItem(
+                      buildDropdownItem(
                         theme: theme,
-                        icon: appSettings.isDarkMode
+                        icon: ref.watch(themeModeControllerProvider) ==
+                                ThemeMode.dark
                             ? Icons.dark_mode
                             : Icons.light_mode,
-                      title: 'Dark Mode',
-                      trailing: Switch(
-                        value: appSettings.isDarkMode,
-                        onChanged: (value) async {
-                          Navigator.pop(sheetContext);
-                          await context
-                              .read<AppSettings>()
-                              .toggleDarkMode(value);
-                        },
-                        activeThumbColor: theme.colorScheme.primary,
-                        activeTrackColor:
-                            theme.colorScheme.primary.withValues(alpha: 0.35),
+                        title: 'Dark Mode',
+                        trailing: Switch(
+                          value: ref.watch(themeModeControllerProvider) ==
+                              ThemeMode.dark,
+                          onChanged: (value) async {
+                            Navigator.pop(sheetContext);
+                            await ref
+                                .read(
+                                  themeModeControllerProvider.notifier,
+                                )
+                                .toggleDarkMode(value);
+                          },
+                          activeThumbColor: theme.colorScheme.primary,
+                          activeTrackColor:
+                              theme.colorScheme.primary.withValues(alpha: 0.35),
+                        ),
                       ),
-                    ),
                     const SizedBox(height: 12),
-                    _buildDropdownItem(
+                    buildDropdownItem(
                       theme: theme,
                       icon: Icons.settings_outlined,
                       title: 'Settings',
                       onTap: () => Navigator.pop(sheetContext),
                     ),
-                    _buildDropdownItem(
+                    buildDropdownItem(
                       theme: theme,
                       icon: Icons.language_outlined,
                       title: 'Language',
                       onTap: () => Navigator.pop(sheetContext),
                     ),
-                    _buildDropdownItem(
+                    buildDropdownItem(
                       theme: theme,
                       icon: Icons.help_outline,
                       title: 'Help',
@@ -371,7 +379,7 @@ mixin _NavigationDrawerBuildHelpers on State<NavigationDrawerScreen> {
                       const SizedBox(height: 8),
                       Divider(color: divider),
                       const SizedBox(height: 8),
-                      _buildDropdownItem(
+                      buildDropdownItem(
                         theme: theme,
                         icon: Icons.logout_outlined,
                         title: 'Log out',
@@ -389,7 +397,7 @@ mixin _NavigationDrawerBuildHelpers on State<NavigationDrawerScreen> {
     );
   }
 
-  Widget _buildDropdownItem({
+  Widget buildDropdownItem({
     required ThemeData theme,
     required IconData icon,
     required String title,
@@ -431,7 +439,7 @@ mixin _NavigationDrawerBuildHelpers on State<NavigationDrawerScreen> {
     );
   }
 
-  Widget _buildWelcomeSection(ThemeData theme, Color onSurface) {
+  Widget buildWelcomeSection(ThemeData theme, Color onSurface) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -495,7 +503,7 @@ mixin _NavigationDrawerBuildHelpers on State<NavigationDrawerScreen> {
     );
   }
 
-  Widget _buildStatsGrid(ThemeData theme, Color onSurface) {
+  Widget buildStatsGrid(ThemeData theme, Color onSurface) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -515,7 +523,7 @@ mixin _NavigationDrawerBuildHelpers on State<NavigationDrawerScreen> {
           mainAxisSpacing: 16,
           childAspectRatio: 1.5,
           children: [
-            _buildStatCard(
+            buildStatCard(
               theme: theme,
               onSurface: onSurface,
               title: 'Active Projects',
@@ -524,7 +532,7 @@ mixin _NavigationDrawerBuildHelpers on State<NavigationDrawerScreen> {
               color: const Color(0xFF4299E1),
               change: '+2',
             ),
-            _buildStatCard(
+            buildStatCard(
               theme: theme,
               onSurface: onSurface,
               title: 'Completed Tasks',
@@ -533,7 +541,7 @@ mixin _NavigationDrawerBuildHelpers on State<NavigationDrawerScreen> {
               color: const Color(0xFF48BB78),
               change: '+8',
             ),
-            _buildStatCard(
+            buildStatCard(
               theme: theme,
               onSurface: onSurface,
               title: 'Team Members',
@@ -542,7 +550,7 @@ mixin _NavigationDrawerBuildHelpers on State<NavigationDrawerScreen> {
               color: const Color(0xFF9F7AEA),
               change: '+1',
             ),
-            _buildStatCard(
+            buildStatCard(
               theme: theme,
               onSurface: onSurface,
               title: 'Messages',
@@ -557,7 +565,7 @@ mixin _NavigationDrawerBuildHelpers on State<NavigationDrawerScreen> {
     );
   }
 
-  Widget _buildStatCard({
+  Widget buildStatCard({
     required ThemeData theme,
     required Color onSurface,
     required String title,
@@ -638,7 +646,7 @@ mixin _NavigationDrawerBuildHelpers on State<NavigationDrawerScreen> {
     );
   }
 
-  Widget _buildRecentActivity(
+  Widget buildRecentActivity(
     ThemeData theme,
     Color onSurface,
     Color subtle,
@@ -673,7 +681,7 @@ mixin _NavigationDrawerBuildHelpers on State<NavigationDrawerScreen> {
           ),
           child: Column(
             children: [
-              _buildActivityItem(
+              buildActivityItem(
                 theme: theme,
                 onSurface: onSurface,
                 subtle: subtle,
@@ -683,7 +691,7 @@ mixin _NavigationDrawerBuildHelpers on State<NavigationDrawerScreen> {
                 time: '2 hours ago',
                 color: const Color(0xFF4299E1),
               ),
-              _buildActivityItem(
+              buildActivityItem(
                 theme: theme,
                 onSurface: onSurface,
                 subtle: subtle,
@@ -693,7 +701,7 @@ mixin _NavigationDrawerBuildHelpers on State<NavigationDrawerScreen> {
                 time: '4 hours ago',
                 color: const Color(0xFF48BB78),
               ),
-              _buildActivityItem(
+              buildActivityItem(
                 theme: theme,
                 onSurface: onSurface,
                 subtle: subtle,
@@ -710,7 +718,7 @@ mixin _NavigationDrawerBuildHelpers on State<NavigationDrawerScreen> {
     );
   }
 
-  Widget _buildActivityItem({
+  Widget buildActivityItem({
     required ThemeData theme,
     required Color onSurface,
     required Color subtle,
@@ -764,7 +772,7 @@ mixin _NavigationDrawerBuildHelpers on State<NavigationDrawerScreen> {
     );
   }
 
-  Widget _buildQuickActions(ThemeData theme, Color onSurface) {
+  Widget buildQuickActions(ThemeData theme, Color onSurface) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -779,7 +787,7 @@ mixin _NavigationDrawerBuildHelpers on State<NavigationDrawerScreen> {
         Row(
           children: [
             Expanded(
-              child: _buildActionButton(
+              child: buildActionButton(
                 theme: theme,
                 icon: Icons.add_circle_outline,
                 label: 'New Project',
@@ -788,7 +796,7 @@ mixin _NavigationDrawerBuildHelpers on State<NavigationDrawerScreen> {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _buildActionButton(
+              child: buildActionButton(
                 theme: theme,
                 icon: Icons.upload_file_outlined,
                 label: 'Upload File',
@@ -797,7 +805,7 @@ mixin _NavigationDrawerBuildHelpers on State<NavigationDrawerScreen> {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _buildActionButton(
+              child: buildActionButton(
                 theme: theme,
                 icon: Icons.schedule_outlined,
                 label: 'Schedule',
@@ -810,7 +818,7 @@ mixin _NavigationDrawerBuildHelpers on State<NavigationDrawerScreen> {
     );
   }
 
-  Widget _buildActionButton({
+  Widget buildActionButton({
     required ThemeData theme,
     required IconData icon,
     required String label,
@@ -926,4 +934,3 @@ class NavigationItem extends StatelessWidget {
     );
   }
 }
-

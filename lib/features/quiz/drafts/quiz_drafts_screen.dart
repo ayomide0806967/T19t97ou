@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../services/quiz_repository.dart';
+import '../../../models/quiz.dart';
+import '../application/quiz_providers.dart';
 
-class QuizDraftsScreen extends StatelessWidget {
+class QuizDraftsScreen extends ConsumerWidget {
   const QuizDraftsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final drafts = QuizRepository.drafts;
+    final drafts = ref.watch(quizSourceProvider).drafts;
     final bool isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(

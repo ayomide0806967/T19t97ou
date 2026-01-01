@@ -3,19 +3,18 @@ part of 'trending_screen.dart';
 mixin _TrendingScreenBuild on _TrendingScreenStateBase, _TrendingScreenActions {
   @override
   Widget build(BuildContext context) {
+    final feedState = ref.watch(feedControllerProvider);
+    final timeline = feedState.posts;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final onSurface = theme.colorScheme.onSurface;
 
-    final timeline = context.watch<PostRepository>().timelinePosts;
     final allPosts = List.of(timeline);
     allPosts.sort((a, b) {
       return _score(b).compareTo(_score(a));
     });
 
-    final currentUserHandle = deriveHandleFromEmail(
-      context.read<AuthRepository>().currentUser?.email,
-    );
+    final currentUserHandle = ref.watch(currentUserHandleProvider);
 
     final Map<String, int> topicCounts = <String, int>{};
     for (final post in allPosts) {

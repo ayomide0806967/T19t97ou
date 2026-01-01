@@ -1,78 +1,72 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:ui';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../services/quiz_repository.dart';
-import '../../../screens/create_class_screen.dart';
+import '../../../models/quiz.dart';
+import '../../messages/ios_messages_screen.dart';
+import '../application/quiz_providers.dart';
 import '../create/quiz_create_screen.dart';
 import '../drafts/quiz_drafts_screen.dart';
 import '../results/quiz_results_screen.dart';
 
-class QuizDashboardScreen extends StatelessWidget {
-  const QuizDashboardScreen({
-    super.key,
-    this.recentlyPublishedTitle,
-  });
+class QuizDashboardScreen extends ConsumerWidget {
+  const QuizDashboardScreen({super.key, this.recentlyPublishedTitle});
 
   final String? recentlyPublishedTitle;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final drafts = QuizRepository.drafts;
-    final results = QuizRepository.results;
-    final size = MediaQuery.of(context).size;
-    final bool isDark = theme.brightness == Brightness.dark;
-    final Color background =
-        isDark ? const Color(0xFF050709) : const Color(0xFFF4F4F5);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final quizSource = ref.watch(quizSourceProvider);
+    final drafts = quizSource.drafts;
+    final results = quizSource.results;
+    final int publishedCount = results.length;
+    final int totalResponses = results.isEmpty
+        ? 0
+        : results.map((r) => r.responses).fold<int>(0, (a, b) => a + b);
+    final double? avgScore = results.isEmpty
+        ? null
+        : results.map((r) => r.averageScore).fold<double>(0, (a, b) => a + b) /
+            results.length;
 
     return Scaffold(
-      backgroundColor: background,
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF075E54),
+        backgroundColor: Colors.white,
         elevation: 0,
         toolbarHeight: 0,
-        systemOverlayStyle: SystemUiOverlayStyle.light,
+        systemOverlayStyle: SystemUiOverlayStyle.dark,
       ),
       body: ListView(
         padding: EdgeInsets.zero,
         children: [
-          SizedBox(
-            height: size.height * 0.33,
-            child: _DashboardHero(
-              publishedCount: results.length,
-              totalResponses: results.isEmpty
-                  ? 0
-                  : results
-                      .map((r) => r.responses)
-                      .fold<int>(0, (a, b) => a + b),
-              avgScore: results.isEmpty
-                  ? null
-                  : results
-                          .map((r) => r.averageScore)
-                          .fold<double>(0, (a, b) => a + b) /
-                      results.length,
-              draftsCount: drafts.length,
-            ),
-          ),
+          const _DashboardHero(),
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Transform.translate(
+                  offset: const Offset(0, 34),
+                  child: _MyPlanCard(
+                    planName: 'Starter',
+                    usedQuizzes: publishedCount + drafts.length,
+                    quizLimit: 10,
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Plan details coming soon'),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 88),
                 _DashboardQuickAccessGrid(
-                  publishedCount: results.length,
+                  publishedCount: publishedCount,
                   draftsCount: drafts.length,
-                  totalResponses: results.isEmpty
-                      ? 0
-                      : results
-                          .map((r) => r.responses)
-                          .fold<int>(0, (a, b) => a + b),
-                  avgScore: results.isEmpty
-                      ? null
-                      : results
-                              .map((r) => r.averageScore)
-                              .fold<double>(0, (a, b) => a + b) /
-                          results.length,
+                  totalResponses: totalResponses,
+                  avgScore: avgScore,
                 ),
                 if (recentlyPublishedTitle != null) ...[
                   const SizedBox(height: 24),
@@ -87,242 +81,74 @@ class QuizDashboardScreen extends StatelessWidget {
   }
 }
 
-
 class _DashboardHero extends StatelessWidget {
-  const _DashboardHero({
-    required this.publishedCount,
-    required this.totalResponses,
-    required this.avgScore,
-    required this.draftsCount,
-  });
-
-  final int publishedCount;
-  final int totalResponses;
-  final double? avgScore;
-  final int draftsCount;
+  const _DashboardHero();
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    // WhatsApp-style banner color, matching the lecture note header.
-    const Color bannerColor = Color(0xFF075E54);
-    const Color bannerText = Colors.white;
-    const Color accentSoft = Color(0xFF25D366);
-    final Color subtitle = bannerText.withValues(alpha: 0.7);
-
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(
-        bottom: Radius.circular(32),
-      ),
+    return SafeArea(
+      bottom: false,
       child: Container(
-        decoration: BoxDecoration(
-          color: bannerColor,
-        ),
-        padding: const EdgeInsets.fromLTRB(16, 16, 20, 20),
-        child: Stack(
+        color: Colors.white,
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Soft art shapes in the background.
-            Positioned(
-              top: -40,
-              right: -30,
-              child: Container(
-                width: 140,
-                height: 140,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: accentSoft.withValues(alpha: 0.12),
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: -50,
-              left: -10,
-              child: Container(
-                width: 160,
-                height: 160,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(80),
-                  border: Border.all(
-                    color: accentSoft.withValues(alpha: 0.16),
-                    width: 1.2,
-                  ),
-                ),
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Row(
               children: [
-                const SizedBox(height: 8),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(width: 44), // space for back button
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Quiz dashboard',
-                            style: theme.textTheme.headlineSmall?.copyWith(
-                              color: bannerText,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Stay on top of how learners are performing across your quizzes.',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: subtitle,
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-                          Center(
-                            child: FilledButton.icon(
-                              style: FilledButton.styleFrom(
-                                backgroundColor: bannerText,
-                                foregroundColor: bannerColor,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 28,
-                                  vertical: 14,
-                                ),
-                                elevation: 3,
-                                shadowColor: Colors.black.withValues(alpha: 0.25),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  side: BorderSide(
-                                    color: bannerText.withValues(alpha: 0.6),
-                                  ),
-                                ),
-                                textStyle: theme.textTheme.labelLarge?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              onPressed: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => const QuizCreateScreen(),
-                                  ),
-                                );
-                              },
-                              icon: const Icon(
-                                Icons.add_rounded,
-                                size: 20,
-                              ),
-                              label: const Text('Create a quiz'),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: accentSoft.withValues(alpha: 0.05),
-                        border: Border.all(
-                          color: accentSoft.withValues(alpha: 0.20),
-                        ),
-                      ),
-                      child: Icon(
-                        Icons.insights_rounded,
-                        color: bannerText,
-                        size: 28,
-                      ),
-                    ),
-                  ],
+                Image.asset(
+                  'assets/images/homelogo.png',
+                  height: 40,
+                  width: 40,
+                  fit: BoxFit.contain,
+                  semanticLabel: 'App logo',
                 ),
-                const Spacer(),
-                Row(
-                  children: [
-                    _HeaderMetric(
-                      label: 'Published quizzes',
-                      value: '$publishedCount',
-                    ),
-                    const SizedBox(width: 16),
-                    _HeaderMetric(
-                      label: 'Total responses',
-                      value: '$totalResponses',
-                    ),
-                    const SizedBox(width: 16),
-                    _HeaderMetric(
-                      label: 'Average score',
-                      value: avgScore == null
-                          ? '–'
-                          : '${avgScore!.toStringAsFixed(0)}%',
-                    ),
-                  ],
+                const SizedBox(width: 6),
+                Text(
+                  'Quiz Dashboard',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF111827),
+                  ),
                 ),
               ],
             ),
-            Positioned(
-              top: 0,
-              left: 0,
-              child: SafeArea(
-                child: Material(
-                  color: accentSoft.withValues(alpha: 0.12),
-                  shape: const CircleBorder(),
-                  child: InkWell(
-                    customBorder: const CircleBorder(),
-                    onTap: () {
-                      final navigator = Navigator.of(context);
-                      if (navigator.canPop()) {
-                        navigator.pop();
-                      }
-                    },
-                    child: const Padding(
-                      padding: EdgeInsets.all(6),
-                      child: Icon(
-                        Icons.arrow_back_rounded,
-                        color: bannerText,
-                        size: 22,
-                      ),
+            const SizedBox(height: 34),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: const Color(0xFF111827),
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 12,
+                  ),
+                  textStyle: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(
+                      color: const Color(0xFF111827).withValues(alpha: 0.25),
                     ),
                   ),
                 ),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const QuizCreateScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.add_rounded, size: 20),
+                label: const Text('Create a quiz'),
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _HeaderMetric extends StatelessWidget {
-  const _HeaderMetric({
-    required this.label,
-    required this.value,
-  });
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    const Color text = Colors.white;
-    final Color subtle = text.withValues(alpha: 0.7);
-
-    return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: subtle),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: text,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -346,25 +172,24 @@ class _DashboardQuickAccessGrid extends StatelessWidget {
     final theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
 
-    Color soft(Color light, Color dark) =>
-        isDark ? dark : light;
+    Color soft(Color light, Color dark) => isDark ? dark : light;
 
     void openResults() {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const QuizResultsScreen()),
-      );
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const QuizResultsScreen()));
     }
 
     void openDrafts() {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const QuizDraftsScreen()),
-      );
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const QuizDraftsScreen()));
     }
 
     Future<void> openCreateClass() async {
-      await Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const CreateClassScreen()),
-      );
+      await Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const FullPageClassesScreen()));
     }
 
     return Row(
@@ -377,17 +202,16 @@ class _DashboardQuickAccessGrid extends StatelessWidget {
                 subtitle: '$publishedCount published',
                 badge: 'Manage quizzes',
                 background: soft(
-                  const Color(0xFF075E54), // WhatsApp banner green
-                  const Color(0xFF075E54),
+                  const Color(0xFFD1FAE5), // soft green (light)
+                  const Color(0xFF064E3B), // deep green (dark)
                 ),
                 foreground: soft(
-                  Colors.white,
-                  Colors.white,
+                  const Color(0xFF064E3B),
+                  const Color(0xFFE5F9F0),
                 ),
-                accent: soft(
-                  Color(0xFFE5E7EB), // light grey action button
-                  Color(0xFF9CA3AF), // darker grey for dark mode
-                ),
+                accent: soft(const Color(0xFF34D399), const Color(0xFF34D399)),
+                borderColor:
+                    soft(const Color(0xFF34D399), const Color(0xFF34D399)),
                 icon: Icons.assignment_rounded,
                 iconColor: Colors.black,
                 onTap: openResults,
@@ -398,17 +222,15 @@ class _DashboardQuickAccessGrid extends StatelessWidget {
                 subtitle: '$draftsCount saved',
                 badge: 'Continue drafts',
                 background: soft(
-                  const Color(0xFFD1FAE5), // soft green (light)
-                  const Color(0xFF064E3B), // deep green (dark)
+                  const Color(0xFFFFFBF7), // off-white (light)
+                  const Color(0xFF111827), // dark text surface (dark)
                 ),
-                foreground: soft(
-                  const Color(0xFF064E3B),
-                  const Color(0xFFE5F9F0),
-                ),
+                foreground: soft(const Color(0xFF111827), Colors.white),
                 accent: soft(
-                  const Color(0xFF34D399),
-                  const Color(0xFF34D399),
+                  const Color(0xFFFFC999), // softer logo-tinted accent (light)
+                  const Color(0xFFFFC999), // same accent in dark mode
                 ),
+                borderColor: soft(const Color(0xFFFFC999), const Color(0xFFFFC999)),
                 icon: Icons.drafts_rounded,
                 onTap: openDrafts,
               ),
@@ -420,21 +242,19 @@ class _DashboardQuickAccessGrid extends StatelessWidget {
           child: Column(
             children: [
               _DashboardQuickCard(
-                title: 'Create a class',
+                title: 'My classes',
                 subtitle: 'Set up a new class space.',
                 badge: 'Start class setup',
                 background: soft(
                   const Color(0xFFE0F2FE),
                   const Color(0xFF0B1120),
                 ),
-                foreground: soft(
-                  const Color(0xFF0F172A),
-                  Colors.white,
-                ),
+                foreground: soft(const Color(0xFF0F172A), Colors.white),
                 accent: soft(
-                  const Color(0xFF0284C7),
-                  const Color(0xFF38BDF8),
+                  const Color(0xFFCBD5E1), // grey action accent (light)
+                  const Color(0xFFCBD5E1), // same accent in dark mode
                 ),
+                borderColor: soft(const Color(0xFFCBD5E1), const Color(0xFFCBD5E1)),
                 icon: Icons.class_rounded,
                 onTap: openCreateClass,
               ),
@@ -447,14 +267,10 @@ class _DashboardQuickAccessGrid extends StatelessWidget {
                   const Color(0xFFF1F5F9),
                   const Color(0xFF020617),
                 ),
-                foreground: soft(
-                  const Color(0xFF020617),
-                  Colors.white,
-                ),
-                accent: soft(
-                  const Color(0xFF0F766E),
-                  const Color(0xFF14B8A6),
-                ),
+                foreground: soft(const Color(0xFF020617), Colors.white),
+                accent: soft(const Color(0xFF111827), const Color(0xFF111827)),
+                borderColor:
+                    soft(const Color(0xFF111827), const Color(0xFF111827)),
                 icon: Icons.playlist_add_check_rounded,
                 onTap: openResults,
               ),
@@ -462,6 +278,137 @@ class _DashboardQuickAccessGrid extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _MyPlanCard extends StatelessWidget {
+  const _MyPlanCard({
+    required this.planName,
+    required this.usedQuizzes,
+    required this.quizLimit,
+    this.onTap,
+  });
+
+  final String planName;
+  final int usedQuizzes;
+  final int quizLimit;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final int clampedLimit = quizLimit <= 0 ? 1 : quizLimit;
+    final int clampedUsed = usedQuizzes.clamp(0, clampedLimit);
+    final double progress = clampedUsed / clampedLimit;
+
+	    const Color text = Color(0xFF111827);
+	    final Color progressFill = Colors.black.withValues(alpha: 0.55);
+	    const Color glassOffWhite = Color(0xFFFFFBF7);
+
+	    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Stack(
+            children: [
+              BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 26, sigmaY: 26),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: glassOffWhite.withValues(alpha: 0.78),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.10),
+                        blurRadius: 22,
+                        offset: const Offset(0, 14),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'My Plan',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: text,
+                            ),
+                          ),
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: glassOffWhite.withValues(alpha: 0.85),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Text(
+                              planName,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: text,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            color: text.withValues(alpha: 0.65),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Quizzes created',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: text.withValues(alpha: 0.7),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(999),
+                              child: LinearProgressIndicator(
+                                value: progress,
+                                minHeight: 8,
+                                backgroundColor:
+                                    Colors.black.withValues(alpha: 0.08),
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(progressFill),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            '$clampedUsed/$clampedLimit',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: text,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -477,6 +424,7 @@ class _DashboardQuickCard extends StatelessWidget {
     required this.icon,
     required this.onTap,
     this.iconColor = Colors.white,
+    this.borderColor,
   });
 
   final String title;
@@ -488,6 +436,7 @@ class _DashboardQuickCard extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
   final Color iconColor;
+  final Color? borderColor;
 
   @override
   Widget build(BuildContext context) {
@@ -495,14 +444,18 @@ class _DashboardQuickCard extends StatelessWidget {
     final Color badgeBackground = foreground.withValues(alpha: 0.06);
 
     return InkWell(
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(12),
       onTap: onTap,
       child: Container(
         height: 190,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: background,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: (borderColor ?? accent).withValues(alpha: 0.9),
+            width: 1.6,
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.08),
@@ -603,10 +556,12 @@ class _DashboardCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
-    final Color border =
-        theme.dividerColor.withValues(alpha: isDark ? 0.35 : 0.15);
-    final Color subtle =
-        theme.colorScheme.onSurface.withValues(alpha: isDark ? 0.7 : 0.6);
+    final Color border = theme.dividerColor.withValues(
+      alpha: isDark ? 0.35 : 0.15,
+    );
+    final Color subtle = theme.colorScheme.onSurface.withValues(
+      alpha: isDark ? 0.7 : 0.6,
+    );
 
     return Container(
       decoration: BoxDecoration(
@@ -635,9 +590,7 @@ class _DashboardCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               subtitle,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: subtle,
-              ),
+              style: theme.textTheme.bodySmall?.copyWith(color: subtle),
             ),
             const SizedBox(height: 16),
             child,
@@ -647,8 +600,10 @@ class _DashboardCard extends StatelessWidget {
               child: TextButton.icon(
                 onPressed: onActionTap,
                 style: TextButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(999),
                   ),
@@ -683,7 +638,12 @@ class _ResultPreview extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(summary.title, style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600)),
+          Text(
+            summary.title,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 4),
           Text(
             '${summary.responses} responses · ${summary.averageScore.toStringAsFixed(0)}% avg score',
@@ -714,9 +674,17 @@ class _DraftPreview extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(draft.title, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                Text(
+                  draft.title,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text('Updated ${hoursAgo}h ago', style: theme.textTheme.bodySmall?.copyWith(color: subtle)),
+                Text(
+                  'Updated ${hoursAgo}h ago',
+                  style: theme.textTheme.bodySmall?.copyWith(color: subtle),
+                ),
               ],
             ),
           ),
@@ -737,14 +705,27 @@ class _ResultsOverview extends StatelessWidget {
     if (results.isEmpty) {
       return const Text('No published quizzes yet.');
     }
-    final double avgScore = results.map((r) => r.averageScore).fold<double>(0, (a, b) => a + b) / results.length;
-    final int totalResponses = results.map((r) => r.responses).fold<int>(0, (a, b) => a + b);
+    final double avgScore =
+        results.map((r) => r.averageScore).fold<double>(0, (a, b) => a + b) /
+        results.length;
+    final int totalResponses = results
+        .map((r) => r.responses)
+        .fold<int>(0, (a, b) => a + b);
 
     return Row(
       children: [
-        Expanded(child: _Metric(label: 'Avg score', value: '${avgScore.toStringAsFixed(1)}%')),
-        Expanded(child: _Metric(label: 'Responses', value: '$totalResponses')),
-        Expanded(child: _Metric(label: 'Quizzes', value: '${results.length}')),
+        Expanded(
+          child: _Metric(
+            label: 'Avg score',
+            value: '${avgScore.toStringAsFixed(1)}%',
+          ),
+        ),
+        Expanded(
+          child: _Metric(label: 'Responses', value: '$totalResponses'),
+        ),
+        Expanded(
+          child: _Metric(label: 'Quizzes', value: '${results.length}'),
+        ),
       ],
     );
   }
@@ -765,7 +746,12 @@ class _Metric extends StatelessWidget {
       children: [
         Text(label, style: theme.textTheme.bodySmall?.copyWith(color: subtle)),
         const SizedBox(height: 6),
-        Text(value, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+        Text(
+          value,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
       ],
     );
   }

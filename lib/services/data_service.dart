@@ -1,18 +1,20 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/thread_entry.dart';
 import '../models/post.dart';
-import '../core/feed/post_repository.dart';
+import '../features/feed/domain/post_repository.dart';
 
-class DataService extends ChangeNotifier implements PostRepository {
+class DataService implements PostRepository {
   static const _storageKey = 'feed_posts';
   final Random _random = Random();
 
   final List<PostModel> _posts = <PostModel>[];
+  final StreamController<List<PostModel>> _timelineController =
+      StreamController<List<PostModel>>.broadcast();
   @override
   List<PostModel> get posts => List.unmodifiable(_posts);
 
@@ -25,7 +27,7 @@ class DataService extends ChangeNotifier implements PostRepository {
       _posts
         ..clear()
         ..addAll(list.map(PostModel.fromJson));
-      notifyListeners();
+      _emitTimeline();
       return;
     }
 
@@ -38,7 +40,30 @@ class DataService extends ChangeNotifier implements PostRepository {
   Future<void> clearAll() async {
     _posts.clear();
     await _save();
-    notifyListeners();
+  }
+
+  @override
+  Stream<List<PostModel>> watchTimeline() => _timelineController.stream;
+
+  @override
+  Stream<ThreadEntry> watchThread(String postId) {
+    // For the in-memory demo implementation, derive the thread from the
+    // current posts whenever the timeline emits.
+    return _timelineController.stream.map(
+      (_) => buildThreadForPost(postId),
+    );
+  }
+
+  @override
+  Stream<List<PostModel>> watchUserTimeline(String handle) {
+    final normalized = handle.trim();
+    if (normalized.isEmpty) {
+      return _timelineController.stream
+          .map((_) => const <PostModel>[]);
+    }
+    return _timelineController.stream.map(
+      (_) => postsForHandle(normalized),
+    );
   }
 
   @override
@@ -63,7 +88,6 @@ class DataService extends ChangeNotifier implements PostRepository {
     );
     _posts.insert(0, post);
     await _save();
-    notifyListeners();
   }
 
   @override
@@ -88,7 +112,6 @@ class DataService extends ChangeNotifier implements PostRepository {
     );
     _posts.insert(0, post);
     await _save();
-    notifyListeners();
   }
 
   bool hasUserRetweeted(String postId, String userHandle) =>
@@ -129,7 +152,6 @@ class DataService extends ChangeNotifier implements PostRepository {
         _posts[originIdx] = updated;
       }
       await _save();
-      notifyListeners();
       return false;
     }
 
@@ -144,7 +166,6 @@ class DataService extends ChangeNotifier implements PostRepository {
     _posts[originalIndex] = original.copyWith(reposts: original.reposts + 1);
     _posts.insert(0, retweet);
     await _save();
-    notifyListeners();
     return true;
   }
 
@@ -201,6 +222,7 @@ class DataService extends ChangeNotifier implements PostRepository {
     ]);
   }
 
+  @override
   ThreadEntry buildThreadForPost(String postId) {
     final root = _posts.firstWhere(
       (post) => post.id == postId,
@@ -373,6 +395,7 @@ class DataService extends ChangeNotifier implements PostRepository {
     final prefs = await SharedPreferences.getInstance();
     final raw = jsonEncode(_posts.map((e) => e.toJson()).toList());
     await prefs.setString(_storageKey, raw);
+    _emitTimeline();
   }
 
   // Global timeline rules:
@@ -380,6 +403,12 @@ class DataService extends ChangeNotifier implements PostRepository {
   List<PostModel> get timelinePosts {
     // Show all posts in reverse chronological order (newest first).
     return List<PostModel>.from(_posts);
+  }
+
+  void _emitTimeline() {
+    if (_timelineController.hasListener && !_timelineController.isClosed) {
+      _timelineController.add(List<PostModel>.from(_posts));
+    }
   }
 
   @override

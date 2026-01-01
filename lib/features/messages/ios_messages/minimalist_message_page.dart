@@ -1,17 +1,18 @@
 part of '../ios_messages_screen.dart';
 
 /// Minimalist iOS-style messages inbox page.
-class IosMinimalistMessagePage extends StatefulWidget {
+class IosMinimalistMessagePage extends ConsumerStatefulWidget {
   const IosMinimalistMessagePage({super.key, this.openInboxOnStart = false});
 
   final bool openInboxOnStart;
 
   @override
-  State<IosMinimalistMessagePage> createState() =>
+  ConsumerState<IosMinimalistMessagePage> createState() =>
       _IosMinimalistMessagePageState();
 }
 
-class _IosMinimalistMessagePageState extends State<IosMinimalistMessagePage> {
+class _IosMinimalistMessagePageState
+    extends ConsumerState<IosMinimalistMessagePage> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _classesScrollController = ScrollController();
   bool _showFullPageButton = false;
@@ -69,7 +70,7 @@ class _IosMinimalistMessagePageState extends State<IosMinimalistMessagePage> {
             Column(
               children: [
                 Builder(
-                  builder: (context) {
+                      builder: (context) {
                     final mediaQuery = MediaQuery.of(context);
                     return _SpotifyStyleHero(
                       topPadding: mediaQuery.padding.top,
@@ -80,12 +81,12 @@ class _IosMinimalistMessagePageState extends State<IosMinimalistMessagePage> {
                           ),
                         );
                       },
-                      onCreateClassTap: () {
-                        _handleCreateClass(context);
-                      },
-                      onJoinClassTap: () {
-                        _handleJoinClass(context);
-                      },
+                          onCreateClassTap: () {
+                            _openCreateClass(context);
+                          },
+                          onJoinClassTap: () {
+                            _joinClassFlow(context, ref);
+                          },
                     );
                   },
                 ),
@@ -124,7 +125,7 @@ class _IosMinimalistMessagePageState extends State<IosMinimalistMessagePage> {
                     onPressed: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) => const _FullPageClassesScreen(),
+                          builder: (_) => const FullPageClassesScreen(),
                         ),
                       );
                     },

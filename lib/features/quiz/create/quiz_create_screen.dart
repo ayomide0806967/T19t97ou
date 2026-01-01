@@ -1,13 +1,15 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../../../services/quiz_repository.dart';
+import '../../../models/quiz.dart';
 import '../aiken/aiken_import_models.dart';
 import '../aiken/aiken_import_review_screen.dart';
 import '../results/quiz_results_screen.dart';
@@ -16,6 +18,7 @@ import '../ui/quiz_palette.dart';
 import 'import/pdf_text_extractor.dart';
 import 'import/word_text_extractor.dart';
 import 'models/quiz_question_fields.dart';
+import '../application/quiz_providers.dart';
 
 part 'quiz_create_screen_actions.dart';
 part 'quiz_create_screen_build.dart';
@@ -31,7 +34,7 @@ enum _QuizBuildMode { manual, aiken }
 
 /// Revamped Quiz Creation Screen with rail-based vertical stepper
 /// Design inspired by the note creation flow
-class QuizCreateScreen extends StatefulWidget {
+class QuizCreateScreen extends ConsumerStatefulWidget {
   const QuizCreateScreen({
     super.key,
     this.returnToCallerOnPublish = false,
@@ -44,10 +47,11 @@ class QuizCreateScreen extends StatefulWidget {
   final List<QuizTakeQuestion>? initialQuestions;
 
   @override
-  State<QuizCreateScreen> createState() => _QuizCreateScreenState();
+  ConsumerState<QuizCreateScreen> createState() => _QuizCreateScreenState();
 }
 
-abstract class _QuizCreateScreenStateBase extends State<QuizCreateScreen> {
+abstract class _QuizCreateScreenStateBase
+    extends ConsumerState<QuizCreateScreen> {
   final ScrollController _scrollController = ScrollController();
 
   // Which step is currently being edited

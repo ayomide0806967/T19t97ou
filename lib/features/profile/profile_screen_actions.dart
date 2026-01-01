@@ -14,7 +14,7 @@ extension _ProfileScreenActions on _ProfileScreenState {
     setState(() => _isRefreshing = true);
     try {
       HapticFeedback.lightImpact();
-      await context.read<PostRepository>().load();
+      await ref.read(postRepositoryProvider).load();
       await Future<void>.delayed(const Duration(milliseconds: 450));
     } finally {
       if (mounted) {

@@ -1,0 +1,264 @@
+IN Institution — Admin Panel Plan (Godlike, but Simple)
+======================================================
+
+Goal
+----
+Build a public-on-internet admin panel that can manage the entire app (users, content, classes, quizzes, messaging, notifications, storage, plans/limits, verification, and all algorithm knobs) while staying clean, fast to use, and secure.
+
+Tech Stack
+----------
+- Frontend + Backend (same project): Next.js (React) + TypeScript
+- Database + Auth + Storage: Supabase
+- Admin-only privileged actions: Next.js server code using Supabase service role key (server-only)
+- Logging: admin_audit_logs table (every privileged action is recorded)
+
+Important Security Rule
+-----------------------
+Never put the Supabase service role key in the browser.
+The browser uses only the anon key + Supabase Auth. All “godlike” actions go through server routes/actions.
+
+Admin Roles
+-----------
+1) support
+   - Mostly read-only and safe actions.
+   - Can help users without destructive powers.
+
+2) moderator
+   - Content moderation actions.
+   - Direct-message access is OFF by default; can be enabled per moderator by super_admin.
+
+3) super_admin
+   - Full power.
+   - Controls plans, limits, verification, storage deletion, algorithm knobs, and admin roles.
+
+Permission Model (simple)
+-------------------------
+- support:
+  - Read: users, posts, comments, classes, quizzes, plans, audit (optional)
+  - Actions: limited safe actions (e.g., send a notification, reset profile fields if allowed)
+
+- moderator:
+  - Everything in support +
+  - Actions: remove/restore content, handle reports, lock user temporarily, etc.
+  - Messaging (DM): only if super_admin enables dm_access_enabled for that moderator
+
+- super_admin:
+  - Everything
+  - Admin management (roles, DM access toggles)
+  - Storage deletion and sensitive queries
+  - Algorithm and settings control
+
+Core Features (MVP)
+-------------------
+1) Admin authentication
+   - Email/password login through Supabase Auth.
+   - Server verifies admin role from admin_users table.
+
+2) Admin audit logging (mandatory)
+   - Every privileged action writes to admin_audit_logs:
+     - who (actor_user_id + role)
+     - what (action string)
+     - target (type + id)
+     - before/after JSON when possible
+     - timestamp
+     - optionally IP + user agent
+
+3) Plans and limits (subscriptions)
+   - Admin can create/edit plans.
+   - Limits are stored as JSON:
+     - max_active_classes
+     - max_members_per_class
+     - max_quiz_participants (unique participants per quiz)
+     - max_active_published_quizzes
+     - storage_limit_mb (recommended next)
+   - Features are stored as JSON:
+     - checkmark_eligible (true/false)
+     - other feature flags later
+
+4) Enforcement (best practice)
+   - Limits must be enforced server-side (Postgres triggers/functions):
+     - block creating more than N active classes
+     - block adding members above class capacity
+     - block publishing more than N active published quizzes
+     - block new unique participants above quiz participant limit
+
+5) User management
+   - Search users by handle/name.
+   - Assign plan (manual subscription now; payment integration later).
+   - Give verification (checkmark): verified_type = none/verified/creator/institution.
+   - Per-user overrides for exceptions (optional but recommended):
+     - user_overrides.limits/features (permanent; can be changed anytime by super_admin)
+
+6) Storage management (super_admin)
+   - Browse buckets and folders.
+   - Delete files immediately.
+   - Every delete action is logged to admin_audit_logs.
+
+7) Algorithm settings (super_admin)
+   - Store all algorithm knobs inside admin_settings as JSON.
+   - Convention: keys starting with "algo."
+     Examples:
+     - algo.feed_ranking
+     - algo.trending
+     - algo.downrank
+     - algo.spam_detection
+     - algo.recommendations
+   - UI edits JSON settings and logs changes (before/after).
+
+Pages / UI Information Architecture
+-----------------------------------
+Main navigation (simple):
+- Dashboard
+- Users
+- Plans
+- Storage
+- Algorithm
+- Settings
+- Audit log
+
+UI Principles (clean + mature)
+------------------------------
+- One search bar for users/content.
+- Table-first UI with strong filtering/sorting.
+- Bulk actions for moderators (remove multiple posts, etc.).
+- “Danger” actions:
+  - start lenient: confirm dialog
+  - later: require reason + type CONFIRM + optionally second approval for extreme actions
+- Make “super_admin only” pages visually obvious.
+
+Advanced Features (Phase 2 / Phase 3)
+-------------------------------------
+1) Full moderation center
+   - Reports queue (posts/comments/notes/discussions)
+   - Remove/restore content with reasons
+   - Escalation rules and moderator notes
+   - Shadow-ban / temporary lock / permanent ban
+
+2) Messaging (DM) oversight
+   - Default: only super_admin can view DMs
+   - Optional: allow specific moderators when enabled by super_admin
+   - Mandatory: heavy audit logs and strict access controls
+
+3) Notification center
+   - Broadcast announcements
+   - Targeted notifications (per class, per segment, per user)
+
+4) Analytics
+   - Daily active users, retention, content creation, quiz attempts, class growth
+   - Compute heavy analytics with scheduled jobs/materialized views
+   - Admin dashboard charts + export
+
+5) Payment integration (Play Store / Paystack)
+   - Keep DB provider-agnostic:
+     - user_subscriptions.provider + provider_ref + status
+   - Later: receipt verification, webhooks, subscription lifecycle
+   - Admin panel can still override plans manually at any time
+
+6) AI tools (OpenAI / Anthropic)
+   - AI must be server-side only (keys never in browser).
+   - Use admin_settings to choose provider and model.
+   - AI roles:
+     - summarize reports, suggest actions, draft responses
+     - content moderation assistance
+     - analytics summaries
+   - Guardrails:
+     - rate limits per admin
+     - logging of prompts/outputs (with redaction for sensitive data)
+     - strict “allowed operations” list (AI cannot directly become admin)
+
+Algorithm Control (what “all algorithm” means)
+----------------------------------------------
+We treat “algorithm” as a group of rule engines and scoring systems, each with editable knobs:
+
+1) Feed ranking
+   - weights for likes/reposts/comments/views/time-decay/follow-boost
+   - recency windows
+   - minimum quality thresholds
+
+2) Trending
+   - score weights
+   - timeframe windows (1h/24h/7d)
+   - anti-spam rules
+
+3) Recommendations (“for you”)
+   - follow graph boost
+   - topic/class relevance
+   - content diversity rules
+
+4) Downranking / spam control
+   - thresholds for repeated posts, link spam, report count
+   - shadow ban rules
+
+5) Rollouts / experiments
+   - feature flags with percentages
+   - per-user or per-cohort targeting
+
+Implementation rule:
+- Knobs live in admin_settings (JSON).
+- Ranking/trending/recommendation logic runs server-side (DB functions/views/jobs) using those knobs.
+- Changes are audited with before/after.
+
+Database Objects (summary)
+--------------------------
+Tables:
+- admin_users (user_id, role, is_active, dm_access_enabled, ...)
+- admin_audit_logs (...)
+- admin_settings (key, value, updated_by, updated_at)
+- plans (code, limits JSON, features JSON)
+- user_subscriptions (user_id -> active plan)
+- user_overrides (per-user limits/features exceptions)
+- profiles (verified_type, verified_at, verified_by)
+
+Enforcement triggers/functions (server-side):
+- enforce_class_create_limit
+- enforce_class_member_limit
+- enforce_quiz_publish_limit
+- enforce_quiz_participant_limit
+- get_effective_limits(user_id)
+- get_effective_features(user_id)
+
+Deployment Plan (Vercel)
+------------------------
+1) Put env vars in Vercel:
+   - NEXT_PUBLIC_SUPABASE_URL
+   - NEXT_PUBLIC_SUPABASE_ANON_KEY
+   - SUPABASE_SERVICE_ROLE_KEY (server only)
+   - optional: OPENAI_API_KEY, ANTHROPIC_API_KEY (server only)
+
+2) Protect the admin URL:
+   - The URL path is not security by itself.
+   - Recommended later:
+     - MFA for admin accounts
+     - rate limit login + admin actions
+     - IP allowlist or Cloudflare Access when ready
+
+Phase Roadmap
+-------------
+Phase 1 (MVP):
+- Auth + roles gate
+- Plans creation
+- User search + set plan
+- Verification (checkmark)
+- Storage browsing + immediate deletion
+- Algorithm settings editor (JSON)
+- Audit logs everywhere
+
+Phase 2:
+- Moderation center (reports, remove/restore, reasons)
+- Notifications center
+- DM access control + DM tools (super_admin first)
+- Overrides UI (per-user limits/features)
+
+Phase 3:
+- Analytics dashboards
+- Payments integration (Play Store / Paystack verification)
+- AI tools (multi-provider, safe server proxy, guardrails)
+- Two-step approvals for high-risk actions (strict mode)
+
+Success Criteria
+----------------
+- Admin can manage everything without using Supabase dashboard.
+- “Godlike” actions are always server-side and always audited.
+- Limits cannot be bypassed by the mobile app.
+- UI remains simple: search + tables + clear actions.
+
