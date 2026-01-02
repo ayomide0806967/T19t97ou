@@ -54,28 +54,41 @@ class _ComposeFabState extends State<ComposeFab> {
           onClose: close,
           actions: [
             _ComposeFabAction(
+              label: 'Trending',
+              icon: Icons.trending_up_rounded,
+              animationOrder: 3,
+              textToPillGap: 28,
+              onTap: () {
+                close();
+                navigator.push(AppNav.trending());
+              },
+            ),
+            _ComposeFabAction(
+              label: 'Message',
+              icon: Icons.mail_outline_rounded,
+              animationOrder: 2,
+              textToPillGap: 28,
+              onTap: () {
+                close();
+                navigator.push(AppNav.inbox());
+              },
+            ),
+            _ComposeFabAction(
               label: 'Go Class',
               icon: Icons.school_rounded,
-              animationOrder: 2,
+              animationOrder: 1,
+              textToPillGap: 28,
               onTap: () {
                 close();
                 navigator.push(AppNav.classes());
               },
             ),
             _ComposeFabAction(
-              label: 'Quizzes',
-              icon: Icons.quiz_outlined,
-              animationOrder: 1,
-              onTap: () {
-                close();
-                navigator.push(AppNav.quizDashboard());
-              },
-            ),
-            _ComposeFabAction(
               label: 'Photos',
               icon: Icons.photo_outlined,
               animationOrder: 0,
-              showPlus: true,
+              showPlus: false,
+              textToPillGap: 28,
               onTap: () {
                 close();
                 _openQuickComposer();
@@ -111,6 +124,7 @@ class _ComposeFabAction {
     required this.onTap,
     this.showPlus = false,
     this.animationOrder = 0,
+    this.textToPillGap = 12,
   });
 
   final String label;
@@ -118,6 +132,7 @@ class _ComposeFabAction {
   final VoidCallback onTap;
   final bool showPlus;
   final int animationOrder;
+  final double textToPillGap;
 }
 
 class _ComposeFabMenuOverlay extends StatefulWidget {
@@ -220,13 +235,17 @@ class _ComposeFabMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const double itemGap = 18;
+    const double itemGap = 3;
     final theme = Theme.of(context);
+    final postTextStyle = theme.textTheme.bodyLarge?.copyWith(
+      color: Colors.black,
+      fontWeight: FontWeight.w500,
+    );
     final Animation<double> buttonScale = Tween<double>(begin: 0.8, end: 1.0)
         .animate(
           CurvedAnimation(
             parent: animation,
-            curve: Curves.easeOutBack,
+            curve: Curves.easeOutCubic,
             reverseCurve: Curves.easeInCubic,
           ),
         );
@@ -243,6 +262,8 @@ class _ComposeFabMenu extends StatelessWidget {
               label: actions[index].label,
               icon: actions[index].icon,
               showPlus: actions[index].showPlus,
+              textToPillGap: actions[index].textToPillGap,
+              textStyle: postTextStyle,
               onTap: actions[index].onTap,
             ),
           ),
@@ -260,10 +281,7 @@ class _ComposeFabMenu extends StatelessWidget {
                 offset: const Offset(0, -10),
                 child: Text(
                   'Post',
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: Colors.black,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: postTextStyle,
                 ),
               ),
               const SizedBox(width: 12),
@@ -325,45 +343,79 @@ class _FabMenuItem extends StatelessWidget {
     required this.icon,
     required this.onTap,
     this.showPlus = false,
+    this.textToPillGap = 12,
+    this.textStyle,
   });
 
   final String label;
   final IconData icon;
   final VoidCallback onTap;
   final bool showPlus;
+  final double textToPillGap;
+  final TextStyle? textStyle;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
-    final Color background = isDark
-        ? Colors.white.withOpacity(0.98)
-        : Colors.white.withOpacity(0.98);
-    final Color textColor = Colors.black;
+    const Color iconAccent = Color(0xFFFF7A1A);
+    final Color pillBackground = isDark
+        ? Colors.white.withValues(alpha: 0.98)
+        : Colors.white.withValues(alpha: 0.98);
+
     return Material(
-      color: background,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      type: MaterialType.transparency,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(999),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 20, color: Colors.black),
-              const SizedBox(width: 12),
               Text(
                 label,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: textColor,
+                style: textStyle,
+              ),
+              SizedBox(width: textToPillGap),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: pillBackground,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.18),
+                      blurRadius: 20,
+                      offset: const Offset(0, 12),
+                    ),
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.10),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 9,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(icon, size: 19, color: iconAccent),
+                      if (showPlus) ...[
+                        const SizedBox(width: 8),
+                        const Icon(
+                          Icons.add_rounded,
+                          size: 15,
+                          color: iconAccent,
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ),
-              if (showPlus) ...[
-                const SizedBox(width: 8),
-                const Icon(Icons.add_rounded, size: 16, color: Colors.black),
-              ],
             ],
           ),
         ),

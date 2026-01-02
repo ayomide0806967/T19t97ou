@@ -317,7 +317,7 @@ mixin _CommentTileBuild on _CommentTileStateBase, _CommentTileActions {
     // Pop effect on selection
     final Widget poppedCard = AnimatedScale(
       duration: const Duration(milliseconds: 160),
-      curve: Curves.easeOutBack,
+      curve: Curves.easeOutCubic,
       scale: widget.selected ? 1.06 : 1.02,
       child: bubbleCore,
     );

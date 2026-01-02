@@ -80,7 +80,19 @@ class TweetMetricData {
 
 enum TweetMetricType { reply, rein, like, view, bookmark, share }
 
-class TweetMetric extends StatelessWidget {
+class _TweetMetricSizing {
+  const _TweetMetricSizing._();
+
+  // Repost is the visual baseline (largest) in the main feed.
+  static double repostIconSize(bool compact) => compact ? 19.0 : 21.0;
+
+  // Slightly smaller for comment/like/share so repost remains the anchor.
+  static double defaultIconSize(bool compact) => compact ? 19.0 : 21.0;
+
+  static double countFontSize(bool compact) => compact ? 12.0 : 13.0;
+}
+
+class TweetMetric extends StatefulWidget {
   const TweetMetric({
     super.key,
     required this.data,
@@ -93,43 +105,82 @@ class TweetMetric extends StatelessWidget {
   final bool compact;
 
   @override
+  State<TweetMetric> createState() => _TweetMetricState();
+}
+
+class _TweetMetricState extends State<TweetMetric>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _popController;
+  late final Animation<double> _popAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _popController = AnimationController(
+      duration: const Duration(milliseconds: 500), // Slower for noticeable effect
+      vsync: this,
+      lowerBound: 0.0,
+      upperBound: 1.0,
+    );
+    // Pop-out and return animation: scales up to 1.4 then back to 1.0
+    _popAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.4), weight: 35),
+      TweenSequenceItem(tween: Tween(begin: 1.4, end: 1.0), weight: 65),
+    ]).animate(_popController);
+  }
+
+  @override
+  void dispose() {
+    _popController.stop();
+    _popController.dispose();
+    super.dispose();
+  }
+
+  void _triggerPopAnimation() {
+    _popController.forward(from: 0);
+    widget.onTap();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final accent = AppTheme.accent;
-    final neutral = AppTheme.textSecondary;
-    final isRein = data.type == TweetMetricType.rein;
-    final isLike = data.type == TweetMetricType.like;
-    final isShare = data.type == TweetMetricType.share;
-    final isBookmark = data.type == TweetMetricType.bookmark;
+    // Blue-gray neutral for metrics
+    final neutral = const Color(0xFF4B6A88);
+    final isRein = widget.data.type == TweetMetricType.rein;
+    final isLike = widget.data.type == TweetMetricType.like;
+    final isShare = widget.data.type == TweetMetricType.share;
+    final isBookmark = widget.data.type == TweetMetricType.bookmark;
 
-    double iconSize = compact ? 16.0 : 18.0;
-    if (isShare || isBookmark) iconSize += 2.0;
-    final double labelFontSize = compact ? 12.0 : 13.0;
-    final double countFontSize = compact ? 10.0 : 11.0;
-    final double gap = compact ? 1.0 : 2.0;
+    final double iconSize = _TweetMetricSizing.defaultIconSize(widget.compact) -
+        (isShare ? 4.0 : 0.0) -
+        (isLike ? 4.0 : 0.0) -
+        (isBookmark ? 2.0 : 0.0);
+    final double labelFontSize = _TweetMetricSizing.countFontSize(widget.compact);
+    final double countFontSize = _TweetMetricSizing.countFontSize(widget.compact);
+    final double gap = widget.compact ? 1.0 : 2.0;
 
-    final Color activeColor =
-        isRein ? Colors.green : (isLike ? Colors.red : accent);
-    final baseColor = data.isActive ? activeColor : neutral;
+    // Use blue-gray for all metrics by default; keep red only for active likes.
+    final Color activeColor = isLike ? Colors.red : neutral;
+    final baseColor = widget.data.isActive ? activeColor : neutral;
     final Color iconColor =
-        isLike ? (data.isActive ? activeColor : neutral) : baseColor;
+        isLike ? (widget.data.isActive ? activeColor : neutral) : baseColor;
     final Color textColor = isLike ? neutral : baseColor;
-    final hasIcon = data.icon != null || data.type == TweetMetricType.view;
+    final hasIcon = widget.data.icon != null || widget.data.type == TweetMetricType.view;
     final int? metricCount =
-        (data.count != null && data.count! > 0) ? data.count : null;
-    final bool highlightRein = isRein && data.isActive;
-    final String? displayLabel = data.label;
-    final double reinFontSize = compact ? 13.5 : 14.5;
+        (widget.data.count != null && widget.data.count! > 0) ? widget.data.count : null;
+    final bool highlightRein = isRein && widget.data.isActive;
+    final String? displayLabel = widget.data.label;
+    final double reinFontSize = widget.compact ? 13.5 : 14.5;
 
     Widget content;
 
-    if (data.type == TweetMetricType.reply) {
-      final Color pillText =
-          theme.colorScheme.onSurface.withValues(alpha: 0.45);
-      final Color pillBorder = theme.dividerColor.withValues(alpha: 0.9);
+    if (widget.data.type == TweetMetricType.reply) {
+      final Color pillText = neutral.withValues(alpha: 0.9);
+      final Color pillBorder = neutral.withValues(alpha: 0.6);
       final String? countLabel =
           metricCount != null ? _formatMetric(metricCount) : null;
-      final String labelText = data.label ?? 'COMMENT';
+      final String labelText = widget.data.label ?? 'COMMENT';
       final Widget pill = Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
         decoration: BoxDecoration(
@@ -145,7 +196,7 @@ class TweetMetric extends StatelessWidget {
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: pillText,
                 fontWeight: FontWeight.w600,
-                fontSize: compact ? 11.0 : 12.0,
+                fontSize: widget.compact ? 11.0 : 12.0,
               ),
             ),
             if (countLabel != null) ...[
@@ -155,7 +206,7 @@ class TweetMetric extends StatelessWidget {
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: pillText,
                   fontWeight: FontWeight.w600,
-                  fontSize: compact ? 11.0 : 12.0,
+                  fontSize: widget.compact ? 11.0 : 12.0,
                 ),
               ),
             ],
@@ -164,7 +215,7 @@ class TweetMetric extends StatelessWidget {
       );
       content = pill;
     } else if (highlightRein) {
-      final highlightColor = Colors.green;
+      final highlightColor = neutral;
       final Color labelColor = neutral;
       content = Row(
         mainAxisSize: MainAxisSize.min,
@@ -200,24 +251,19 @@ class TweetMetric extends StatelessWidget {
           if (hasIcon) ...[
             (() {
               Widget icon;
-              if (data.type == TweetMetricType.view) {
+              if (widget.data.type == TweetMetricType.view) {
                 icon = Icon(
                   Icons.signal_cellular_alt_rounded,
                   size: iconSize,
                   color: iconColor,
                 );
-              } else if (data.type == TweetMetricType.rein) {
+              } else if (widget.data.type == TweetMetricType.rein) {
                 icon = XRetweetIcon(size: iconSize, color: iconColor);
+              } else if (widget.data.type == TweetMetricType.share) {
+                // Use custom share icon matching Instagram style
+                icon = XShareIcon(size: iconSize, color: iconColor);
               } else {
-                icon = Icon(data.icon, size: iconSize, color: iconColor);
-              }
-              if (isLike) {
-                icon = AnimatedScale(
-                  duration: const Duration(milliseconds: 140),
-                  curve: Curves.easeOutBack,
-                  scale: data.isActive ? 1.18 : 1.0,
-                  child: icon,
-                );
+                icon = Icon(widget.data.icon, size: iconSize, color: iconColor);
               }
               return icon;
             })(),
@@ -246,7 +292,7 @@ class TweetMetric extends StatelessWidget {
                   height: 1.1,
                 ),
               );
-              if (isLike || data.type == TweetMetricType.view) {
+              if (isLike || widget.data.type == TweetMetricType.view) {
                 return SizedBox(
                   height: iconSize,
                   child: Center(child: text),
@@ -259,8 +305,29 @@ class TweetMetric extends StatelessWidget {
       );
     }
 
+    // For like button: use GestureDetector with pop-out animation instead of highlight
+    if (isLike) {
+      return GestureDetector(
+        onTap: _triggerPopAnimation,
+        child: AnimatedBuilder(
+          animation: _popAnimation,
+          builder: (context, child) {
+            return Transform.scale(
+              scale: _popAnimation.value,
+              child: child,
+            );
+          },
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 44),
+            alignment: Alignment.center,
+            child: content,
+          ),
+        ),
+      );
+    }
+
     return TextButton(
-      onPressed: onTap,
+      onPressed: widget.onTap,
       style: TextButton.styleFrom(
         padding: EdgeInsets.zero,
         minimumSize: const Size(0, 44),
@@ -322,4 +389,3 @@ class TagChip extends StatelessWidget {
     );
   }
 }
-

@@ -70,18 +70,11 @@ class TweetActionsBar extends StatelessWidget {
               children: [
                 for (int i = 0; i < leftGroup.length; i++)
                   Expanded(
-                    child: Align(
-                      alignment: Alignment.center,
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.center,
-                        child: _EdgeCell(
-                          child: TweetMetric(
-                            data: leftGroup[i],
-                            compact: isCompact,
-                            onTap: onTap[leftGroup[i].type] ?? () {},
-                          ),
-                        ),
+                    child: Center(
+                      child: TweetMetric(
+                        data: leftGroup[i],
+                        compact: isCompact,
+                        onTap: onTap[leftGroup[i].type] ?? () {},
                       ),
                     ),
                   ),
@@ -89,12 +82,10 @@ class TweetActionsBar extends StatelessWidget {
             ),
           ),
           SizedBox(width: tightGap),
-          _EdgeCell(
-            child: TweetMetric(
-              data: share,
-              compact: isCompact,
-              onTap: onTap[share.type] ?? () {},
-            ),
+          TweetMetric(
+            data: share,
+            compact: isCompact,
+            onTap: onTap[share.type] ?? () {},
           ),
         ],
       ),
@@ -129,21 +120,25 @@ class TweetMetric extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final accent = AppTheme.accent;
-    final neutral = AppTheme.textSecondary;
+    // Blue-gray neutral for metrics
+    final neutral = const Color(0xFF4B6A88);
     final isRein = data.type == TweetMetricType.rein;
     final isLike = data.type == TweetMetricType.like;
     final isShare = data.type == TweetMetricType.share;
     final isBookmark = data.type == TweetMetricType.bookmark;
 
     double iconSize = compact ? 16.0 : 18.0;
-    if (isShare || isBookmark) iconSize += 2.0;
+    if (isRein) iconSize -= 4.0;
+    if (isBookmark) iconSize -= 2.0;
+    if (isShare) iconSize -= 4.0;
+    if (isLike) iconSize -= 4.0;
     final double labelFontSize = compact ? 12.0 : 13.0;
     final double countFontSize = compact ? 12.0 : 13.0;
-    final double gap = compact ? 2.0 : 3.0;
+    final double gap = compact ? 4.0 : 5.0;
 
-    final Color activeColor = isRein
-        ? Colors.green
-        : (isLike ? Colors.red : accent);
+    // Use blue-gray for all metrics by default; keep red only for active likes.
+    final Color activeColor =
+        isLike ? Colors.red : neutral;
     final baseColor = data.isActive ? activeColor : neutral;
     final Color iconColor = isLike
         ? (data.isActive ? activeColor : neutral)
@@ -158,8 +153,8 @@ class TweetMetric extends StatelessWidget {
     Widget content;
 
     if (data.type == TweetMetricType.reply) {
-      final Color pillText = theme.colorScheme.onSurface.withValues(alpha: 0.45);
-      final Color pillBorder = theme.dividerColor.withValues(alpha: 0.9);
+      final Color pillText = neutral.withValues(alpha: 0.9);
+      final Color pillBorder = neutral.withValues(alpha: 0.6);
       final String? countLabel =
           metricCount != null ? formatMetric(metricCount) : null;
       final String labelText = displayLabel ?? 'COMMENT';
@@ -196,7 +191,7 @@ class TweetMetric extends StatelessWidget {
         ),
       );
     } else if (highlightRein) {
-      final highlightColor = Colors.green;
+      final highlightColor = neutral;
       content = Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -231,14 +226,6 @@ class TweetMetric extends StatelessWidget {
               Widget icon = data.type == TweetMetricType.view
                   ? Icon(Icons.signal_cellular_alt_rounded, size: iconSize, color: iconColor)
                   : Icon(data.icon, size: iconSize, color: iconColor);
-              if (isLike) {
-                icon = AnimatedScale(
-                  duration: const Duration(milliseconds: 140),
-                  curve: Curves.easeOutBack,
-                  scale: data.isActive ? 1.18 : 1.0,
-                  child: icon,
-                );
-              }
               return icon;
             })(),
             if (displayLabel != null || metricCount != null)

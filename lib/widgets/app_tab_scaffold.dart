@@ -80,7 +80,7 @@ class AppTabScaffold extends StatelessWidget {
         onIndexChange: (index) => _handleTabTap(context, index),
         destinations: const [
           FloatingNavBarDestination(icon: Icons.home_filled, onTap: null),
-          FloatingNavBarDestination(icon: Icons.mail_outline_rounded, onTap: null),
+          FloatingNavBarDestination(icon: Icons.fact_check_outlined, onTap: null),
           FloatingNavBarDestination(icon: Icons.add, onTap: null),
           FloatingNavBarDestination(icon: Icons.favorite_border_rounded, onTap: null),
           FloatingNavBarDestination(icon: Icons.person_outline_rounded, onTap: null),

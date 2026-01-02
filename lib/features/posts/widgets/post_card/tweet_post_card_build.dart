@@ -56,23 +56,14 @@ mixin _TweetPostCardBuild on _TweetPostCardStateBase, _TweetPostCardActions {
         ? AppTheme.textSecondary
         : (theme.textTheme.bodyMedium?.color ??
               theme.colorScheme.onSurface.withValues(alpha: 0.7));
-    final Color controlIconColor = usesLightCardOnDarkTheme
-        ? AppTheme.textSecondary
-        : AppTheme.textTertiary;
+    // Use the same blue-gray as metrics for the action button
+    const Color controlIconColor = Color(0xFF4B6A88);
 
-    // Build metric data
-    bool isJustNow = widget.post.timeAgo.toLowerCase() == 'just now';
+    // Build metric data (no fake counts for new posts)
     int repliesCount = _replies;
-    int repostsCount = widget.post.originalId == null
-        ? _reposts
-        : widget.post.reposts;
+    int repostsCount =
+        widget.post.originalId == null ? _reposts : widget.post.reposts;
     int viewsCount = _views;
-
-    if (isJustNow) {
-      repliesCount = 200000;
-      repostsCount = 500000;
-      viewsCount = 600000;
-    }
 
     final reply = TweetMetricData(
       type: TweetMetricType.reply,
@@ -93,18 +84,19 @@ mixin _TweetPostCardBuild on _TweetPostCardStateBase, _TweetPostCardActions {
       count: _likes,
       isActive: _liked,
     );
-    final view = TweetMetricData(
-      type: TweetMetricType.view,
-      // Icon rendered by TweetMetric using StatsThinIcon
-      count: viewsCount,
+    final bookmark = TweetMetricData(
+      type: TweetMetricType.bookmark,
+      icon: _bookmarked ? Icons.bookmark : Icons.bookmark_border,
+      isActive: _bookmarked,
     );
     const share = TweetMetricData(
       type: TweetMetricType.share,
-      icon: Icons.send_rounded,
+      icon: Icons.near_me_outlined,
     );
 
-    // Left group fills remaining width; order: Comment, Repost, Like, View
-    final leftMetrics = [reply, rein, like, view];
+    // Left group fills remaining width; order: Comment, Repost (middle), Like
+    // Bookmark moves to right edge with share
+    final leftMetrics = [reply, rein, like];
 
     // Auto-compact based on screen width and total items (6)
     final screenW = MediaQuery.of(context).size.width;
@@ -172,14 +164,6 @@ mixin _TweetPostCardBuild on _TweetPostCardStateBase, _TweetPostCardActions {
               ],
             ),
           ),
-          InkWell(
-            borderRadius: BorderRadius.circular(6),
-            onTap: _openPostMoreSheet,
-            child: Padding(
-              padding: const EdgeInsets.only(left: 4),
-              child: Icon(Icons.more_horiz, size: 18, color: controlIconColor),
-            ),
-          ),
         ],
       );
     } else {
@@ -218,14 +202,6 @@ mixin _TweetPostCardBuild on _TweetPostCardStateBase, _TweetPostCardActions {
                   ),
                 ],
               ],
-            ),
-          ),
-          InkWell(
-            borderRadius: BorderRadius.circular(6),
-            onTap: _openPostMoreSheet,
-            child: Padding(
-              padding: const EdgeInsets.only(left: 4),
-              child: Icon(Icons.more_horiz, size: 18, color: controlIconColor),
             ),
           ),
         ],
@@ -314,10 +290,12 @@ mixin _TweetPostCardBuild on _TweetPostCardStateBase, _TweetPostCardActions {
               _buildMetricsRow(
                 theme: theme,
                 leftMetrics: leftMetrics,
+                bookmark: bookmark,
                 share: share,
                 isCompact: isCompact,
                 onSurfaceColor: primaryTextColor,
                 forceContrast: usesLightCardOnDarkTheme,
+                actionIconColor: controlIconColor,
               ),
             ],
           );
@@ -426,49 +404,88 @@ mixin _TweetPostCardBuild on _TweetPostCardStateBase, _TweetPostCardActions {
   Widget _buildMetricsRow({
     required ThemeData theme,
     required List<TweetMetricData> leftMetrics,
+    required TweetMetricData bookmark,
     required TweetMetricData share,
     required bool isCompact,
     required Color onSurfaceColor,
     required bool forceContrast,
+    required Color actionIconColor,
   }) {
-    // Layout groups:
-    //   Left group (A): reply, REPOST, like, view → spread evenly
-    //   Right edge (B): share → compact on the far right
-    final List<TweetMetricData> groupA = leftMetrics
-        .where(
-          (m) =>
-              m.type == TweetMetricType.reply ||
-              m.type == TweetMetricType.rein ||
-              m.type == TweetMetricType.like ||
-              m.type == TweetMetricType.view,
-        )
-        .toList();
-    final double gapBetweenGroups = isCompact ? 12.0 : 16.0;
+    // Layout: all metrics spread evenly on the left,
+    // with the overflow "more" action button pinned at the far right.
+    final List<TweetMetricData> allMetrics = [
+      ...leftMetrics,
+      bookmark,
+      share,
+    ];
+    // Small gap between metrics group and action button.
+    final double gapBetweenGroups = isCompact ? 2.0 : 4.0;
+    final Map<TweetMetricType, Offset> visualOffsets = {
+      if (!isCompact) TweetMetricType.like: const Offset(10, 0),
+      if (!isCompact) TweetMetricType.bookmark: const Offset(24, 0),
+      // Move share further left so it sits closer to bookmark
+      if (!isCompact) TweetMetricType.share: const Offset(10, 0),
+    };
+
+    Widget withVisualOffset(TweetMetricType type, Widget child) {
+      final offset = visualOffsets[type] ?? Offset.zero;
+      if (offset == Offset.zero) return child;
+      return Transform.translate(offset: offset, child: child);
+    }
 
     Widget row = SizedBox(
       width: double.infinity,
       child: Row(
         mainAxisSize: MainAxisSize.max,
         children: [
-          // Group A: starts at the content's left edge and spreads evenly
+          // Metrics group: take equal-width slots.
           Expanded(
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                for (final m in groupA)
-                  _EdgeCell(child: _buildMetricButton(m, compact: isCompact)),
+                for (int i = 0; i < allMetrics.length; i++)
+                  Expanded(
+                    child: Align(
+                      alignment:
+                          i == 0 ? Alignment.centerLeft : Alignment.center,
+                      child: withVisualOffset(
+                        allMetrics[i].type,
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment:
+                              i == 0 ? Alignment.centerLeft : Alignment.center,
+                          child: _EdgeCell(
+                            child: _buildMetricButton(
+                              allMetrics[i],
+                              compact: isCompact,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
           SizedBox(width: gapBetweenGroups),
-          // Share stays pinned at extreme right in a tight cluster
-          _EdgeCell(child: _buildMetricButton(share, compact: isCompact)),
+          // Overflow "more" action button pinned at extreme right
+          InkWell(
+            borderRadius: BorderRadius.circular(6),
+            onTap: _openPostMoreSheet,
+            child: Transform.translate(
+              offset: const Offset(-4, 0),
+              child: Icon(
+                Icons.more_horiz,
+                size: 22,
+                color: actionIconColor,
+              ),
+            ),
+          ),
         ],
       ),
     );
 
     // Guard tiny rounding overflows on some device widths by adding
-    // a subtle right padding that doesn't affect layout.
+    // a small right padding that doesn't affect layout.
     row = Padding(padding: const EdgeInsets.only(right: 1), child: row);
 
     if (!forceContrast) {
@@ -519,83 +536,35 @@ mixin _TweetPostCardBuild on _TweetPostCardStateBase, _TweetPostCardActions {
         break;
     }
 
-    // Build responsive metric content inside a LayoutBuilder so we can
-    // adapt when the available width becomes extremely tight.
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final maxW = constraints.maxWidth;
-        final bool ultraTight =
-            maxW.isFinite && maxW < 56; // ~ icon + tiny text
-        final bool tight = maxW.isFinite && maxW < 80;
+    // Special-case: REPOST uses encapsulating arrow button
+    if (data.type == TweetMetricType.rein) {
+      final int? nonZeroCount = (data.count != null && data.count! > 0)
+          ? data.count
+          : null;
+      return XRetweetButton(
+        label: data.label ?? 'REPOST',
+        count: nonZeroCount,
+        isActive: data.isActive,
+        countFontSize: _TweetMetricSizing.countFontSize(compact),
+        iconSize: _TweetMetricSizing.repostIconSize(compact),
+        onTap: onTap,
+        onLongPress: _handleReinPressed,
+      );
+    }
 
-        // Special-case: REPOST uses encapsulating arrow button
-        if (data.type == TweetMetricType.rein) {
-          final int? nonZeroCount = (data.count != null && data.count! > 0)
-              ? data.count
-              : null;
-          return XRetweetButton(
-            label: data.label ?? 'REPOST',
-            count: nonZeroCount,
-            isActive: data.isActive,
-            countFontSize: compact ? 12 : 13,
-            iconSize: compact ? 21 : 23,
-            onTap: onTap,
-            onLongPress: _handleReinPressed,
-          );
-        }
+    // Special-case: COMMENT uses X-style comment icon button
+    if (data.type == TweetMetricType.reply) {
+      final int? nonZeroCount = (data.count != null && data.count! > 0)
+          ? data.count
+          : null;
+      return XCommentButton(
+        count: nonZeroCount,
+        iconSize: _TweetMetricSizing.defaultIconSize(compact) - 4.0,
+        countFontSize: _TweetMetricSizing.countFontSize(compact),
+        onTap: onTap,
+      );
+    }
 
-        // Special-case: compress VIEW under very tight width (icon only)
-        if (data.type == TweetMetricType.view && ultraTight) {
-          final compactView = TweetMetricData(
-            type: data.type,
-            icon: Icons.signal_cellular_alt_rounded,
-          );
-          return FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerRight,
-            child: TweetMetric(data: compactView, onTap: onTap, compact: true),
-          );
-        }
-        // Special-case: COMMENT uses X-style comment icon button
-        if (data.type == TweetMetricType.reply) {
-          final int? nonZeroCount = (data.count != null && data.count! > 0)
-              ? data.count
-              : null;
-          return XCommentButton(count: nonZeroCount, onTap: onTap);
-        }
-        // For view with limited width, still allow scaling
-        if (data.type == TweetMetricType.view) {
-          if (ultraTight) {
-            final compactView = TweetMetricData(
-              type: data.type,
-              icon: Icons.signal_cellular_alt_rounded,
-            );
-            return FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerRight,
-              child: TweetMetric(
-                data: compactView,
-                onTap: onTap,
-                compact: true,
-              ),
-            );
-          }
-          return FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerRight,
-            child: TweetMetric(data: data, onTap: onTap, compact: compact),
-          );
-        }
-        // For other metrics (like), scale down under tight width
-        if (tight) {
-          return FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.center,
-            child: TweetMetric(data: data, onTap: onTap, compact: compact),
-          );
-        }
-        return TweetMetric(data: data, onTap: onTap, compact: compact);
-      },
-    );
+    return TweetMetric(data: data, onTap: onTap, compact: compact);
   }
 }

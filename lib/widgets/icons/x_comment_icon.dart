@@ -118,12 +118,16 @@ class XCommentButton extends StatefulWidget {
     this.count,
     this.color,
     this.isActive = false,
+    this.countFontSize = 11,
+    this.iconSize = 16,
     this.onTap,
   });
 
   final int? count;
   final Color? color;
   final bool isActive;
+  final double countFontSize;
+  final double iconSize;
   final VoidCallback? onTap;
 
   @override
@@ -150,16 +154,16 @@ class _XCommentButtonState extends State<XCommentButton>
 
   @override
   void dispose() {
+    _controller.stop();
     _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // Blue when active, grey otherwise (X uses blue for replies)
-    final Color primaryColor = widget.isActive
-        ? const Color(0xFF1D9BF0) // X blue when active
-        : (widget.color ?? const Color(0xFF71767B)); // Grey otherwise
+    // Blue-gray for both inactive and active states to match metrics
+    final Color primaryColor =
+        widget.color ?? const Color(0xFF4B6A88); // Blue-gray
 
     return GestureDetector(
       onTapDown: (_) => _controller.forward(),
@@ -179,7 +183,7 @@ class _XCommentButtonState extends State<XCommentButton>
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              XCommentIcon(size: 16, color: primaryColor),
+              XCommentIcon(size: widget.iconSize, color: primaryColor),
               if (widget.count != null && widget.count! > 0) ...[
                 const SizedBox(width: 1),
                 Text(
@@ -187,7 +191,7 @@ class _XCommentButtonState extends State<XCommentButton>
                   style: TextStyle(
                     color: primaryColor,
                     fontWeight: FontWeight.w600,
-                    fontSize: 11,
+                    fontSize: widget.countFontSize,
                   ),
                 ),
               ],

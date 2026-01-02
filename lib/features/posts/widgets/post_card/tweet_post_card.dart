@@ -22,6 +22,7 @@ import '../../../../widgets/hexagon_avatar.dart';
 // import '../screens/post_detail_screen.dart'; // no longer used for replies
 import '../../../../widgets/icons/x_comment_icon.dart';
 import '../../../../widgets/icons/x_retweet_icon.dart';
+import '../../../../widgets/icons/x_share_icon.dart';
 import '../../../messages/application/message_thread_controller.dart';
 
 part 'tweet_post_card_media.dart';

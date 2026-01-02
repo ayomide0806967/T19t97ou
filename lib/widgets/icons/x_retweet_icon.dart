@@ -61,59 +61,50 @@ class _XRetweetButtonState extends State<XRetweetButton>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 150),
+      duration: const Duration(milliseconds: 500), // Slower for noticeable effect
       vsync: this,
+      lowerBound: 0.0,
+      upperBound: 1.0,
     );
-    _scaleAnimation = Tween<double>(
-      begin: 1.0,
-      end: 0.95,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+    // Pop-out and return animation: scales up to 1.4 then back to 1.0
+    _scaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.4), weight: 35),
+      TweenSequenceItem(tween: Tween(begin: 1.4, end: 1.0), weight: 65),
+    ]).animate(_controller);
   }
 
   @override
   void dispose() {
+    _controller.stop();
     _controller.dispose();
     super.dispose();
   }
 
+  void _triggerPopAnimation() {
+    _controller
+      ..stop()
+      ..reset()
+      ..forward();
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Green when active/reposted, grey otherwise
-    final Color primaryColor = widget.isActive
-        ? const Color(0xFF00BA7C) // Vibrant green when reposted
-        : (widget.color ?? const Color(0xFF71767B)); // Grey when not reposted
+    // Blue-gray for both inactive and active states to match metrics
+    final Color primaryColor =
+        widget.color ?? const Color(0xFF4B6A88); // Blue-gray
 
     final Color bgColor = Colors.transparent;
 
     return Semantics(
       button: true,
       label: widget.label,
-      child: GestureDetector(
-        onTapDown: (_) {
-          _controller.forward();
-        },
-        onTapUp: (_) {
-          _controller.reverse();
-          widget.onTap?.call();
-        },
-        onTapCancel: () {
-          _controller.reverse();
-        },
-        onLongPressStart: widget.onLongPress == null
-            ? null
-            : (_) {
-                _controller.forward();
-              },
-        onLongPress: widget.onLongPress,
-        onLongPressEnd: widget.onLongPress == null
-            ? null
-            : (_) {
-                _controller.reverse();
-              },
-        child: AnimatedBuilder(
-          animation: _scaleAnimation,
-          builder: (context, child) =>
-              Transform.scale(scale: _scaleAnimation.value, child: child),
+      child: Listener(
+        behavior: HitTestBehavior.opaque,
+        onPointerDown: (_) => _triggerPopAnimation(),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: widget.onTap,
+          onLongPress: widget.onLongPress,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeOutCubic,
@@ -127,7 +118,13 @@ class _XRetweetButtonState extends State<XRetweetButton>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  XRetweetIcon(size: widget.iconSize, color: primaryColor),
+                  ScaleTransition(
+                    scale: _scaleAnimation,
+                    child: XRetweetIcon(
+                      size: widget.iconSize,
+                      color: primaryColor,
+                    ),
+                  ),
                   if (widget.count != null) ...[
                     const SizedBox(width: 1),
                     Text(
