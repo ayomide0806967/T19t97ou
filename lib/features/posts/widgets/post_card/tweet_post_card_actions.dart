@@ -392,6 +392,7 @@ mixin _TweetPostCardActions on _TweetPostCardStateBase {
         ? theme.colorScheme.surface
         : Colors.white;
     final Color onSurface = theme.colorScheme.onSurface;
+    final Color iconColor = isDark ? Colors.white : Colors.black;
 
     Widget tile({
       required BuildContext context,
