@@ -1,6 +1,17 @@
 part of 'tweet_post_card.dart';
 
 mixin _TweetPostCardActions on _TweetPostCardStateBase {
+  bool _isOwnPost() {
+    final my = _withAtPrefix(widget.currentUserHandle).toLowerCase();
+    final postHandle = _withAtPrefix(widget.post.handle).toLowerCase();
+    if (my.isNotEmpty && postHandle.isNotEmpty) {
+      return my == postHandle;
+    }
+    // Fallbacks for local/demo content.
+    if (widget.post.author.trim().toLowerCase() == 'you') return true;
+    return false;
+  }
+
   void _toggleLike() {
     setState(() {
       _liked = !_liked;
@@ -65,11 +76,7 @@ mixin _TweetPostCardActions on _TweetPostCardStateBase {
 
   void _showToast(String message) {
     if (!mounted) return;
-    final entry = _toastEntry;
-    if (entry != null && entry.mounted) {
-      entry.remove();
-    }
-    _toastEntry = AppToast.showTopOverlay(
+    AppToast.showTopOverlay(
       context,
       message,
       duration: widget.toastDuration,
@@ -118,8 +125,8 @@ mixin _TweetPostCardActions on _TweetPostCardStateBase {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           _ReinOptionTile(
-                            icon: Icons
-                                .repeat_rounded, // legacy icon, superseded by XRetweetButton in the metrics row
+                            // Use the same X-style repost icon as in the metrics row
+                            icon: const XRetweetIcon(size: 20),
                             label: repostedByUser ? 'Undo repost' : 'Repost',
                             description: repostedByUser
                                 ? 'Remove your repost'
@@ -135,7 +142,8 @@ mixin _TweetPostCardActions on _TweetPostCardStateBase {
                             color: theme.dividerColor.withValues(alpha: 0.16),
                           ),
                           _ReinOptionTile(
-                            icon: Icons.mode_comment_outlined,
+                            // Use the same X-style comment icon as in the metrics row
+                            icon: const XCommentIcon(size: 18),
                             label: 'Quote',
                             description: 'Add a comment before you share',
                             onTap: () {
@@ -176,6 +184,11 @@ mixin _TweetPostCardActions on _TweetPostCardStateBase {
   }
 
   Future<void> _openPostMoreSheet() async {
+    if (_isOwnPost()) {
+      await _openOwnPostMoreSheet();
+      return;
+    }
+
     final theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
     final Color sheetBg = isDark
@@ -185,6 +198,7 @@ mixin _TweetPostCardActions on _TweetPostCardStateBase {
         ? theme.colorScheme.surface
         : Colors.white;
     final Color onSurface = theme.colorScheme.onSurface;
+    final Color iconColor = isDark ? Colors.white : Colors.black;
     final Border boxBorder = Border.all(
       color: theme.dividerColor.withValues(alpha: isDark ? 0.22 : 0.18),
       width: 1,
@@ -360,6 +374,165 @@ mixin _TweetPostCardActions on _TweetPostCardStateBase {
                     ),
                   ),
                 ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _openOwnPostMoreSheet() async {
+    final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final Color sheetBg = isDark
+        ? theme.colorScheme.surface
+        : const Color(0xFFF2F2F2);
+    final Color sheetSurface = isDark
+        ? theme.colorScheme.surface
+        : Colors.white;
+    final Color onSurface = theme.colorScheme.onSurface;
+
+    Widget tile({
+      required BuildContext context,
+      required String title,
+      required Widget trailing,
+      Color? titleColor,
+      VoidCallback? onTap,
+    }) {
+      return ListTile(
+        visualDensity: const VisualDensity(vertical: -1),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 18),
+        title: Text(
+          title,
+          style: theme.textTheme.bodyLarge?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: titleColor ?? onSurface,
+          ),
+        ),
+        trailing: IconTheme(
+          data: IconThemeData(color: iconColor),
+          child: trailing,
+        ),
+        onTap: onTap == null
+            ? null
+            : () {
+                Navigator.of(context).pop();
+                onTap();
+              },
+      );
+    }
+
+    Divider divider() => Divider(
+          height: 1,
+          thickness: 1.1,
+          indent: 18,
+          endIndent: 18,
+          color: theme.dividerColor.withValues(alpha: isDark ? 0.22 : 0.32),
+        );
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: false,
+      showDragHandle: false,
+      backgroundColor: sheetBg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 10, bottom: 10),
+                  child: Container(
+                    width: 46,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.22)
+                          : const Color(0xFFBDBDBD),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Material(
+                      color: sheetSurface,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          tile(
+                            context: sheetContext,
+                            title: 'Save',
+                            trailing: Icon(
+                              _bookmarked
+                                  ? Icons.bookmark
+                                  : Icons.bookmark_border,
+                              color: iconColor,
+                            ),
+                            onTap: _toggleBookmarkWithToast,
+                          ),
+                          divider(),
+                          tile(
+                            context: sheetContext,
+                            title: 'Pin to profile',
+                            trailing: Icon(Icons.push_pin_outlined, color: iconColor),
+                            onTap: () => _showToast('Pin to profile coming soon'),
+                          ),
+                          divider(),
+                          tile(
+                            context: sheetContext,
+                            title: 'Archive',
+                            trailing: Icon(Icons.history_toggle_off_rounded, color: iconColor),
+                            onTap: () => _showToast('Archive coming soon'),
+                          ),
+                          divider(),
+                          tile(
+                            context: sheetContext,
+                            title: 'Hide like and share counts',
+                            trailing: Icon(Icons.heart_broken_outlined, color: iconColor),
+                            onTap: () => _showToast('Hide counts coming soon'),
+                          ),
+                          divider(),
+                          tile(
+                            context: sheetContext,
+                            title: 'Who can reply & quote',
+                            trailing: Icon(Icons.chevron_right_rounded, color: iconColor),
+                            onTap: () => _showToast('Coming soon'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Material(
+                      color: sheetSurface,
+                      child: tile(
+                        context: sheetContext,
+                        title: 'Delete',
+                        titleColor: Colors.red,
+                        trailing: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.red,
+                        ),
+                        onTap: () => _showToast('Delete coming soon'),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
               ],
             ),
           ),

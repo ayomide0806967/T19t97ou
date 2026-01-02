@@ -27,7 +27,17 @@ abstract class _ComposeScreenStateBase extends ConsumerState<ComposeScreen> {
       controller.text.trim().isNotEmpty || media.isNotEmpty;
 
   String get currentUserHandle {
+    final profileHandle =
+        ref.read(profileRepositoryProvider).profile.handle.trim();
+    if (profileHandle.isNotEmpty) return profileHandle;
     return ref.read(currentUserHandleProvider);
+  }
+
+  String get currentUserName {
+    final name = ref.read(profileRepositoryProvider).profile.fullName.trim();
+    if (name.isNotEmpty) return name;
+    final handle = currentUserHandle.trim();
+    return handle.isEmpty ? 'You' : handle;
   }
 
   String get replyPermissionLabel {
@@ -108,7 +118,7 @@ abstract class _ComposeScreenStateBase extends ConsumerState<ComposeScreen> {
     setState(() => isPosting = true);
     final handle = currentUserHandle;
     await ref.read(composeControllerProvider.notifier).createPost(
-          author: handle.isEmpty ? 'You' : handle,
+          author: currentUserName,
           handle: handle,
           body: controller.text.trim(),
           mediaPaths: media.map((f) => f.path).toList(),

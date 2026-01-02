@@ -423,8 +423,8 @@ mixin _TweetPostCardBuild on _TweetPostCardStateBase, _TweetPostCardActions {
     final Map<TweetMetricType, Offset> visualOffsets = {
       if (!isCompact) TweetMetricType.like: const Offset(10, 0),
       if (!isCompact) TweetMetricType.bookmark: const Offset(24, 0),
-      // Move share further left so it sits closer to bookmark
-      if (!isCompact) TweetMetricType.share: const Offset(10, 0),
+      // Move share slightly further left so it sits a bit closer in
+      if (!isCompact) TweetMetricType.share: const Offset(6, 0),
     };
 
     Widget withVisualOffset(TweetMetricType type, Widget child) {

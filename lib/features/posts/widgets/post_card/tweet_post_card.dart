@@ -85,7 +85,6 @@ abstract class _TweetPostCardStateBase extends ConsumerState<TweetPostCard> {
 
   bool _liked = false;
   bool _bookmarked = false;
-  OverlayEntry? _toastEntry;
 
   int _generateViewCount(int base) {
     final safeBase = base < 0 ? 0 : base;
@@ -113,11 +112,6 @@ abstract class _TweetPostCardStateBase extends ConsumerState<TweetPostCard> {
 
   @override
   void dispose() {
-    final entry = _toastEntry;
-    if (entry != null && entry.mounted) {
-      entry.remove();
-    }
-    _toastEntry = null;
     super.dispose();
   }
 }

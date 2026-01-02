@@ -8,7 +8,8 @@ class _ReinOptionTile extends StatelessWidget {
     required this.onTap,
   });
 
-  final IconData icon;
+  /// Icon widget (e.g. XRetweetIcon, XCommentIcon) to match metrics styling.
+  final Widget icon;
   final String label;
   final String description;
   final VoidCallback onTap;
@@ -42,7 +43,12 @@ class _ReinOptionTile extends StatelessWidget {
                 color: iconBackground,
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: iconColor, size: 20),
+              child: Center(
+                child: IconTheme(
+                  data: IconThemeData(color: iconColor, size: 20),
+                  child: icon,
+                ),
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -147,6 +153,8 @@ class _TweetMetricState extends State<TweetMetric>
     final accent = AppTheme.accent;
     // Blue-gray neutral for metrics
     final neutral = const Color(0xFF4B6A88);
+    // Logo brand orange for special highlight (e.g. bookmark)
+    const logoOrange = Color(0xFFFF7A1A);
     final isRein = widget.data.type == TweetMetricType.rein;
     final isLike = widget.data.type == TweetMetricType.like;
     final isShare = widget.data.type == TweetMetricType.share;
@@ -160,12 +168,22 @@ class _TweetMetricState extends State<TweetMetric>
     final double countFontSize = _TweetMetricSizing.countFontSize(widget.compact);
     final double gap = widget.compact ? 1.0 : 2.0;
 
-    // Use blue-gray for all metrics by default; keep red only for active likes.
-    final Color activeColor = isLike ? Colors.red : neutral;
-    final baseColor = widget.data.isActive ? activeColor : neutral;
-    final Color iconColor =
-        isLike ? (widget.data.isActive ? activeColor : neutral) : baseColor;
-    final Color textColor = isLike ? neutral : baseColor;
+    // Base icon/text colors
+    late final Color iconColor;
+    late final Color textColor;
+    if (isLike) {
+      // Like uses red when active, neutral otherwise
+      iconColor = widget.data.isActive ? Colors.red : neutral;
+      textColor = neutral;
+    } else if (isBookmark) {
+      // Bookmark uses logo orange when active
+      iconColor = widget.data.isActive ? logoOrange : neutral;
+      textColor = widget.data.isActive ? logoOrange : neutral;
+    } else {
+      // Other metrics stay blue-gray
+      iconColor = neutral;
+      textColor = neutral;
+    }
     final hasIcon = widget.data.icon != null || widget.data.type == TweetMetricType.view;
     final int? metricCount =
         (widget.data.count != null && widget.data.count! > 0) ? widget.data.count : null;
@@ -305,8 +323,8 @@ class _TweetMetricState extends State<TweetMetric>
       );
     }
 
-    // For like button: use GestureDetector with pop-out animation instead of highlight
-    if (isLike) {
+    // For like/bookmark buttons: use GestureDetector with pop-out animation instead of highlight
+    if (isLike || isBookmark) {
       return GestureDetector(
         onTap: _triggerPopAnimation,
         child: AnimatedBuilder(

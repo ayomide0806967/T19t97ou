@@ -122,6 +122,8 @@ class TweetMetric extends StatelessWidget {
     final accent = AppTheme.accent;
     // Blue-gray neutral for metrics
     final neutral = const Color(0xFF4B6A88);
+    // Logo brand orange for special highlight (e.g. bookmark)
+    const logoOrange = Color(0xFFFF7A1A);
     final isRein = data.type == TweetMetricType.rein;
     final isLike = data.type == TweetMetricType.like;
     final isShare = data.type == TweetMetricType.share;
@@ -136,14 +138,19 @@ class TweetMetric extends StatelessWidget {
     final double countFontSize = compact ? 12.0 : 13.0;
     final double gap = compact ? 4.0 : 5.0;
 
-    // Use blue-gray for all metrics by default; keep red only for active likes.
-    final Color activeColor =
-        isLike ? Colors.red : neutral;
-    final baseColor = data.isActive ? activeColor : neutral;
-    final Color iconColor = isLike
-        ? (data.isActive ? activeColor : neutral)
-        : baseColor;
-    final Color textColor = isLike ? neutral : baseColor;
+    // Base icon/text colors
+    late final Color iconColor;
+    late final Color textColor;
+    if (isLike) {
+      iconColor = data.isActive ? Colors.red : neutral;
+      textColor = neutral;
+    } else if (isBookmark) {
+      iconColor = data.isActive ? logoOrange : neutral;
+      textColor = data.isActive ? logoOrange : neutral;
+    } else {
+      iconColor = neutral;
+      textColor = neutral;
+    }
     final hasIcon = data.icon != null || data.type == TweetMetricType.view;
     final metricCount = data.count;
     final bool highlightRein = isRein && data.isActive;
