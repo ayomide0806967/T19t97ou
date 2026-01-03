@@ -9,6 +9,7 @@ import '../application/quiz_providers.dart';
 import '../create/quiz_create_screen.dart';
 import '../drafts/quiz_drafts_screen.dart';
 import '../results/quiz_results_screen.dart';
+import '../../subscription/subscribe_screen.dart';
 
 class QuizDashboardScreen extends ConsumerWidget {
   const QuizDashboardScreen({super.key, this.recentlyPublishedTitle});
@@ -53,11 +54,7 @@ class QuizDashboardScreen extends ConsumerWidget {
                     usedQuizzes: publishedCount + drafts.length,
                     quizLimit: 10,
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Plan details coming soon'),
-                        ),
-                      );
+                      Navigator.of(context).push(SubscribeScreen.route());
                     },
                   ),
                 ),
@@ -96,6 +93,7 @@ class _DashboardHero extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Image.asset(
                   'assets/images/homelogo.png',
@@ -103,14 +101,6 @@ class _DashboardHero extends StatelessWidget {
                   width: 40,
                   fit: BoxFit.contain,
                   semanticLabel: 'App logo',
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  'Quiz Dashboard',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF111827),
-                  ),
                 ),
               ],
             ),
@@ -131,8 +121,8 @@ class _DashboardHero extends StatelessWidget {
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(
-                      color: const Color(0xFF111827).withValues(alpha: 0.25),
+                    side: const BorderSide(
+                      color: Colors.black,
                     ),
                   ),
                 ),
@@ -202,18 +192,14 @@ class _DashboardQuickAccessGrid extends StatelessWidget {
                 subtitle: '$publishedCount published',
                 badge: 'Manage quizzes',
                 background: soft(
-                  const Color(0xFFD1FAE5), // soft green (light)
+                  Colors.white, // white in light mode
                   const Color(0xFF064E3B), // deep green (dark)
                 ),
-                foreground: soft(
-                  const Color(0xFF064E3B),
-                  const Color(0xFFE5F9F0),
-                ),
-                accent: soft(const Color(0xFF34D399), const Color(0xFF34D399)),
-                borderColor:
-                    soft(const Color(0xFF34D399), const Color(0xFF34D399)),
+                foreground: soft(const Color(0xFF0F766E), Colors.white),
+                accent: soft(Colors.black, Colors.black),
+                borderColor: soft(Colors.black, Colors.black),
                 icon: Icons.assignment_rounded,
-                iconColor: Colors.black,
+                iconColor: Colors.white,
                 onTap: openResults,
               ),
               const SizedBox(height: 12),
@@ -227,10 +213,11 @@ class _DashboardQuickAccessGrid extends StatelessWidget {
                 ),
                 foreground: soft(const Color(0xFF111827), Colors.white),
                 accent: soft(
-                  const Color(0xFFFFC999), // softer logo-tinted accent (light)
-                  const Color(0xFFFFC999), // same accent in dark mode
+                  const Color(0xFFCBD5E1), // grey accent (light)
+                  const Color(0xFFCBD5E1), // same accent in dark mode
                 ),
-                borderColor: soft(const Color(0xFFFFC999), const Color(0xFFFFC999)),
+                borderColor:
+                    soft(const Color(0xFFCBD5E1), const Color(0xFFCBD5E1)),
                 icon: Icons.drafts_rounded,
                 onTap: openDrafts,
               ),
@@ -268,9 +255,11 @@ class _DashboardQuickAccessGrid extends StatelessWidget {
                   const Color(0xFF020617),
                 ),
                 foreground: soft(const Color(0xFF020617), Colors.white),
-                accent: soft(const Color(0xFF111827), const Color(0xFF111827)),
-                borderColor:
-                    soft(const Color(0xFF111827), const Color(0xFF111827)),
+                accent: soft(
+                  const Color(0xFFCBD5E1), // grey accent (light)
+                  const Color(0xFFCBD5E1), // same in dark
+                ),
+                borderColor: soft(Colors.black, Colors.black),
                 icon: Icons.playlist_add_check_rounded,
                 onTap: openResults,
               ),
@@ -303,10 +292,12 @@ class _MyPlanCard extends StatelessWidget {
     final double progress = clampedUsed / clampedLimit;
 
     const Color text = Color(0xFF111827);
-    final Color progressFill = const Color(0xFF4ADE80);
+    final Color progressFill = Colors.black;
     const Color glassOffWhite = Color(0xFFFFFBF7);
+    final Color progressLabelColor =
+        progress > 0.5 ? Colors.white : Colors.black;
 
-	    return Material(
+    return Material(
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
@@ -318,6 +309,7 @@ class _MyPlanCard extends StatelessWidget {
               BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 26, sigmaY: 26),
                 child: Container(
+                  width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -342,7 +334,7 @@ class _MyPlanCard extends StatelessWidget {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFCC8E4A),
+                              color: Colors.black,
                               borderRadius: BorderRadius.circular(999),
                             ),
                             child: Text(
@@ -390,7 +382,7 @@ class _MyPlanCard extends StatelessWidget {
                                     '$clampedUsed/$clampedLimit',
                                     style: theme.textTheme.bodySmall?.copyWith(
                                       fontWeight: FontWeight.w800,
-                                      color: Colors.white,
+                                      color: progressLabelColor,
                                     ),
                                   ),
                                 ],

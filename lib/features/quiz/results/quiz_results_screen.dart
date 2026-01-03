@@ -44,7 +44,8 @@ class _QuizResultsScreenState extends ConsumerState<QuizResultsScreen> {
     final results = _filteredResults(quizSource.results);
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor:
+          theme.brightness == Brightness.dark ? theme.scaffoldBackgroundColor : const Color(0xFFF3F4F6),
       appBar: AppBar(
         title: const Text('My quizzes'),
         backgroundColor: theme.scaffoldBackgroundColor,
@@ -147,18 +148,14 @@ class _ResultCard extends StatelessWidget {
     final theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
     const bool isActive = true;
-    final Color border = switch (index % 3) {
-      0 => const Color(0xFFE5E7EB), // off-white
-      1 => const Color(0xFF25D366), // green
-      _ => const Color(0xFFFF7A1A), // logo orange
-    };
+    const Color activeAccent = Color(0xFF25D366);
+    const Color inactiveBorderLight = Color(0xFFCBD5E1);
     final BorderSide borderSide = BorderSide(
-      color: isDark ? theme.dividerColor.withValues(alpha: 0.35) : border,
+      color: isDark
+          ? theme.dividerColor.withValues(alpha: 0.35)
+          : inactiveBorderLight,
       width: 1.6,
     );
-    final Color menuColor =
-        isDark ? theme.colorScheme.onSurface.withValues(alpha: 0.55) : border;
-    const Color activeAccent = Color(0xFF25D366);
     final Color activeTextColor =
         isDark ? Colors.white.withValues(alpha: 0.95) : activeAccent;
     return Card(
@@ -184,29 +181,13 @@ class _ResultCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(
-                width: double.infinity,
-                child: Stack(
-                  children: [
-                    Text(
-                      result.title,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 6),
               Row(
                 children: [
                   Expanded(
                     child: Text(
-                      'Created ${_formatDate(result.lastUpdated)}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(
-                          alpha: 0.7,
-                        ),
+                      result.title,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -217,7 +198,7 @@ class _ResultCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
-                        vertical: 6,
+                        vertical: 4,
                       ),
                       decoration: BoxDecoration(
                         color: activeAccent.withValues(alpha: 0.10),
@@ -227,16 +208,22 @@ class _ResultCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
-                        'Active',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w700,
+                        'Active • ${result.responses}',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
                           color: activeTextColor,
                         ),
                       ),
                     ),
                   ],
-                  // removed mini bars
                 ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Updated ${_timeAgo(result.lastUpdated)}',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
+                ),
               ),
             ],
           ),
@@ -300,7 +287,9 @@ class _QuizResultDetailsScreenState
     final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: theme.brightness == Brightness.dark
+          ? theme.scaffoldBackgroundColor
+          : const Color(0xFFF3F4F6),
       body: SafeArea(
         bottom: false,
         child: Column(

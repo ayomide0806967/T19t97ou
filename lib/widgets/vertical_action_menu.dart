@@ -38,104 +38,136 @@ class _VerticalActionMenuState extends State<VerticalActionMenu> {
     final theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
     final Color surface = isDark ? theme.colorScheme.surface : Colors.white;
-    final Color dividerColor = theme.dividerColor.withValues(alpha: isDark ? 0.5 : 0.7);
+    final Color dividerColor =
+        theme.dividerColor.withValues(alpha: isDark ? 0.5 : 0.7);
 
-    return Card(
-      elevation: 0,
-      color: surface,
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(
-          color: theme.dividerColor.withValues(alpha: isDark ? 0.35 : 0.55),
-        ),
-      ),
-      child: Column(
-        children: [
-          _MenuTile(
-            icon: Icons.help_outline,
-            label: 'Quiz Status',
-            isFirstItem: true,
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  widget.isQuizActive ? 'Active' : 'Inactive',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: widget.isQuizActive
-                        ? const Color(0xFF111827)
-                        : theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Switch(
-                  value: widget.isQuizActive,
-                  onChanged: widget.onQuizStatusChanged,
-                  activeThumbColor: Colors.white,
-                  activeTrackColor: const Color(0xFF25D366).withValues(
-                    alpha: 0.35,
-                  ),
-                  inactiveThumbColor: Colors.black,
-                  inactiveTrackColor:
-                      theme.dividerColor.withValues(alpha: 0.6),
-                ),
-              ],
+    Widget buildSection(List<Widget> children) {
+      return Card(
+        elevation: 0,
+        color: surface,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(
+            color: theme.dividerColor.withValues(
+              alpha: isDark ? 0.35 : 0.55,
             ),
           ),
-          Divider(height: 1, thickness: 1, color: dividerColor),
-          _MenuTile(
-            icon: Icons.share_outlined,
-            label: 'Share',
-            onTap: widget.onShareQuiz,
-          ),
-          Divider(height: 1, thickness: 1, color: dividerColor),
-          _MenuTile(
-            icon: Icons.visibility_rounded,
-            label: 'View result',
-            onTap: widget.onViewAnswers,
-            trailing: widget.answerCount != null
-                ? _AnswerCountBadge(count: widget.answerCount!)
-                : null,
-          ),
-          Divider(height: 1, thickness: 1, color: dividerColor),
-          _MenuTile(
-            icon: Icons.leaderboard_outlined,
-            label: 'Monitor live quiz',
-            onTap: widget.onViewResult,
-            backgroundColor: const Color(0xFF25D366),
-          ),
-          Divider(height: 1, thickness: 1, color: dividerColor),
-          _MenuTile(
-            icon: Icons.edit_outlined,
-            label: 'Edit Quiz',
-            onTap: widget.onEditQuiz,
-          ),
-          Divider(height: 1, thickness: 1, color: dividerColor),
-          _MenuTile(
-            icon: Icons.favorite_border_outlined,
-            label: 'Add Favourite',
-            onTap: widget.onAddFavourite,
-          ),
-          Divider(height: 1, thickness: 1, color: dividerColor),
-          _MenuTile(
-            icon: Icons.group_outlined,
-            label: 'Collaboration',
-            onTap: widget.onCollaboration,
-          ),
-          if (widget.onDeleteQuiz != null) ...[
-            Divider(height: 1, thickness: 1, color: dividerColor),
+        ),
+        child: Column(children: children),
+      );
+    }
+
+    final headerActionsCard = buildSection([
+      _MenuTile(
+        icon: Icons.help_outline,
+        label: 'Quiz Status',
+        isFirstItem: true,
+        showIcon: false,
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              widget.isQuizActive ? 'Active' : 'Inactive',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: widget.isQuizActive
+                    ? const Color(0xFF111827)
+                    : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Switch(
+              value: widget.isQuizActive,
+              onChanged: widget.onQuizStatusChanged,
+              activeThumbColor: Colors.white,
+              activeTrackColor: const Color(0xFF25D366).withValues(
+                alpha: 0.35,
+              ),
+              inactiveThumbColor: Colors.black,
+              inactiveTrackColor: theme.dividerColor.withValues(alpha: 0.6),
+            ),
+          ],
+        ),
+      ),
+      Divider(height: 1, thickness: 1, color: dividerColor),
+      _MenuTile(
+        icon: Icons.share_outlined,
+        label: 'Share',
+        onTap: widget.onShareQuiz,
+      ),
+      Divider(height: 1, thickness: 1, color: dividerColor),
+      _MenuTile(
+        icon: Icons.visibility_outlined,
+        label: 'View result',
+        isLastItem: true,
+        onTap: widget.onViewAnswers,
+        trailing: null,
+      ),
+    ]);
+
+    final List<Widget> secondaryItems = [
+      _MenuTile(
+        icon: Icons.wifi_tethering_rounded,
+        label: 'Monitor live quiz',
+        isFirstItem: true,
+        onTap: widget.onViewResult,
+        iconColor: null,
+        textColor: null,
+      ),
+      Divider(height: 1, thickness: 1, color: dividerColor),
+      _MenuTile(
+        icon: Icons.edit_outlined,
+        label: 'Edit Quiz',
+        onTap: widget.onEditQuiz,
+      ),
+      Divider(height: 1, thickness: 1, color: dividerColor),
+      _MenuTile(
+        icon: Icons.favorite_border_outlined,
+        label: 'Add Favourite',
+        onTap: widget.onAddFavourite,
+      ),
+      Divider(height: 1, thickness: 1, color: dividerColor),
+      _MenuTile(
+        icon: Icons.group_outlined,
+        label: 'Collaboration',
+        onTap: widget.onCollaboration,
+      ),
+    ];
+
+    // Mark last regular item as bottom-rounded (delete is now its own card).
+    secondaryItems[secondaryItems.length - 1] = _MenuTile(
+      icon: Icons.group_outlined,
+      label: 'Collaboration',
+      onTap: widget.onCollaboration,
+      isLastItem: true,
+    );
+
+    final secondaryActionsCard = buildSection(secondaryItems);
+    final deleteCard = widget.onDeleteQuiz == null
+        ? null
+        : buildSection([
             _MenuTile(
               icon: Icons.delete_outline,
               label: 'Delete quiz',
               onTap: widget.onDeleteQuiz,
               iconColor: Colors.red,
               textColor: Colors.red,
+              isFirstItem: true,
               isLastItem: true,
             ),
-          ],
+          ]);
+
+    return Column(
+      children: [
+        headerActionsCard,
+        const SizedBox(height: 12),
+        secondaryActionsCard,
+        if (deleteCard != null) ...[
+          const SizedBox(height: 12),
+          deleteCard,
         ],
-      ),
+      ],
     );
   }
 }
@@ -148,6 +180,7 @@ class _MenuTile extends StatelessWidget {
     this.trailing,
     this.isFirstItem = false,
     this.isLastItem = false,
+    this.showIcon = true,
     this.iconColor,
     this.textColor,
     this.backgroundColor,
@@ -159,6 +192,7 @@ class _MenuTile extends StatelessWidget {
   final Widget? trailing;
   final bool isFirstItem;
   final bool isLastItem;
+  final bool showIcon;
   final Color? iconColor;
   final Color? textColor;
   final Color? backgroundColor;
@@ -173,16 +207,32 @@ class _MenuTile extends StatelessWidget {
       bottomRight: isLastItem ? const Radius.circular(20) : Radius.zero,
     );
 
+    final Widget? iconWidget = showIcon
+        ? Icon(
+            icon,
+            size: 22,
+            color:
+                iconColor ?? theme.colorScheme.onSurface.withValues(alpha: 0.75),
+          )
+        : null;
+
+    final Widget? trailingWidget = iconWidget == null
+        ? trailing
+        : (trailing == null
+              ? iconWidget
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    trailing!,
+                    const SizedBox(width: 12),
+                    iconWidget,
+                  ],
+                ));
+
     return ListTile(
       onTap: onTap,
       shape: RoundedRectangleBorder(borderRadius: radius),
       tileColor: backgroundColor?.withValues(alpha: 0.18),
-      leading: Icon(
-        icon,
-        size: 22,
-        color: iconColor ??
-            theme.colorScheme.onSurface.withValues(alpha: 0.75),
-      ),
       title: Text(
         label,
         style: theme.textTheme.titleMedium?.copyWith(
@@ -190,10 +240,8 @@ class _MenuTile extends StatelessWidget {
           color: textColor ?? theme.colorScheme.onSurface,
         ),
       ),
-      trailing: trailing,
+      trailing: trailingWidget,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      minLeadingWidth: 24,
-      horizontalTitleGap: 12,
       dense: true,
     );
   }

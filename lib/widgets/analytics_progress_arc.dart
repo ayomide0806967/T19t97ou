@@ -106,45 +106,58 @@ class _BarChartSummary extends StatelessWidget {
     final double remainingPercent =
         (100 - passPercent - failPercent).clamp(0, 100);
 
-    Widget buildBar({
+    Widget buildVerticalStat({
       required String label,
       required double percent,
       required Color color,
       double? visualPercent,
       Color? trackColor,
     }) {
+      const double barHeight = 52;
+      const double barWidth = 16;
+      final double fill =
+          ((visualPercent ?? percent).clamp(0, 100).toDouble()) / 100.0;
+      final Color track = trackColor ?? bgBar;
       return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  label,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: color,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '${percent.toStringAsFixed(0)}%',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: color,
-                ),
-              ),
-            ],
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w700,
+            ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
+          Text(
+            '${percent.toStringAsFixed(0)}%',
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 10),
           ClipRRect(
             borderRadius: BorderRadius.circular(999),
             child: SizedBox(
-              height: 8,
-              child: LinearProgressIndicator(
-                value: (visualPercent ?? percent) / 100,
-                backgroundColor: trackColor ?? bgBar,
-                valueColor: AlwaysStoppedAnimation<Color>(color),
+              height: barHeight,
+              width: barWidth,
+              child: Stack(
+                alignment: Alignment.bottomCenter,
+                children: [
+                  Positioned.fill(
+                    child: ColoredBox(color: track),
+                  ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    height: barHeight * fill,
+                    child: ColoredBox(color: color),
+                  ),
+                ],
               ),
             ),
           ),
@@ -171,23 +184,34 @@ class _BarChartSummary extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        buildBar(
-          label: 'Pass',
-          percent: passPercent,
-          color: passColor,
-        ),
-        const SizedBox(height: 10),
-        buildBar(
-          label: 'Fail',
-          percent: failPercent,
-          color: failColor,
-        ),
-        const SizedBox(height: 10),
-        buildBar(
-          label: 'Not completed',
-          percent: remainingPercent,
-          color: const Color(0xFF111827),
-          visualPercent: remainingPercent == 0 ? 10 : remainingPercent,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: buildVerticalStat(
+                label: 'Pass',
+                percent: passPercent,
+                color: passColor,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: buildVerticalStat(
+                label: 'Fail',
+                percent: failPercent,
+                color: failColor,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: buildVerticalStat(
+                label: 'Not completed',
+                percent: remainingPercent,
+                color: const Color(0xFF111827),
+                visualPercent: remainingPercent == 0 ? 10 : remainingPercent,
+              ),
+            ),
+          ],
         ),
       ],
     );
