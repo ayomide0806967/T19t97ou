@@ -14,6 +14,7 @@ class _ThreadCommentsView extends StatelessWidget {
     required this.nodes,
     required this.currentUserHandle,
     this.onReply,
+    this.onMore,
     required this.selectionMode,
     required this.selected,
     required this.onToggleSelect,
@@ -21,6 +22,7 @@ class _ThreadCommentsView extends StatelessWidget {
   final List<_ThreadNode> nodes;
   final String currentUserHandle;
   final ValueChanged<_ThreadNode>? onReply;
+  final ValueChanged<_ThreadNode>? onMore;
   final bool selectionMode;
   final Set<_ThreadNode> selected;
   final void Function(_ThreadNode node) onToggleSelect;
@@ -37,6 +39,7 @@ class _ThreadCommentsView extends StatelessWidget {
             isLast: i == nodes.length - 1,
             currentUserHandle: currentUserHandle,
             onReply: onReply,
+            onMore: onMore,
             selectionMode: selectionMode,
             selected: selected,
             onToggleSelect: () => onToggleSelect(nodes[i]),
@@ -53,6 +56,7 @@ class _ThreadNodeTile extends StatelessWidget {
     required this.isLast,
     required this.currentUserHandle,
     this.onReply,
+    this.onMore,
     required this.selectionMode,
     required this.selected,
     required this.onToggleSelect,
@@ -62,6 +66,7 @@ class _ThreadNodeTile extends StatelessWidget {
   final bool isLast;
   final String currentUserHandle;
   final ValueChanged<_ThreadNode>? onReply;
+  final ValueChanged<_ThreadNode>? onMore;
   final bool selectionMode;
   final Set<_ThreadNode> selected;
   final VoidCallback onToggleSelect;
@@ -105,6 +110,7 @@ class _ThreadNodeTile extends StatelessWidget {
                   onSwipeReply: selectionMode
                       ? null
                       : () => onReply?.call(node),
+                  onMore: selectionMode ? null : () => onMore?.call(node),
                   selected: selected.contains(node),
                   onLongPress: onToggleSelect,
                   onTap: selectionMode ? onToggleSelect : null,
@@ -123,6 +129,7 @@ class _ThreadNodeTile extends StatelessWidget {
                     isLast: i == node.children.length - 1,
                     currentUserHandle: currentUserHandle,
                     onReply: onReply,
+                    onMore: onMore,
                     selectionMode: selectionMode,
                     selected: selected,
                     onToggleSelect: onToggleSelect,

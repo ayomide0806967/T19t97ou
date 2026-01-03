@@ -8,8 +8,8 @@ mixin _CommentTileBuild on _CommentTileStateBase, _CommentTileActions {
     final _ThreadComment comment = widget.comment;
     final bool isMine =
         comment.author == widget.currentUserHandle || comment.author == 'You';
-    // Light: subtle card variants. Dark: glassy card with semi-transparent white.
-    final Color lightMine = const Color(0xFFF8FAFC);
+    // Light: own replies white, others white.
+    final Color lightMine = Colors.white;
     final Color lightOther = Colors.white;
     final Color baseLight = isMine
         ? lightMine
@@ -94,7 +94,7 @@ mixin _CommentTileBuild on _CommentTileStateBase, _CommentTileActions {
           if (!isMine) const SizedBox(width: 12),
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Padding(
                   padding: const EdgeInsets.symmetric(
@@ -115,69 +115,25 @@ mixin _CommentTileBuild on _CommentTileStateBase, _CommentTileActions {
                         comment.timeAgo,
                         style: theme.textTheme.bodySmall?.copyWith(color: meta),
                       ),
+                      if (widget.onMore != null) ...[
+                        const SizedBox(width: 8),
+                        InkWell(
+                          borderRadius: BorderRadius.circular(8),
+                          onTap: widget.onMore,
+                          child: Padding(
+                            padding: const EdgeInsets.all(6),
+                            child: Icon(
+                              Icons.more_horiz,
+                              size: 20,
+                              color: meta,
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
                 const SizedBox(height: 2),
-                if (comment.quotedBody != null) ...[
-                  Container(
-                    decoration: BoxDecoration(
-                      color: widget.isDark
-                          ? Colors.white.withValues(alpha: 0.06)
-                          : theme.colorScheme.surfaceContainerHighest
-                                .withValues(alpha: 0.9),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: theme.dividerColor.withValues(
-                          alpha: widget.isDark ? 0.4 : 0.3,
-                        ),
-                      ),
-                    ),
-                    padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 3,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primary,
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                (comment.quotedFrom ?? 'Reply').replaceFirst(
-                                  RegExp(r'^\s*@'),
-                                  '',
-                                ),
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  color: theme.colorScheme.onSurface,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                comment.quotedBody!,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurface.withValues(
-                                    alpha: widget.isDark ? 0.9 : 0.85,
-                                  ),
-                                  height: 1.35,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                ],
                 Text(
                   comment.body,
                   style: AppTheme.tweetBody(
@@ -187,6 +143,74 @@ mixin _CommentTileBuild on _CommentTileStateBase, _CommentTileActions {
                     applyHeightToFirstAscent: false,
                   ),
                 ),
+                if (comment.quotedBody != null) ...[
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: widget.isDark
+                                ? Colors.white.withValues(alpha: 0.06)
+                                : const Color(0xFFF6F6F6),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: theme.dividerColor.withValues(
+                                alpha: widget.isDark ? 0.4 : 0.3,
+                              ),
+                            ),
+                          ),
+                          padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 3,
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.onSurface,
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      (comment.quotedFrom ?? 'Reply')
+                                          .replaceFirst(
+                                        RegExp(r'^\s*@'),
+                                        '',
+                                      ),
+                                      style:
+                                          theme.textTheme.bodyMedium?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                        color: theme.colorScheme.onSurface,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      comment.quotedBody!,
+                                      style:
+                                          theme.textTheme.bodySmall?.copyWith(
+                                        color: theme.colorScheme.onSurface
+                                            .withValues(
+                                          alpha:
+                                              widget.isDark ? 0.9 : 0.85,
+                                        ),
+                                        height: 1.35,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 if (_reposted && !_showRepostActions) ...[
                   const SizedBox(height: 4),
                   Align(

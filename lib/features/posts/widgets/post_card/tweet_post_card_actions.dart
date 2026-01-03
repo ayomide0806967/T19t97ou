@@ -29,7 +29,7 @@ mixin _TweetPostCardActions on _TweetPostCardStateBase {
     setState(() {
       _bookmarked = !_bookmarked;
     });
-    _showToast(_bookmarked ? 'Saved' : 'Removed from saved');
+    _showToast(_bookmarked ? 'Bookmark saved' : 'Bookmark removed');
   }
 
   Future<void> _ensureRepostForReply() async {
@@ -189,356 +189,103 @@ mixin _TweetPostCardActions on _TweetPostCardStateBase {
       return;
     }
 
-    final theme = Theme.of(context);
-    final bool isDark = theme.brightness == Brightness.dark;
-    final Color sheetBg = isDark
-        ? theme.colorScheme.surface
-        : const Color(0xFFF2F2F2);
-    final Color sheetSurface = isDark
-        ? theme.colorScheme.surface
-        : Colors.white;
-    final Color onSurface = theme.colorScheme.onSurface;
-    final Color iconColor = isDark ? Colors.white : Colors.black;
-    final Border boxBorder = Border.all(
-      color: theme.dividerColor.withValues(alpha: isDark ? 0.22 : 0.18),
-      width: 1,
-    );
     final String rawHandle = widget.post.handle.isNotEmpty
         ? widget.post.handle
         : widget.post.author;
     final String handleLabel = _withAtPrefix(rawHandle);
     final String displayLabel = handleLabel.isEmpty ? 'account' : handleLabel;
-
-    Widget handleRow({
-      required BuildContext context,
-      required String title,
-      required IconData icon,
-      Color? textColor,
-      Color? iconColor,
-      VoidCallback? onTap,
-    }) {
-      return ListTile(
-        visualDensity: const VisualDensity(vertical: -1),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 18),
-        title: Text(
-          title,
-          style: theme.textTheme.bodyLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: textColor ?? onSurface,
+    await AppActionSheet.show(
+      context,
+      sections: [
+        AppActionSheetSection([
+          AppActionSheetItem(
+            title: 'Copy link',
+            trailingIcon: Icons.link_rounded,
+            onTap: _copyPostLink,
           ),
-        ),
-        trailing: Icon(icon, color: iconColor ?? onSurface),
-        onTap: onTap == null
-            ? null
-            : () {
-                Navigator.of(context).pop();
-                onTap();
-              },
-      );
-    }
-
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: false,
-      showDragHandle: false,
-      backgroundColor: sheetBg,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (sheetContext) {
-        final divider = Divider(
-          height: 1,
-          thickness: 1.2,
-          indent: 18,
-          endIndent: 18,
-          color: theme.dividerColor.withValues(alpha: isDark ? 0.22 : 0.32),
-        );
-
-        return SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 10, bottom: 6),
-                  child: Container(
-                    width: 46,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.22)
-                          : const Color(0xFFBDBDBD),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: sheetSurface,
-                      borderRadius: BorderRadius.circular(18),
-                      border: boxBorder,
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        handleRow(
-                          context: sheetContext,
-                          title: 'Copy link',
-                          icon: Icons.link_rounded,
-                          onTap: _copyPostLink,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: sheetSurface,
-                      borderRadius: BorderRadius.circular(18),
-                      border: boxBorder,
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        handleRow(
-                          context: sheetContext,
-                          title: _bookmarked ? 'Remove bookmark' : 'Save',
-                          icon: _bookmarked
-                              ? Icons.bookmark_rounded
-                              : Icons.bookmark_border_rounded,
-                          onTap: _toggleBookmarkWithToast,
-                        ),
-                        divider,
-                        handleRow(
-                          context: sheetContext,
-                          title: 'Hide',
-                          icon: Icons.visibility_off_outlined,
-                          onTap: () => _showToast('Hide post (coming soon)'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: sheetSurface,
-                      borderRadius: BorderRadius.circular(18),
-                      border: boxBorder,
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        handleRow(
-                          context: sheetContext,
-                          title: 'Mute $displayLabel',
-                          icon: Icons.volume_off_outlined,
-                          onTap: () =>
-                              _showToast('Muted $displayLabel (coming soon)'),
-                        ),
-                        divider,
-                        handleRow(
-                          context: sheetContext,
-                          title: 'Restrict $displayLabel',
-                          icon: Icons.lock_person_outlined,
-                          onTap: () => _showToast(
-                            'Restricted $displayLabel (coming soon)',
-                          ),
-                        ),
-                        divider,
-                        handleRow(
-                          context: sheetContext,
-                          title: 'Block $displayLabel',
-                          icon: Icons.block_rounded,
-                          textColor: Colors.red,
-                          iconColor: Colors.red,
-                          onTap: () =>
-                              _showToast('Blocked $displayLabel (coming soon)'),
-                        ),
-                        divider,
-                        handleRow(
-                          context: sheetContext,
-                          title: 'Report',
-                          icon: Icons.report_gmailerrorred_outlined,
-                          textColor: Colors.red,
-                          iconColor: Colors.red,
-                          onTap: () => _showToast('Report coming soon'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
+        ]),
+        AppActionSheetSection([
+          AppActionSheetItem(
+            title: _bookmarked ? 'Remove bookmark' : 'Save',
+            trailingIcon: _bookmarked
+                ? Icons.bookmark_rounded
+                : Icons.bookmark_border_rounded,
+            onTap: _toggleBookmarkWithToast,
           ),
-        );
-      },
+          AppActionSheetItem(
+            title: 'Hide',
+            trailingIcon: Icons.visibility_off_outlined,
+            onTap: () => _showToast('Hide post (coming soon)'),
+          ),
+        ]),
+        AppActionSheetSection([
+          AppActionSheetItem(
+            title: 'Mute $displayLabel',
+            trailingIcon: Icons.volume_off_outlined,
+            onTap: () => _showToast('Muted $displayLabel (coming soon)'),
+          ),
+          AppActionSheetItem(
+            title: 'Restrict $displayLabel',
+            trailingIcon: Icons.lock_person_outlined,
+            onTap: () => _showToast('Restricted $displayLabel (coming soon)'),
+          ),
+          AppActionSheetItem(
+            title: 'Block $displayLabel',
+            trailingIcon: Icons.block_rounded,
+            destructive: true,
+            onTap: () => _showToast('Blocked $displayLabel (coming soon)'),
+          ),
+          AppActionSheetItem(
+            title: 'Report',
+            trailingIcon: Icons.report_gmailerrorred_outlined,
+            destructive: true,
+            onTap: () => _showToast('Report coming soon'),
+          ),
+        ]),
+      ],
     );
   }
 
   Future<void> _openOwnPostMoreSheet() async {
-    final theme = Theme.of(context);
-    final bool isDark = theme.brightness == Brightness.dark;
-    final Color sheetBg = isDark
-        ? theme.colorScheme.surface
-        : const Color(0xFFF2F2F2);
-    final Color sheetSurface = isDark
-        ? theme.colorScheme.surface
-        : Colors.white;
-    final Color onSurface = theme.colorScheme.onSurface;
-    final Color iconColor = isDark ? Colors.white : Colors.black;
-
-    Widget tile({
-      required BuildContext context,
-      required String title,
-      required Widget trailing,
-      Color? titleColor,
-      VoidCallback? onTap,
-    }) {
-      return ListTile(
-        visualDensity: const VisualDensity(vertical: -1),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 18),
-        title: Text(
-          title,
-          style: theme.textTheme.bodyLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: titleColor ?? onSurface,
+    await AppActionSheet.show(
+      context,
+      sections: [
+        AppActionSheetSection([
+          AppActionSheetItem(
+            title: 'Save',
+            trailingIcon: _bookmarked ? Icons.bookmark : Icons.bookmark_border,
+            onTap: _toggleBookmarkWithToast,
           ),
-        ),
-        trailing: IconTheme(
-          data: IconThemeData(color: iconColor),
-          child: trailing,
-        ),
-        onTap: onTap == null
-            ? null
-            : () {
-                Navigator.of(context).pop();
-                onTap();
-              },
-      );
-    }
-
-    Divider divider() => Divider(
-          height: 1,
-          thickness: 1.1,
-          indent: 18,
-          endIndent: 18,
-          color: theme.dividerColor.withValues(alpha: isDark ? 0.22 : 0.32),
-        );
-
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: false,
-      showDragHandle: false,
-      backgroundColor: sheetBg,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (sheetContext) {
-        return SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 10, bottom: 10),
-                  child: Container(
-                    width: 46,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.22)
-                          : const Color(0xFFBDBDBD),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: Material(
-                      color: sheetSurface,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          tile(
-                            context: sheetContext,
-                            title: 'Save',
-                            trailing: Icon(
-                              _bookmarked
-                                  ? Icons.bookmark
-                                  : Icons.bookmark_border,
-                              color: iconColor,
-                            ),
-                            onTap: _toggleBookmarkWithToast,
-                          ),
-                          divider(),
-                          tile(
-                            context: sheetContext,
-                            title: 'Pin to profile',
-                            trailing: Icon(Icons.push_pin_outlined, color: iconColor),
-                            onTap: () => _showToast('Pin to profile coming soon'),
-                          ),
-                          divider(),
-                          tile(
-                            context: sheetContext,
-                            title: 'Archive',
-                            trailing: Icon(Icons.history_toggle_off_rounded, color: iconColor),
-                            onTap: () => _showToast('Archive coming soon'),
-                          ),
-                          divider(),
-                          tile(
-                            context: sheetContext,
-                            title: 'Hide like and share counts',
-                            trailing: Icon(Icons.heart_broken_outlined, color: iconColor),
-                            onTap: () => _showToast('Hide counts coming soon'),
-                          ),
-                          divider(),
-                          tile(
-                            context: sheetContext,
-                            title: 'Who can reply & quote',
-                            trailing: Icon(Icons.chevron_right_rounded, color: iconColor),
-                            onTap: () => _showToast('Coming soon'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: Material(
-                      color: sheetSurface,
-                      child: tile(
-                        context: sheetContext,
-                        title: 'Delete',
-                        titleColor: Colors.red,
-                        trailing: const Icon(
-                          Icons.delete_outline,
-                          color: Colors.red,
-                        ),
-                        onTap: () => _showToast('Delete coming soon'),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-              ],
-            ),
+          AppActionSheetItem(
+            title: 'Pin to profile',
+            trailingIcon: Icons.push_pin_outlined,
+            onTap: () => _showToast('Pin to profile coming soon'),
           ),
-        );
-      },
+          AppActionSheetItem(
+            title: 'Archive',
+            trailingIcon: Icons.history_toggle_off_rounded,
+            onTap: () => _showToast('Archive coming soon'),
+          ),
+          AppActionSheetItem(
+            title: 'Hide like and share counts',
+            trailingIcon: Icons.heart_broken_outlined,
+            onTap: () => _showToast('Hide counts coming soon'),
+          ),
+          AppActionSheetItem(
+            title: 'Who can reply & quote',
+            trailingIcon: Icons.chevron_right_rounded,
+            onTap: () => _showToast('Coming soon'),
+          ),
+        ]),
+        AppActionSheetSection([
+          AppActionSheetItem(
+            title: 'Delete',
+            trailingIcon: Icons.delete_outline,
+            destructive: true,
+            onTap: _confirmAndDeletePost,
+          ),
+        ]),
+      ],
     );
   }
 
@@ -559,6 +306,58 @@ mixin _TweetPostCardActions on _TweetPostCardStateBase {
     );
   }
 
+  Future<void> _confirmAndDeletePost() async {
+    final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final Color onSurface = theme.colorScheme.onSurface;
+
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(
+            'Delete post?',
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: onSurface,
+            ),
+          ),
+          content: Text(
+            'This can’t be undone.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: onSurface.withValues(alpha: 0.7),
+            ),
+          ),
+          backgroundColor: isDark ? theme.colorScheme.surface : Colors.white,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.red,
+              ),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await ref.read(postRepositoryProvider).deletePost(postId: widget.post.id);
+      if (!mounted) return;
+      _showToast('Post deleted');
+    } catch (e) {
+      if (!mounted) return;
+      _showToast('Could not delete post');
+    }
+  }
+
   bool _userHasReposted() {
     final handle = widget.currentUserHandle;
     if (handle.isEmpty) return false;
@@ -569,21 +368,11 @@ mixin _TweetPostCardActions on _TweetPostCardStateBase {
   }
 
   Future<void> _openReplyComposer() async {
-    // Open the same thread view used in profile, focusing the composer
     await Navigator.of(context).push(
-      ThreadScreen.route(
-        postId: widget.post.id,
+      messageRepliesRouteFromPost(
+        post: widget.post,
         currentUserHandle: widget.currentUserHandle,
-        initialReplyPostId: widget.post.id,
       ),
     );
-    // After returning, refresh reply count from service to reflect potential changes
-    if (!mounted) return;
-    final updated = ref
-        .read(messageThreadControllerProvider.notifier)
-        .buildThread(widget.post.id)
-        .post
-        .replies;
-    setState(() => _replies = updated);
   }
 }

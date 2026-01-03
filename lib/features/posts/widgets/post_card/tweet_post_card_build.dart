@@ -362,6 +362,17 @@ mixin _TweetPostCardBuild on _TweetPostCardStateBase, _TweetPostCardActions {
         ],
       );
 
+      if (cardBackground != null) {
+        fullWidth = Container(
+          decoration: BoxDecoration(
+            color: cardBackground,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          child: fullWidth,
+        );
+      }
+
       return fullWidth;
     }
 
@@ -398,6 +409,16 @@ mixin _TweetPostCardBuild on _TweetPostCardStateBase, _TweetPostCardActions {
         Expanded(child: shell),
       ],
     );
+    if (cardBackground != null) {
+      return Container(
+        decoration: BoxDecoration(
+          color: cardBackground,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        child: row,
+      );
+    }
     return row;
   }
 
@@ -421,10 +442,10 @@ mixin _TweetPostCardBuild on _TweetPostCardStateBase, _TweetPostCardActions {
     // Small gap between metrics group and action button.
     final double gapBetweenGroups = isCompact ? 2.0 : 4.0;
     final Map<TweetMetricType, Offset> visualOffsets = {
-      if (!isCompact) TweetMetricType.like: const Offset(10, 0),
-      if (!isCompact) TweetMetricType.bookmark: const Offset(24, 0),
-      // Move share slightly further left so it sits a bit closer in
-      if (!isCompact) TweetMetricType.share: const Offset(6, 0),
+      if (!isCompact) TweetMetricType.like: const Offset(8, 0),
+      // Keep within its slot to avoid overlap/hit-test issues.
+      if (!isCompact) TweetMetricType.bookmark: const Offset(18, 0),
+      if (!isCompact) TweetMetricType.share: const Offset(4, 0),
     };
 
     Widget withVisualOffset(TweetMetricType type, Widget child) {
@@ -529,7 +550,7 @@ mixin _TweetPostCardBuild on _TweetPostCardStateBase, _TweetPostCardActions {
         };
         break;
       case TweetMetricType.bookmark:
-        onTap = _toggleBookmark;
+        onTap = _toggleBookmarkWithToast;
         break;
       case TweetMetricType.share:
         onTap = () => _showToast('Share sheet coming soon');

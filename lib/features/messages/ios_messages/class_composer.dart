@@ -46,10 +46,13 @@ class _ClassComposerState extends State<_ClassComposer> {
 
   Future<void> _openEmojiPicker() async {
     final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final Color subtle = theme.colorScheme.onSurface.withValues(alpha: isDark ? 0.7 : 0.55);
+    
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: theme.colorScheme.surface,
-      isScrollControlled: false,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -70,67 +73,145 @@ class _ClassComposerState extends State<_ClassComposer> {
                 ),
               ],
             ),
-            child: EmojiPicker(
-              onEmojiSelected: (Category? category, Emoji emoji) {
-                _insertEmoji(emoji.emoji);
-                Navigator.of(ctx).pop();
-              },
-              config: Config(
-                height: 320,
-                // Avoid platform channel call for getSupportedEmojis on
-                // platforms where the plugin is not registered.
-                checkPlatformCompatibility: false,
-                // Order: search bar on top, emoji grid in middle,
-                // category bar at the very bottom like WhatsApp.
-                viewOrderConfig: const ViewOrderConfig(
-                  top: EmojiPickerItem.searchBar,
-                  middle: EmojiPickerItem.emojiView,
-                  bottom: EmojiPickerItem.categoryBar,
-                ),
-                emojiViewConfig: EmojiViewConfig(
-                  columns: 8,
-                  emojiSizeMax: 30,
-                  backgroundColor: theme.colorScheme.surface,
-                  verticalSpacing: 8,
-                  horizontalSpacing: 8,
-                  gridPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Drag handle
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(top: 10, bottom: 8),
+                  decoration: BoxDecoration(
+                    color: theme.dividerColor.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(999),
                   ),
-                  buttonMode: ButtonMode.CUPERTINO,
                 ),
-                // Start on RECENT so frequently used emojis are shown first,
-                // then users can scroll through other categories.
-                categoryViewConfig: CategoryViewConfig(
-                  initCategory: Category.SMILEYS,
-                  recentTabBehavior: RecentTabBehavior.RECENT,
-                  backgroundColor: theme.colorScheme.surface,
-                  iconColor: theme.colorScheme.onSurface.withValues(
-                    alpha: 0.45,
+                // Text input row with send button
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              if (!isDark)
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.10),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 3),
+                                ),
+                            ],
+                          ),
+                          child: TextField(
+                            controller: widget.controller,
+                            maxLines: 2,
+                            minLines: 1,
+                            textCapitalization: TextCapitalization.sentences,
+                            cursorColor: Colors.black,
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              color: Colors.black,
+                              fontFamily: 'Roboto',
+                              fontSize: 15,
+                              height: 1.3,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: widget.hintText,
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              filled: false,
+                              hintStyle: theme.textTheme.bodyLarge?.copyWith(
+                                color: subtle,
+                                fontSize: 15,
+                              ),
+                              border: InputBorder.none,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Send button
+                      SizedBox(
+                        height: 44,
+                        width: 44,
+                        child: Material(
+                          color: theme.colorScheme.primary,
+                          borderRadius: BorderRadius.circular(999),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(999),
+                            onTap: () {
+                              Navigator.of(ctx).pop();
+                              widget.onSend();
+                            },
+                            child: const Center(
+                              child: Icon(Icons.send_rounded, color: Colors.white, size: 20),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  iconColorSelected: theme.colorScheme.primary,
-                  indicatorColor: theme.colorScheme.primary,
-                  backspaceColor: theme.colorScheme.primary,
-                  dividerColor: theme.dividerColor.withValues(alpha: 0.2),
                 ),
-                bottomActionBarConfig: BottomActionBarConfig(
-                  enabled: false,
-                  backgroundColor: theme.colorScheme.surface,
+                // Emoji picker
+                EmojiPicker(
+                  onEmojiSelected: (Category? category, Emoji emoji) {
+                    _insertEmoji(emoji.emoji);
+                  },
+                  config: Config(
+                    height: 280,
+                    checkPlatformCompatibility: false,
+                    viewOrderConfig: const ViewOrderConfig(
+                      top: EmojiPickerItem.categoryBar,
+                      middle: EmojiPickerItem.emojiView,
+                      bottom: EmojiPickerItem.searchBar,
+                    ),
+                    emojiViewConfig: EmojiViewConfig(
+                      columns: 8,
+                      emojiSizeMax: 30,
+                      backgroundColor: theme.colorScheme.surface,
+                      verticalSpacing: 8,
+                      horizontalSpacing: 8,
+                      gridPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      buttonMode: ButtonMode.CUPERTINO,
+                    ),
+                    categoryViewConfig: CategoryViewConfig(
+                      initCategory: Category.SMILEYS,
+                      recentTabBehavior: RecentTabBehavior.RECENT,
+                      backgroundColor: theme.colorScheme.surface,
+                      iconColor: theme.colorScheme.onSurface.withValues(
+                        alpha: 0.45,
+                      ),
+                      iconColorSelected: theme.colorScheme.primary,
+                      indicatorColor: theme.colorScheme.primary,
+                      backspaceColor: theme.colorScheme.primary,
+                      dividerColor: theme.dividerColor.withValues(alpha: 0.2),
+                    ),
+                    bottomActionBarConfig: BottomActionBarConfig(
+                      enabled: false,
+                      backgroundColor: theme.colorScheme.surface,
+                    ),
+                    searchViewConfig: SearchViewConfig(
+                      backgroundColor: theme.colorScheme.surface.withValues(
+                        alpha: 0.98,
+                      ),
+                      buttonIconColor: theme.colorScheme.onSurface.withValues(
+                        alpha: 0.6,
+                      ),
+                      hintText: 'Search emoji',
+                      hintTextStyle: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                      ),
+                      inputTextStyle: theme.textTheme.bodyMedium,
+                    ),
+                  ),
                 ),
-                searchViewConfig: SearchViewConfig(
-                  backgroundColor: theme.colorScheme.surface.withValues(
-                    alpha: 0.98,
-                  ),
-                  buttonIconColor: theme.colorScheme.onSurface.withValues(
-                    alpha: 0.6,
-                  ),
-                  hintText: 'Search emoji',
-                  hintTextStyle: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                  ),
-                  inputTextStyle: theme.textTheme.bodyMedium,
-                ),
-              ),
+              ],
             ),
           ),
         );
@@ -232,6 +313,10 @@ class _ClassComposerState extends State<_ClassComposer> {
     // Show the camera shortcut only when there's no text yet.
     final bool showCamera = widget.controller.text.trim().isEmpty;
 
+    final double cardRadius = 16;
+    final Color cardColor =
+        isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white;
+
     final input = TextField(
       controller: widget.controller,
       focusNode: widget.focusNode,
@@ -240,38 +325,38 @@ class _ClassComposerState extends State<_ClassComposer> {
       textCapitalization: TextCapitalization.sentences,
       textInputAction: TextInputAction.newline,
       cursorColor: Colors.black,
+      textAlignVertical: TextAlignVertical.center,
       style: theme.textTheme.bodyLarge?.copyWith(
         color: Colors.black,
-        fontSize: 16,
-        height: 1.35,
+        fontFamily: 'Roboto',
+        fontSize: 15,
+        height: 1.3,
         letterSpacing: 0.1,
       ),
       decoration: InputDecoration(
         hintText: widget.hintText,
         isDense: true,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 10,
-          vertical: 14,
-        ),
-        filled: true,
-        fillColor: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        filled: false,
         hintStyle: theme.textTheme.bodyLarge?.copyWith(
           color: subtle,
-          fontSize: 13,
+          fontFamily: 'Roboto',
+          fontSize: 15,
           height: 1.25,
           letterSpacing: 0.1,
         ),
         prefixIconConstraints: const BoxConstraints(
-          minWidth: 44,
-          minHeight: 44,
+          minWidth: 40,
+          minHeight: 40,
         ),
         prefixIcon: IconButton(
           tooltip: 'Emoji',
           onPressed: _openEmojiPicker,
           icon: Icon(Icons.emoji_emotions_outlined, color: subtle, size: 24),
           padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-          visualDensity: VisualDensity.compact,
+          constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+          visualDensity: VisualDensity(horizontal: -2, vertical: -2),
         ),
         suffixIcon: Row(
           mainAxisSize: MainAxisSize.min,
@@ -282,7 +367,7 @@ class _ClassComposerState extends State<_ClassComposer> {
               icon: Icon(Icons.attach_file_rounded, color: subtle, size: 24),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-              visualDensity: VisualDensity.compact,
+              visualDensity: VisualDensity(horizontal: -2, vertical: -2),
             ),
             if (showCamera)
               IconButton(
@@ -295,40 +380,35 @@ class _ClassComposerState extends State<_ClassComposer> {
                 ),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-                visualDensity: VisualDensity.compact,
+                visualDensity: VisualDensity(horizontal: -2, vertical: -2),
               ),
           ],
         ),
-        // Grey rounded corners
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(24),
-          borderSide: BorderSide(
-            color: theme.colorScheme.onSurface.withValues(
-              alpha: isDark ? 0.25 : 0.18,
-            ),
-            width: 1.0,
-          ),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(24),
-          borderSide: BorderSide(
-            color: theme.colorScheme.onSurface.withValues(
-              alpha: isDark ? 0.25 : 0.18,
-            ),
-            width: 1.0,
-          ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(24),
-          borderSide: BorderSide(
-            color: theme.colorScheme.onSurface.withValues(
-              alpha: isDark ? 0.35 : 0.28,
-            ),
-            width: 1.3,
-          ),
-        ),
+        border: InputBorder.none,
+        enabledBorder: InputBorder.none,
+        focusedBorder: InputBorder.none,
+        disabledBorder: InputBorder.none,
       ),
       onSubmitted: (_) => widget.onSend(),
+    );
+
+    final Widget textCard = Container(
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(cardRadius),
+        boxShadow: [
+          if (!isDark)
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.10),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(cardRadius),
+        child: input,
+      ),
     );
 
     // Standalone pill send button to the right of the input.
@@ -360,17 +440,22 @@ class _ClassComposerState extends State<_ClassComposer> {
       ),
     );
 
-    // Keep the composer at a comfortable, slightly larger height.
-    final compactInput = SizedBox(
-      height: 56,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(child: input),
-          const SizedBox(width: 4),
-          sendButton,
-        ],
-      ),
+    // Make the send button visually detached to the right.
+    final compactInput = Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Expanded(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 52),
+            child: textCard,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 2),
+          child: sendButton,
+        ),
+      ],
     );
 
     if (_attachments.isEmpty) return compactInput;

@@ -302,9 +302,9 @@ class _MyPlanCard extends StatelessWidget {
     final int clampedUsed = usedQuizzes.clamp(0, clampedLimit);
     final double progress = clampedUsed / clampedLimit;
 
-	    const Color text = Color(0xFF111827);
-	    final Color progressFill = Colors.black.withValues(alpha: 0.55);
-	    const Color glassOffWhite = Color(0xFFFFFBF7);
+    const Color text = Color(0xFF111827);
+    final Color progressFill = const Color(0xFF4ADE80);
+    const Color glassOffWhite = Color(0xFFFFFBF7);
 
 	    return Material(
       color: Colors.transparent,
@@ -320,15 +320,8 @@ class _MyPlanCard extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: glassOffWhite.withValues(alpha: 0.78),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.10),
-                        blurRadius: 22,
-                        offset: const Offset(0, 14),
-                      ),
-                    ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -349,14 +342,14 @@ class _MyPlanCard extends StatelessWidget {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: glassOffWhite.withValues(alpha: 0.85),
+                              color: const Color(0xFFCC8E4A),
                               borderRadius: BorderRadius.circular(999),
                             ),
                             child: Text(
                               planName,
                               style: theme.textTheme.bodySmall?.copyWith(
                                 fontWeight: FontWeight.w800,
-                                color: text,
+                                color: Colors.white,
                               ),
                             ),
                           ),
@@ -381,22 +374,27 @@ class _MyPlanCard extends StatelessWidget {
                           Expanded(
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(999),
-                              child: LinearProgressIndicator(
-                                value: progress,
-                                minHeight: 8,
-                                backgroundColor:
-                                    Colors.black.withValues(alpha: 0.08),
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(progressFill),
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  LinearProgressIndicator(
+                                    value: progress,
+                                    minHeight: 14,
+                                    backgroundColor:
+                                        Colors.black.withValues(alpha: 0.08),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      progressFill,
+                                    ),
+                                  ),
+                                  Text(
+                                    '$clampedUsed/$clampedLimit',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            '$clampedUsed/$clampedLimit',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              color: text,
                             ),
                           ),
                         ],

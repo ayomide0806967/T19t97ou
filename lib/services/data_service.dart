@@ -114,6 +114,14 @@ class DataService implements PostRepository {
     await _save();
   }
 
+  @override
+  Future<void> deletePost({required String postId}) async {
+    final beforeCount = _posts.length;
+    _posts.removeWhere((post) => post.id == postId);
+    if (_posts.length == beforeCount) return;
+    await _save();
+  }
+
   bool hasUserRetweeted(String postId, String userHandle) =>
       hasUserReposted(postId, userHandle);
 

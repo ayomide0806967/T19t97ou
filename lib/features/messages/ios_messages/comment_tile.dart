@@ -6,6 +6,7 @@ class _CommentTile extends StatefulWidget {
     required this.isDark,
     required this.currentUserHandle,
     this.onSwipeReply,
+    this.onMore,
     this.selected = false,
     this.onLongPress,
     this.onTap,
@@ -14,6 +15,7 @@ class _CommentTile extends StatefulWidget {
   final bool isDark;
   final String currentUserHandle;
   final VoidCallback? onSwipeReply;
+  final VoidCallback? onMore;
   final bool selected;
   final VoidCallback? onLongPress;
   final VoidCallback? onTap;

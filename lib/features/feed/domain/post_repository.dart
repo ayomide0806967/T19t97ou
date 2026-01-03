@@ -47,6 +47,8 @@ abstract class PostRepository {
     List<String> tags,
   });
 
+  Future<void> deletePost({required String postId});
+
   bool hasUserReposted(String postId, String userHandle);
 
   Future<bool> toggleRepost({

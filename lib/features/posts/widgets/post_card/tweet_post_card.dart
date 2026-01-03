@@ -9,13 +9,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../constants/toast_durations.dart';
+import '../../../../core/di/app_providers.dart';
 import '../../../../core/navigation/app_nav.dart';
+import '../../../../core/ui/app_action_sheet.dart';
 import '../../../../core/ui/app_toast.dart';
 import '../../../../core/ui/initials.dart';
 import '../../../../models/post.dart';
 import '../../../../screens/post_activity_screen.dart';
 import '../../../../screens/quote_screen.dart';
-import '../../../../screens/thread_screen.dart';
 import '../../../../theme/app_theme.dart';
 // Removed card-style shell for timeline layout
 import '../../../../widgets/hexagon_avatar.dart';
@@ -24,6 +25,7 @@ import '../../../../widgets/icons/x_comment_icon.dart';
 import '../../../../widgets/icons/x_retweet_icon.dart';
 import '../../../../widgets/icons/x_share_icon.dart';
 import '../../../messages/application/message_thread_controller.dart';
+import '../../../messages/replies/message_replies_route.dart';
 
 part 'tweet_post_card_media.dart';
 part 'tweet_post_card_metrics.dart';

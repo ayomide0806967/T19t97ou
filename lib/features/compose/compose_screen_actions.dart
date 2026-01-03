@@ -29,15 +29,36 @@ abstract class _ComposeScreenStateBase extends ConsumerState<ComposeScreen> {
   String get currentUserHandle {
     final profileHandle =
         ref.read(profileRepositoryProvider).profile.handle.trim();
-    if (profileHandle.isNotEmpty) return profileHandle;
+    if (profileHandle.isNotEmpty && !_isDemoProfileHandle(profileHandle)) {
+      return profileHandle;
+    }
     return ref.read(currentUserHandleProvider);
   }
 
   String get currentUserName {
-    final name = ref.read(profileRepositoryProvider).profile.fullName.trim();
-    if (name.isNotEmpty) return name;
+    final profile = ref.read(profileRepositoryProvider).profile;
+    final name = profile.fullName.trim();
+    if (name.isNotEmpty && !_isDemoProfileName(name)) return name;
     final handle = currentUserHandle.trim();
-    return handle.isEmpty ? 'You' : handle;
+    if (handle.isEmpty) return 'You';
+    return _displayNameFromHandle(handle);
+  }
+
+  bool _isDemoProfileHandle(String handle) {
+    final normalized = handle.trim().toLowerCase();
+    return normalized == '@productlead' || normalized == '@yourprofile';
+  }
+
+  bool _isDemoProfileName(String name) {
+    final normalized = name.trim().toLowerCase();
+    return normalized == 'alex rivera';
+  }
+
+  String _displayNameFromHandle(String handle) {
+    final raw = handle.trim().replaceFirst(RegExp(r'^@'), '');
+    final cleaned = raw.replaceAll('_', ' ').trim();
+    if (cleaned.isEmpty) return 'You';
+    return cleaned[0].toUpperCase() + cleaned.substring(1);
   }
 
   String get replyPermissionLabel {
@@ -117,14 +138,29 @@ abstract class _ComposeScreenStateBase extends ConsumerState<ComposeScreen> {
     if (!canPost) return;
     setState(() => isPosting = true);
     final handle = currentUserHandle;
-    await ref.read(composeControllerProvider.notifier).createPost(
-          author: currentUserName,
-          handle: handle,
-          body: controller.text.trim(),
-          mediaPaths: media.map((f) => f.path).toList(),
-        );
-    if (!mounted) return;
-    Navigator.pop(context);
+    try {
+      await ref.read(composeControllerProvider.notifier).createPost(
+            author: currentUserName,
+            handle: handle,
+            body: controller.text.trim(),
+            mediaPaths: media.map((f) => f.path).toList(),
+          );
+      if (!mounted) return;
+      AppToast.showTopOverlay(
+        context,
+        'Your post was sent',
+        duration: ToastDurations.standard,
+      );
+      Navigator.pop(context);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => isPosting = false);
+      AppToast.showTopOverlay(
+        context,
+        'Could not send post',
+        duration: ToastDurations.standard,
+      );
+    }
   }
 
   Future<void> handleExit() async {

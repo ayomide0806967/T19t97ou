@@ -110,19 +110,72 @@ class _MessageCommentsPageState extends ConsumerState<_MessageCommentsPage> {
       ),
     );
 
-    bool appended = false;
-    if (_replyTarget != null) {
-      _replyTarget!.children.add(newNode);
-      appended = true;
-    }
-    if (!appended) {
-      _threads.add(newNode);
-    }
+    // Keep the timeline chronological (append at end) even when replying.
+    _threads.add(newNode);
 
     setState(() {
       _replyTarget = null;
       _composer.clear();
     });
+
+    AppToast.showTopOverlay(
+      context,
+      'Comment sent',
+      duration: ToastDurations.standard,
+    );
+  }
+
+  void _openCommentMoreSheet(_ThreadNode node) {
+    final bool isMine =
+        node.comment.author == widget.currentUserHandle || node.comment.author == 'You';
+
+    Future<void> copyText() async {
+      await Clipboard.setData(ClipboardData(text: node.comment.body));
+      if (!mounted) return;
+      AppToast.showTopOverlay(
+        context,
+        'Copied',
+        duration: ToastDurations.standard,
+      );
+    }
+
+    void deleteComment() {
+      setState(() {
+        _threads = _filterNodes(_threads, <_ThreadNode>{node});
+        _selected.remove(node);
+        if (identical(_replyTarget, node)) _replyTarget = null;
+      });
+      AppToast.showTopOverlay(
+        context,
+        'Comment deleted',
+        duration: ToastDurations.standard,
+      );
+    }
+
+    AppActionSheet.show(
+      context,
+      sections: [
+        AppActionSheetSection([
+          AppActionSheetItem(
+            title: 'Copy',
+            trailingIcon: Icons.copy_rounded,
+            onTap: copyText,
+          ),
+          AppActionSheetItem(
+            title: 'Reply',
+            trailingIcon: Icons.reply_rounded,
+            onTap: () => _setReplyTarget(node),
+          ),
+          if (isMine)
+            AppActionSheetItem(
+              title: 'Delete',
+              trailingIcon: Icons.delete_outline,
+              destructive: true,
+              onTap: deleteComment,
+            ),
+        ]),
+      ],
+    );
   }
 
   void _toggleSelection(_ThreadNode node) {
@@ -292,7 +345,16 @@ class _MessageCommentsPageState extends ConsumerState<_MessageCommentsPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bool selectionMode = _selected.isNotEmpty;
+    final double keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    final double bottomSafeInset = MediaQuery.paddingOf(context).bottom;
+    final bool showBottomBar = _replyTarget != null || _composerVisible;
+    final double bottomBarSpacer = showBottomBar
+        ? (_replyTarget != null ? 210 : 100) + bottomSafeInset
+        : bottomSafeInset;
     return Scaffold(
+      resizeToAvoidBottomInset: false,
+      extendBody: true,
+      backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
         leading: selectionMode
             ? IconButton(
@@ -333,227 +395,289 @@ class _MessageCommentsPageState extends ConsumerState<_MessageCommentsPage> {
               ]
             : null,
       ),
-      body: Column(
+      body: ListView(
+        padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + bottomBarSpacer),
         children: [
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-              children: [
-                // Render the primary tweet using the canonical TweetPostCard
-                TweetPostCard(
-                  post: PostModel(
-                    id: widget.message.id,
-                    author: widget.message.author,
-                    handle: widget.message.handle,
-                    timeAgo: widget.message.timeAgo,
-                    body: widget.message.body,
-                    tags: const <String>[],
-                    replies: widget.message.replies,
-                    reposts: 0,
-                    likes: widget.message.likes,
-                    views: 0,
-                    bookmarks: 0,
-                  ),
-                  currentUserHandle: widget.currentUserHandle,
-                  fullWidthHeader: true,
-                  showTimeInHeader: false,
-                ),
-                const SizedBox(height: 12),
-                // Top / View activity bar, matching X-style replies header
-                Builder(
-                  builder: (context) {
-                    final ThemeData theme = Theme.of(context);
-                    // Make the separators around the Top / View activity bar
-                    // more prominent so they clearly match the reference UI.
-                    final Color divider = theme.colorScheme.onSurface
-                        .withValues(
-                          // Slightly softer than before so the lines
-                          // are visible but not overpowering.
-                          alpha: theme.brightness == Brightness.dark
-                              ? 0.28
-                              : 0.12,
-                        );
-                    final Color subtle = theme.colorScheme.onSurface.withValues(
-                      alpha: 0.6,
-                    );
-                    return Column(
-                      mainAxisSize: MainAxisSize.min,
+          // Render the primary tweet using the canonical TweetPostCard
+          TweetPostCard(
+            post: PostModel(
+              id: widget.message.id,
+              author: widget.message.author,
+              handle: widget.message.handle,
+              timeAgo: widget.message.timeAgo,
+              body: widget.message.body,
+              tags: const <String>[],
+              replies: widget.message.replies,
+              reposts: 0,
+              likes: widget.message.likes,
+              views: 0,
+              bookmarks: 0,
+            ),
+            currentUserHandle: widget.currentUserHandle,
+            fullWidthHeader: true,
+            showTimeInHeader: false,
+          ),
+          const SizedBox(height: 12),
+          // Top / View activity bar, matching X-style replies header
+          Builder(
+            builder: (context) {
+              final ThemeData theme = Theme.of(context);
+              final Color divider = theme.colorScheme.onSurface.withValues(
+                alpha: theme.brightness == Brightness.dark ? 0.28 : 0.12,
+              );
+              final Color subtle = theme.colorScheme.onSurface.withValues(
+                alpha: 0.6,
+              );
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Divider(height: 1, thickness: 0.8, color: divider),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 10,
+                    ),
+                    child: Row(
                       children: [
-                        Divider(height: 1, thickness: 0.8, color: divider),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                            vertical: 10,
-                          ),
-                          child: Row(
-                            children: [
-                              // Left: Top ▼
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    'Top',
-                                    style: theme.textTheme.titleMedium
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.w700,
-                                          color: theme.colorScheme.onSurface,
-                                        ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Icon(
-                                    Icons.keyboard_arrow_down_rounded,
-                                    size: 18,
-                                    color: subtle,
-                                  ),
-                                ],
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Top',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: theme.colorScheme.onSurface,
                               ),
-                              const Spacer(),
-                              // Right: View activity >
-                              InkWell(
-                                borderRadius: BorderRadius.circular(999),
-                                onTap: () {
-                                  final post = PostModel(
-                                    id: widget.message.id,
-                                    author: widget.message.author,
-                                    handle: widget.message.handle,
-                                    timeAgo: widget.message.timeAgo,
-                                    body: widget.message.body,
-                                    tags: const <String>[],
-                                    replies: widget.message.replies,
-                                    reposts: 0, // Not tracked in message model
-                                    likes: widget.message.likes,
-                                    views: 0,
-                                    bookmarks: 0,
-                                  );
-                                  Navigator.of(
-                                    context,
-                                  ).push(PostActivityScreen.route(post: post));
-                                },
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      'View activity',
-                                      style: theme.textTheme.bodyMedium
-                                          ?.copyWith(
-                                            color: subtle,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Icon(
-                                      Icons.chevron_right_rounded,
-                                      size: 18,
-                                      color: subtle,
-                                    ),
-                                  ],
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              size: 18,
+                              color: subtle,
+                            ),
+                          ],
+                        ),
+                        const Spacer(),
+                        InkWell(
+                          borderRadius: BorderRadius.circular(999),
+                          onTap: () {
+                            final post = PostModel(
+                              id: widget.message.id,
+                              author: widget.message.author,
+                              handle: widget.message.handle,
+                              timeAgo: widget.message.timeAgo,
+                              body: widget.message.body,
+                              tags: const <String>[],
+                              replies: widget.message.replies,
+                              reposts: 0,
+                              likes: widget.message.likes,
+                              views: 0,
+                              bookmarks: 0,
+                            );
+                            Navigator.of(context).push(
+                              PostActivityScreen.route(post: post),
+                            );
+                          },
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'View activity',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: subtle,
+                                  fontWeight: FontWeight.w500,
                                 ),
+                              ),
+                              const SizedBox(width: 4),
+                              Icon(
+                                Icons.chevron_right_rounded,
+                                size: 18,
+                                color: subtle,
                               ),
                             ],
                           ),
                         ),
-                        Divider(height: 1, thickness: 0.8, color: divider),
                       ],
-                    );
-                  },
-                ),
-                const SizedBox(height: 4),
-                _ThreadCommentsView(
-                  nodes: _threads,
-                  currentUserHandle: widget.currentUserHandle,
-                  onReply: _setReplyTarget,
-                  selectionMode: selectionMode,
-                  selected: _selected,
-                  onToggleSelect: _toggleSelection,
-                ),
-              ],
-            ),
-          ),
-          if (_replyTarget != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: theme.brightness == Brightness.dark
-                      ? Colors.white.withValues(alpha: 0.06)
-                      : Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: theme.dividerColor.withValues(alpha: 0.22),
+                    ),
                   ),
-                ),
-                padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 3,
-                      height: 40,
-                      color: theme.colorScheme.primary,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _replyTarget!.comment.author.replaceFirst(
-                              RegExp(r'^\s*@'),
-                              '',
-                            ),
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              color: theme.colorScheme.onSurface,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            _replyTarget!.comment.body,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              color: theme.colorScheme.onSurface.withValues(
-                                alpha: 0.75,
-                              ),
-                              height: 1.4,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () {
-                        setState(() {
-                          _replyTarget = null;
-                          // Keep composer visible even after clearing reply target
-                          _composerVisible = true;
-                        });
-                        _composer
-                          ..clear()
-                          ..clearComposing();
-                        _composerFocusNode.unfocus();
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          if (_replyTarget != null || _composerVisible)
-            SafeArea(
-              top: false,
-              minimum: const EdgeInsets.fromLTRB(16, 2, 8, 4),
-              child: _ClassComposer(
-                controller: _composer,
-                focusNode: _composerFocusNode,
-                hintText: _replyTarget == null
-                    ? 'Write a reply…'
-                    : 'Replying to ${_replyTarget!.comment.author.replaceFirst(RegExp(r'^\s*@'), '')}',
-                onSend: _sendReply,
-              ),
-            ),
+                  Divider(height: 1, thickness: 0.8, color: divider),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 4),
+          _ThreadCommentsView(
+            nodes: _threads,
+            currentUserHandle: widget.currentUserHandle,
+            onReply: _setReplyTarget,
+            onMore: _openCommentMoreSheet,
+            selectionMode: selectionMode,
+            selected: _selected,
+            onToggleSelect: _toggleSelection,
+          ),
         ],
       ),
+      bottomNavigationBar: showBottomBar
+          ? Padding(
+              padding: EdgeInsets.only(bottom: keyboardInset),
+	              child: SafeArea(
+	                top: false,
+	                minimum: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_replyTarget != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 2),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: theme.brightness == Brightness.dark
+                                      ? Colors.white.withValues(alpha: 0.06)
+                                      : Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: theme.dividerColor.withValues(
+                                      alpha: 0.22,
+                                    ),
+                                  ),
+                                ),
+                                padding: const EdgeInsets.fromLTRB(
+                                  10,
+                                  10,
+                                  6,
+                                  10,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: theme.colorScheme.onSurface
+                                              .withValues(
+                                            alpha: theme.brightness ==
+                                                    Brightness.dark
+                                                ? 0.14
+                                                : 0.06,
+                                          ),
+                                          borderRadius:
+                                              BorderRadius.circular(14),
+                                        ),
+                                        padding: const EdgeInsets.fromLTRB(
+                                          12,
+                                          10,
+                                          8,
+                                          10,
+                                        ),
+                                        child: IntrinsicHeight(
+                                          child: Row(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.stretch,
+                                            children: [
+                                              Container(
+                                                width: 3,
+                                                decoration: BoxDecoration(
+                                                  color: Colors.black,
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                    999,
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 10),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      _replyTarget!
+                                                          .comment.author
+                                                          .replaceFirst(
+                                                        RegExp(r'^\\s*@'),
+                                                        '',
+                                                      ),
+                                                      style: theme.textTheme
+                                                          .titleMedium
+                                                          ?.copyWith(
+                                                        fontWeight:
+                                                            FontWeight.w800,
+                                                        color: theme
+                                                            .colorScheme
+                                                            .onSurface,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 4),
+                                                    Text(
+                                                      _replyTarget!.comment.body,
+                                                      maxLines: 2,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      style: theme
+                                                          .textTheme.bodyLarge
+                                                          ?.copyWith(
+                                                        color: theme
+                                                            .colorScheme
+                                                            .onSurface
+                                                            .withValues(
+                                                              alpha: 0.75,
+                                                            ),
+                                                        height: 1.4,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              SizedBox(
+                                                width: 32,
+                                                child: IconButton(
+                                                  icon: const Icon(Icons.close),
+                                                  iconSize: 18,
+                                                  padding: EdgeInsets.zero,
+                                                  constraints:
+                                                      const BoxConstraints(
+                                                    minWidth: 32,
+                                                    minHeight: 32,
+                                                  ),
+                                                  onPressed: () {
+                                                    setState(() {
+                                                      _replyTarget = null;
+                                                      _composerVisible = true;
+                                                    });
+                                                    _composer
+                                                      ..clear()
+                                                      ..clearComposing();
+                                                    _composerFocusNode.unfocus();
+                                                  },
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 56),
+                          ],
+                        ),
+                      ),
+                    _ClassComposer(
+                      controller: _composer,
+                      focusNode: _composerFocusNode,
+                      hintText: 'Write a reply…',
+	                      onSend: _sendReply,
+	                    ),
+	                  ],
+	                ),
+	              ),
+            )
+          : null,
     );
   }
 }

@@ -213,6 +213,20 @@ class SupabasePostRepository implements PostRepository {
     await load();
   }
 
+  @override
+  Future<void> deletePost({required String postId}) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) return;
+
+    await _client.from('posts').delete().eq('id', postId).eq('author_id', userId);
+
+    _posts.removeWhere((p) => p.id == postId);
+    _likedPostIds.remove(postId);
+    _bookmarkedPostIds.remove(postId);
+    _repostedPostIds.remove(postId);
+    _emitTimeline();
+  }
+
   // ============================================================================
   // Likes functionality
   // ============================================================================
@@ -460,4 +474,3 @@ class SupabasePostRepository implements PostRepository {
     _timelineController.close();
   }
 }
-

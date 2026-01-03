@@ -326,6 +326,7 @@ class _TweetMetricState extends State<TweetMetric>
     // For like/bookmark buttons: use GestureDetector with pop-out animation instead of highlight
     if (isLike || isBookmark) {
       return GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: _triggerPopAnimation,
         child: AnimatedBuilder(
           animation: _popAnimation,
@@ -336,8 +337,9 @@ class _TweetMetricState extends State<TweetMetric>
             );
           },
           child: Container(
-            constraints: const BoxConstraints(minHeight: 44),
+            constraints: const BoxConstraints(minHeight: 44, minWidth: 44),
             alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 6),
             child: content,
           ),
         ),

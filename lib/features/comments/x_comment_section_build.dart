@@ -408,50 +408,81 @@ mixin _XCommentSectionBuild
                       Container(
                         margin: const EdgeInsets.only(bottom: 8),
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
+                          horizontal: 4,
+                          vertical: 2,
                         ),
+                        // Outer stays white like the composer background
                         decoration: BoxDecoration(
-                          color: AppTheme.accent.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(12),
+                          color: isDark
+                              ? Colors.black.withValues(alpha: 0.25)
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(16),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Container(
-                              width: 4,
+                              width: 3,
                               height: 24,
                               decoration: const BoxDecoration(
-                                color: AppTheme.accent,
+                                // Rounded black line, similar to WhatsApp
+                                color: Colors.black,
                                 borderRadius: BorderRadius.all(
-                                  Radius.circular(2),
+                                  Radius.circular(999),
                                 ),
                               ),
                             ),
                             const SizedBox(width: 8),
-                            ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 220),
-                              child: Text(
-                                'Replying to ${_replyingTo!.startsWith('@') ? _replyingTo! : '@$_replyingTo'}',
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: AppTheme.accent,
-                                  fontWeight: FontWeight.w600,
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                // Inner grey pill, WhatsApp-style
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: isDark ? 0.22 : 0.07,
                                 ),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  ConstrainedBox(
+                                    constraints:
+                                        const BoxConstraints(maxWidth: 220),
+                                    child: Text(
+                                      'Replying to ${_replyingTo!.startsWith('@') ? _replyingTo! : '@$_replyingTo'}',
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                        color: theme.colorScheme.onSurface
+                                            .withValues(
+                                          alpha: isDark ? 0.9 : 0.8,
+                                        ),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  if (_isReplying)
+                                    GestureDetector(
+                                      onTap: _cancelReply,
+                                      child: Padding(
+                                        padding:
+                                            const EdgeInsets.only(left: 6),
+                                        child: Icon(
+                                          Icons.close,
+                                          size: 16,
+                                          color: theme.colorScheme.onSurface
+                                              .withValues(
+                                            alpha: isDark ? 0.9 : 0.75,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                ],
                               ),
                             ),
-                            if (_isReplying)
-                              GestureDetector(
-                                onTap: _cancelReply,
-                                child: Padding(
-                                  padding: const EdgeInsets.only(left: 8),
-                                  child: Icon(
-                                    Icons.close,
-                                    size: 16,
-                                    color: AppTheme.accent,
-                                  ),
-                                ),
-                              ),
                           ],
                         ),
                       ),
