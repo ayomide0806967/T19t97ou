@@ -2,6 +2,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/auth/auth_repository.dart';
 import '../../../core/di/app_providers.dart';
+import '../../../core/error/app_error_handler.dart';
 import 'auth_ui_state.dart';
 
 part 'auth_controller.g.dart';
@@ -21,6 +22,7 @@ Stream<AppUser?> authState(Ref ref) async* {
 /// implementation details.
 ///
 /// Exposes a lightweight [AuthUiState] so UI can react to loading/error.
+/// Uses centralized [AppErrorHandler] for consistent error messages.
 @riverpod
 class AuthController extends _$AuthController {
   @override
@@ -34,9 +36,10 @@ class AuthController extends _$AuthController {
       await _repository.signInWithGoogle();
       state = state.copyWith(isLoading: false);
     } catch (e) {
+      final appError = AppErrorHandler.handle(e);
       state = state.copyWith(
         isLoading: false,
-        errorMessage: e.toString(),
+        errorMessage: appError.message,
       );
       rethrow;
     }
@@ -48,9 +51,10 @@ class AuthController extends _$AuthController {
       await _repository.signOut();
       state = state.copyWith(isLoading: false);
     } catch (e) {
+      final appError = AppErrorHandler.handle(e);
       state = state.copyWith(
         isLoading: false,
-        errorMessage: e.toString(),
+        errorMessage: appError.message,
       );
       rethrow;
     }
@@ -62,9 +66,10 @@ class AuthController extends _$AuthController {
       await _repository.signInWithEmailPassword(email, password);
       state = state.copyWith(isLoading: false);
     } catch (e) {
+      final appError = AppErrorHandler.handle(e);
       state = state.copyWith(
         isLoading: false,
-        errorMessage: e.toString(),
+        errorMessage: appError.message,
       );
       rethrow;
     }
@@ -76,9 +81,10 @@ class AuthController extends _$AuthController {
       await _repository.signUpWithEmailPassword(email, password);
       state = state.copyWith(isLoading: false);
     } catch (e) {
+      final appError = AppErrorHandler.handle(e);
       state = state.copyWith(
         isLoading: false,
-        errorMessage: e.toString(),
+        errorMessage: appError.message,
       );
       rethrow;
     }

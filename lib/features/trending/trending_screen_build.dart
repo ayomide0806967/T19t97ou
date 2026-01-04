@@ -94,6 +94,21 @@ mixin _TrendingScreenBuild on _TrendingScreenStateBase, _TrendingScreenActions {
           ),
         ),
         centerTitle: false,
+        actions: [
+          IconButton(
+            tooltip: 'Settings',
+            icon: Icon(
+              Icons.settings_outlined,
+              color: onSurface.withValues(alpha: 0.8),
+            ),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -207,8 +222,9 @@ mixin _TrendingScreenBuild on _TrendingScreenStateBase, _TrendingScreenActions {
             ),
             SliverToBoxAdapter(
               child: _SectionDivider(
-                color: theme.dividerColor.withValues(
-                  alpha: isDark ? 0.30 : 0.22,
+                thickness: 2,
+                color: (isDark ? Colors.white : Colors.black).withValues(
+                  alpha: isDark ? 0.18 : 0.14,
                 ),
               ),
             ),
@@ -237,25 +253,37 @@ mixin _TrendingScreenBuild on _TrendingScreenStateBase, _TrendingScreenActions {
                     children: [
                       Padding(
                         padding: EdgeInsets.fromLTRB(
-                          20,
+                          12,
                           index == 0 ? 0 : 12,
-                          20,
+                          12,
                           12,
                         ),
-                        child: TweetPostCard(
-                          post: post,
-                          currentUserHandle: currentUserHandle,
-                          backgroundColor: theme.cardColor,
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 720),
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: TweetPostCard(
+                                post: post,
+                                currentUserHandle: currentUserHandle,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                       if (!isLast)
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: Divider(
-                            height: 1,
-                            thickness: 1,
-                            color: theme.dividerColor.withValues(
-                              alpha: isDark ? 0.30 : 0.22,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 720),
+                              child: Divider(
+                                height: 1,
+                                thickness: 1,
+                                color: theme.dividerColor.withValues(
+                                  alpha: isDark ? 0.30 : 0.22,
+                                ),
+                              ),
                             ),
                           ),
                         ),

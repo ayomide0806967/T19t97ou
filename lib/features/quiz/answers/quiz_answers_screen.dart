@@ -147,7 +147,7 @@ class _QuizAnswersScreenState extends ConsumerState<QuizAnswersScreen> {
                           : Icons.circle_outlined,
                       size: 22,
                       color: _sortOption == option
-                          ? const Color(0xFFFF7A1A)
+                          ? const Color(0xFFFFB066)
                           : Colors.black.withValues(alpha: 0.12),
                     ),
                     title: Text(
@@ -267,7 +267,7 @@ class _QuizAnswersScreenState extends ConsumerState<QuizAnswersScreen> {
               });
             }
 
-            const logoOrange = Color(0xFFFF7A1A);
+            const logoOrange = Color(0xFFFFB066);
             final ButtonStyle primaryButtonStyle =
                 ElevatedButton.styleFrom(
               backgroundColor: logoOrange,

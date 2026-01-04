@@ -45,7 +45,7 @@ class AppToast {
     }
 
     final theme = Theme.of(context);
-    const logoOrange = Color(0xFFFF7A1A);
+    const logoOrange = Color(0xFFFFB066);
     // 10% transparent background (90% opaque), but softened by mixing with white.
     final Color bg = Color.lerp(Colors.white, logoOrange, 0.18)!
         .withValues(alpha: 0.9);

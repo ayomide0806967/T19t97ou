@@ -144,13 +144,7 @@ class _IosMinimalistMessagePageState
 
   List<_Conversation> _filteredConversations() {
     final query = _searchController.text.trim().toLowerCase();
-    if (query.isEmpty) return _demoConversations;
-    return _demoConversations
-        .where(
-          (conversation) =>
-              conversation.name.toLowerCase().contains(query) ||
-              conversation.lastMessage.toLowerCase().contains(query),
-        )
-        .toList();
+    if (query.isEmpty) return const <_Conversation>[];
+    return const <_Conversation>[];
   }
 }

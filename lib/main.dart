@@ -5,26 +5,18 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'core/auth/auth_repository.dart';
-import 'core/auth/local_auth_repository.dart';
 import 'core/config/app_config.dart';
 import 'core/di/app_providers.dart';
-import 'core/profile/profile_repository.dart';
-import 'core/profile/local_profile_repository.dart';
-import 'core/quiz/quiz_repository.dart' as quiz;
-import 'core/quiz/local_quiz_repository.dart';
 import 'core/supabase/supabase_auth_repository.dart';
 import 'core/supabase/supabase_post_repository.dart';
 import 'core/supabase/supabase_profile_repository.dart';
 import 'core/supabase/supabase_quiz_repository.dart';
 import 'features/feed/domain/post_repository.dart';
 import 'screens/auth_wrapper.dart';
-import 'services/data_service.dart';
-import 'services/profile_service.dart';
-import 'services/simple_auth_service.dart';
-import 'state/app_settings.dart';
+import 'screens/missing_config_screen.dart';
 import 'theme/app_theme.dart';
 import 'core/ui/theme_mode_controller.dart';
+import 'core/ui/app_preferences_controller.dart';
 
 void main() {
   runZonedGuarded(() async {
@@ -40,63 +32,39 @@ void main() {
       Zone.current.handleUncaughtError(details.exception, details.stack ?? StackTrace.empty);
     };
 
-    final settings = AppSettings();
-    await settings.load();
-
-    if (AppConfig.hasSupabaseConfig) {
-      await Supabase.initialize(
-        url: AppConfig.supabaseUrl,
-        anonKey: AppConfig.supabaseAnonKey,
+    // Initialize Supabase if configured
+    if (!AppConfig.hasSupabaseConfig) {
+      runApp(
+        const MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: MissingConfigScreen(),
+        ),
       );
+      return;
     }
 
-    late final AuthRepository authRepository;
-    if (AppConfig.hasSupabaseConfig) {
-      authRepository = SupabaseAuthRepository(Supabase.instance.client);
-    } else {
-      authRepository = LocalAuthRepository(SimpleAuthService());
-      await authRepository.initialize();
-    }
+    await Supabase.initialize(
+      url: AppConfig.supabaseUrl,
+      anonKey: AppConfig.supabaseAnonKey,
+    );
 
-    // Prepare post repository (local by default; Supabase when enabled).
-    final dataService = DataService();
-    await dataService.load();
-    final PostRepository postRepository;
-    if (AppConfig.hasSupabaseConfig && AppConfig.enableSupabaseFeed) {
-      postRepository = SupabasePostRepository(Supabase.instance.client);
-      await postRepository.load();
-    } else {
-      postRepository = dataService;
-    }
+    final authRepository = SupabaseAuthRepository(Supabase.instance.client);
 
-    // Legacy ProfileService (kept for backward compatibility).
-    final profileService = ProfileService();
-    await profileService.load();
+    final PostRepository postRepository = SupabasePostRepository(
+      Supabase.instance.client,
+    );
+    await postRepository.load();
 
-    // New ProfileRepository abstraction.
-    late final ProfileRepository profileRepository;
-    if (AppConfig.hasSupabaseConfig) {
-      profileRepository = SupabaseProfileRepository(Supabase.instance.client);
-    } else {
-      profileRepository = LocalProfileRepository();
-    }
+    final profileRepository =
+        SupabaseProfileRepository(Supabase.instance.client);
     await profileRepository.load();
 
-    // QuizRepository abstraction.
-    late final quiz.QuizRepository quizRepository;
-    if (AppConfig.hasSupabaseConfig) {
-      quizRepository = SupabaseQuizRepository(Supabase.instance.client);
-    } else {
-      quizRepository = LocalQuizRepository();
-    }
+    final quizRepository = SupabaseQuizRepository(Supabase.instance.client);
     await quizRepository.load();
 
     runApp(
       ProviderScope(
         overrides: [
-          appSettingsProvider.overrideWithValue(settings),
-          dataServiceProvider.overrideWithValue(dataService),
-          profileServiceProvider.overrideWithValue(profileService),
           authRepositoryProvider.overrideWithValue(authRepository),
           postRepositoryProvider.overrideWithValue(postRepository),
           profileRepositoryProvider.overrideWithValue(profileRepository),
@@ -118,12 +86,14 @@ class MyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeControllerProvider);
+    final prefs = ref.watch(appPreferencesControllerProvider);
 
     return MaterialApp(
       title: 'IN-Institution',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
+      darkTheme:
+          prefs.blackoutTheme ? AppTheme.blackoutDarkTheme : AppTheme.darkTheme,
       themeMode: themeMode,
       home: const AuthWrapper(),
     );

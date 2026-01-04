@@ -4,28 +4,57 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../../core/di/app_providers.dart';
+import '../../../core/error/app_error_handler.dart';
 import '../../../features/feed/domain/post_repository.dart';
 
+/// Compose state for tracking post creation status.
+class ComposeState {
+  const ComposeState({
+    this.isPosting = false,
+    this.error,
+  });
+
+  final bool isPosting;
+  final String? error;
+
+  ComposeState copyWith({bool? isPosting, String? error}) {
+    return ComposeState(
+      isPosting: isPosting ?? this.isPosting,
+      error: error,
+    );
+  }
+}
+
 /// Controller responsible for creating new posts from the compose flow.
-class ComposeController extends Notifier<void> {
+class ComposeController extends Notifier<ComposeState> {
   @override
-  void build() {}
+  ComposeState build() => const ComposeState();
 
   PostRepository get _repository => ref.read(postRepositoryProvider);
 
-  Future<void> createPost({
+  Future<bool> createPost({
     required String author,
     required String handle,
     required String body,
     required List<String> mediaPaths,
   }) async {
-    final persistedMedia = await _persistMediaPaths(mediaPaths);
-    return _repository.addPost(
-      author: author,
-      handle: handle,
-      body: body,
-      mediaPaths: persistedMedia,
-    );
+    state = state.copyWith(isPosting: true, error: null);
+    
+    try {
+      final persistedMedia = await _persistMediaPaths(mediaPaths);
+      await _repository.addPost(
+        author: author,
+        handle: handle,
+        body: body,
+        mediaPaths: persistedMedia,
+      );
+      state = state.copyWith(isPosting: false);
+      return true;
+    } catch (e) {
+      final appError = AppErrorHandler.handle(e);
+      state = state.copyWith(isPosting: false, error: appError.message);
+      return false;
+    }
   }
 
   Future<List<String>> _persistMediaPaths(List<String> mediaPaths) async {
@@ -94,4 +123,4 @@ class ComposeController extends Notifier<void> {
 }
 
 final composeControllerProvider =
-    NotifierProvider<ComposeController, void>(ComposeController.new);
+    NotifierProvider<ComposeController, ComposeState>(ComposeController.new);

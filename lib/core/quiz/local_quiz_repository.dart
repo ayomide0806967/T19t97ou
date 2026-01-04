@@ -7,47 +7,9 @@ import 'quiz_repository.dart';
 ///
 /// Uses demo data and keeps state in memory. Suitable for offline/demo mode.
 class LocalQuizRepository implements QuizRepository {
-  final List<QuizDraft> _drafts = <QuizDraft>[
-    QuizDraft(
-      id: 'draft_1',
-      title: 'Pharmacology night shift review',
-      updatedAt: DateTime.now().subtract(const Duration(hours: 6)),
-      questionCount: 6,
-      isTimed: true,
-      timerMinutes: 12,
-      closingDate: DateTime.now().add(const Duration(days: 3)),
-      requirePin: true,
-      pin: '2345',
-      visibility: 'followers',
-      restrictedAudience: null,
-    ),
-    QuizDraft(
-      id: 'draft_2',
-      title: 'OB emergency drills',
-      updatedAt: DateTime.now().subtract(const Duration(days: 1, hours: 4)),
-      questionCount: 8,
-      isTimed: false,
-      closingDate: null,
-      visibility: 'everyone',
-    ),
-  ];
+  final List<QuizDraft> _drafts = <QuizDraft>[];
 
-  final List<QuizResultSummary> _results = <QuizResultSummary>[
-    QuizResultSummary(
-      title: 'Cardio rounds checkpoint',
-      responses: 42,
-      averageScore: 86,
-      completionRate: 0.93,
-      lastUpdated: DateTime.now().subtract(const Duration(hours: 2)),
-    ),
-    QuizResultSummary(
-      title: 'Airway safety refresher',
-      responses: 31,
-      averageScore: 78,
-      completionRate: 0.88,
-      lastUpdated: DateTime.now().subtract(const Duration(days: 1, hours: 3)),
-    ),
-  ];
+  final List<QuizResultSummary> _results = <QuizResultSummary>[];
 
   final Map<String, List<QuizTakeQuestion>> _publishedQuizzesByTitle =
       <String, List<QuizTakeQuestion>>{};

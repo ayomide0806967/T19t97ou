@@ -43,6 +43,5 @@ class LocalAuthRepository implements AuthRepository {
 String _stableLocalId(String? email) {
   final normalized = (email ?? '').trim().toLowerCase();
   if (normalized.isEmpty) return 'local_anonymous';
-  return 'local_' + base64Url.encode(utf8.encode(normalized));
+  return 'local_${base64Url.encode(utf8.encode(normalized))}';
 }
-

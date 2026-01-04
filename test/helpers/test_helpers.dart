@@ -5,8 +5,8 @@ import 'package:flutter_riverpod/src/internals.dart' show Override;
 
 import 'package:my_app/core/di/app_providers.dart';
 import 'package:my_app/services/data_service.dart';
-import 'package:my_app/services/profile_service.dart';
-import 'package:my_app/state/app_settings.dart';
+import 'package:my_app/core/profile/local_profile_repository.dart';
+import 'package:my_app/core/profile/profile_repository.dart';
 
 /// Creates a [ProviderScope] with mocked dependencies for testing.
 ///
@@ -23,9 +23,9 @@ Widget createTestApp({
   return ProviderScope(
     overrides: [
       // Provide test implementations of core services
-      appSettingsProvider.overrideWithValue(AppSettings()),
       dataServiceProvider.overrideWithValue(DataService()),
-      profileServiceProvider.overrideWithValue(ProfileService()),
+      profileRepositoryProvider
+          .overrideWithValue(_createTestProfileRepository()),
       ...?overrides,
     ],
     child: MaterialApp(
@@ -46,9 +46,9 @@ ProviderContainer createProviderContainer({
 }) {
   final container = ProviderContainer(
     overrides: [
-      appSettingsProvider.overrideWithValue(AppSettings()),
       dataServiceProvider.overrideWithValue(DataService()),
-      profileServiceProvider.overrideWithValue(ProfileService()),
+      profileRepositoryProvider
+          .overrideWithValue(_createTestProfileRepository()),
       ...?overrides,
     ],
   );
@@ -57,6 +57,12 @@ ProviderContainer createProviderContainer({
   addTearDown(container.dispose);
   
   return container;
+}
+
+ProfileRepository _createTestProfileRepository() {
+  final repo = LocalProfileRepository();
+  // No need to preload demo data in tests; start empty.
+  return repo;
 }
 
 /// Pumps the widget and settles all animations/frames.

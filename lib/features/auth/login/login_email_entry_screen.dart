@@ -121,7 +121,7 @@ class _LoginEmailEntryScreenState extends State<LoginEmailEntryScreen> {
                                 textAlign: TextAlign.center,
                                 style: theme.textTheme.headlineSmall?.copyWith(
                                   fontWeight: FontWeight.w700,
-                                  color: const Color(0xFFFF7A1A),
+                                  color: const Color(0xFFFFB066),
                                 ),
                               ),
                               const SizedBox(height: 10),

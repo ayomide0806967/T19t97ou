@@ -26,4 +26,31 @@ abstract class ProfileRepository {
   /// [imageBytes] is the raw image data.
   /// Returns the new profile with updated header reference.
   Future<UserProfile> updateHeader(List<int> imageBytes);
+
+  // =========================================================================
+  // Follow operations
+  // =========================================================================
+
+  /// Toggle follow state for a user. Returns true if now following.
+  Future<bool> toggleFollow(String targetUserId);
+
+  /// Check if current user is following a target user.
+  Future<bool> isFollowing(String targetUserId);
+
+  /// Get follower count for a user.
+  Future<int> getFollowerCount(String userId);
+
+  /// Get following count for a user.
+  Future<int> getFollowingCount(String userId);
+
+  // =========================================================================
+  // Profile lookup
+  // =========================================================================
+
+  /// Get a profile by user ID.
+  Future<UserProfile?> getProfileById(String userId);
+
+  /// Get a profile by handle.
+  Future<UserProfile?> getProfileByHandle(String handle);
 }
+

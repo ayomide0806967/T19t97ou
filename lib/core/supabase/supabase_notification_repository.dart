@@ -2,10 +2,12 @@ import 'dart:async';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../notification/notification_repository.dart';
+
 /// Repository for user notifications.
 ///
 /// Uses the `notifications` table with realtime subscriptions for instant updates.
-class SupabaseNotificationRepository {
+class SupabaseNotificationRepository implements NotificationRepository {
   SupabaseNotificationRepository(this._client);
 
   final SupabaseClient _client;

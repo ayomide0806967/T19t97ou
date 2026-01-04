@@ -71,7 +71,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         statusBarColor: Colors.transparent,
       ),
       child: Scaffold(
+        backgroundColor: const Color(0xFF0B1220),
         body: SafeArea(
+          top: true,
+          bottom: false,
           child: Stack(
             children: [
               Positioned.fill(
@@ -147,10 +150,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   12,
                                 ),
                                 child: Form(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.stretch,
-                                    mainAxisSize: MainAxisSize.max,
+                                  child: ListView(
+                                    padding: EdgeInsets.zero,
                                     children: _buildGetStarted(theme),
                                   ),
                                 ),
@@ -161,12 +162,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       if (_cardCollapsed)
                         Positioned(
-                          left: 20,
-                          right: 20,
+                          left: 56,
+                          right: 56,
                           bottom: 12,
                           child: SafeArea(
                             top: false,
-                              child: SizedBox(
+                            child: SizedBox(
                               height: 56,
                               child: ElevatedButton(
                                 onPressed: isLoading ? null : _expandCard,
@@ -192,7 +193,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   ),
                                 ),
                                 child: const Text(
-                                  'ENTER IN INSTITUTION',
+                                  "Let's get inside",
                                   style: TextStyle(
                                     fontWeight: FontWeight.w700,
                                     letterSpacing: 0.6,
@@ -223,7 +224,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ),
       const SizedBox(height: 10),
       Text(
-        'Get into an institution',
+        'Sign in to Institution',
         style: theme.textTheme.headlineSmall?.copyWith(color: Colors.black),
       ),
       const SizedBox(height: 8),

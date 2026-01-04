@@ -54,11 +54,11 @@ class QuickControlPanelState extends ConsumerState<QuickControlPanel> {
         },
       ),
       QuickControlItem(
-        icon: Icons.quiz_outlined,
-        label: 'Quiz',
+        icon: Icons.workspace_premium_outlined,
+        label: 'Subscriptions',
         onPressed: () async {
           Navigator.of(context).pop();
-          await Navigator.of(context).push(AppNav.quizDashboard());
+          await Navigator.of(context).push(AppNav.subscriptions());
         },
       ),
       QuickControlItem(
@@ -77,24 +77,24 @@ class QuickControlPanelState extends ConsumerState<QuickControlPanel> {
         },
       ),
       QuickControlItem(
-        icon: Icons.inbox_outlined,
-        label: 'Inbox',
+        icon: Icons.message_outlined,
+        label: 'Messages',
         onPressed: () async {
           Navigator.of(context).pop();
           await Navigator.of(context).push(AppNav.inbox());
         },
       ),
       QuickControlItem(
-        icon: Icons.forum_outlined,
-        label: 'Messages',
+        icon: Icons.bookmark_border_rounded,
+        label: 'Bookmarks',
         onPressed: () async {
           Navigator.of(context).pop();
-          await Navigator.of(context).push(AppNav.classes());
+          await Navigator.of(context).push(AppNav.bookmarks());
         },
       ),
       QuickControlItem(
-        icon: Icons.search_rounded,
-        label: 'Search',
+        icon: Icons.trending_up_rounded,
+        label: 'Trending',
         onPressed: () async {
           Navigator.of(context).pop();
           await Navigator.of(context).push(AppNav.trending());

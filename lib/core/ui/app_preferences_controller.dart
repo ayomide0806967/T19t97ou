@@ -10,6 +10,7 @@ class AppPreferencesState {
     this.notificationSound = true,
     this.hapticsEnabled = true,
     this.reduceMotion = false,
+    this.blackoutTheme = false,
     this.autoplayMedia = true,
     this.dataSaver = false,
     this.showSensitiveContent = false,
@@ -26,6 +27,7 @@ class AppPreferencesState {
   final bool notificationSound;
   final bool hapticsEnabled;
   final bool reduceMotion;
+  final bool blackoutTheme;
 
   final bool autoplayMedia;
   final bool dataSaver;
@@ -45,6 +47,7 @@ class AppPreferencesState {
     bool? notificationSound,
     bool? hapticsEnabled,
     bool? reduceMotion,
+    bool? blackoutTheme,
     bool? autoplayMedia,
     bool? dataSaver,
     bool? showSensitiveContent,
@@ -60,6 +63,7 @@ class AppPreferencesState {
       notificationSound: notificationSound ?? this.notificationSound,
       hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
       reduceMotion: reduceMotion ?? this.reduceMotion,
+      blackoutTheme: blackoutTheme ?? this.blackoutTheme,
       autoplayMedia: autoplayMedia ?? this.autoplayMedia,
       dataSaver: dataSaver ?? this.dataSaver,
       showSensitiveContent: showSensitiveContent ?? this.showSensitiveContent,
@@ -77,6 +81,7 @@ class AppPreferencesController extends Notifier<AppPreferencesState> {
   static const _kNotificationSound = 'pref_notification_sound';
   static const _kHapticsEnabled = 'pref_haptics_enabled';
   static const _kReduceMotion = 'pref_reduce_motion';
+  static const _kBlackoutTheme = 'pref_blackout_theme';
   static const _kAutoplayMedia = 'pref_autoplay_media';
   static const _kDataSaver = 'pref_data_saver';
   static const _kShowSensitive = 'pref_show_sensitive';
@@ -102,6 +107,7 @@ class AppPreferencesController extends Notifier<AppPreferencesState> {
           prefs.getBool(_kNotificationSound) ?? state.notificationSound,
       hapticsEnabled: prefs.getBool(_kHapticsEnabled) ?? state.hapticsEnabled,
       reduceMotion: prefs.getBool(_kReduceMotion) ?? state.reduceMotion,
+      blackoutTheme: prefs.getBool(_kBlackoutTheme) ?? state.blackoutTheme,
       autoplayMedia: prefs.getBool(_kAutoplayMedia) ?? state.autoplayMedia,
       dataSaver: prefs.getBool(_kDataSaver) ?? state.dataSaver,
       showSensitiveContent:
@@ -139,6 +145,12 @@ class AppPreferencesController extends Notifier<AppPreferencesState> {
     state = state.copyWith(reduceMotion: value);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_kReduceMotion, value);
+  }
+
+  Future<void> setBlackoutTheme(bool value) async {
+    state = state.copyWith(blackoutTheme: value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kBlackoutTheme, value);
   }
 
   Future<void> setAutoplayMedia(bool value) async {
@@ -196,6 +208,7 @@ class AppPreferencesController extends Notifier<AppPreferencesState> {
     await prefs.remove(_kNotificationSound);
     await prefs.remove(_kHapticsEnabled);
     await prefs.remove(_kReduceMotion);
+    await prefs.remove(_kBlackoutTheme);
     await prefs.remove(_kAutoplayMedia);
     await prefs.remove(_kDataSaver);
     await prefs.remove(_kShowSensitive);
@@ -211,4 +224,3 @@ final appPreferencesControllerProvider =
     NotifierProvider<AppPreferencesController, AppPreferencesState>(
   AppPreferencesController.new,
 );
-

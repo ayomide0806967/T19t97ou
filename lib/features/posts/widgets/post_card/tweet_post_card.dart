@@ -101,6 +101,14 @@ abstract class _TweetPostCardStateBase extends ConsumerState<TweetPostCard> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    final repo = ref.read(postRepositoryProvider);
+    final targetId = widget.post.originalId ?? widget.post.id;
+    _bookmarked = repo.hasUserBookmarked(targetId);
+  }
+
+  @override
   void didUpdateWidget(covariant TweetPostCard oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.post.id != widget.post.id ||
@@ -109,6 +117,12 @@ abstract class _TweetPostCardStateBase extends ConsumerState<TweetPostCard> {
       _reposts = widget.post.reposts;
       _likes = widget.post.likes;
       _views = widget.post.views;
+    }
+    if (oldWidget.post.id != widget.post.id ||
+        oldWidget.post.originalId != widget.post.originalId) {
+      final repo = ref.read(postRepositoryProvider);
+      final targetId = widget.post.originalId ?? widget.post.id;
+      _bookmarked = repo.hasUserBookmarked(targetId);
     }
   }
 

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../auth/auth_repository.dart';
@@ -45,8 +46,15 @@ class SupabaseAuthRepository implements AuthRepository {
 
   @override
   Future<void> signInWithGoogle() async {
-    throw UnimplementedError(
-      'Google sign-in requires OAuth setup in Supabase and platform configuration.',
+    // Uses Supabase OAuth flow (browser-based) with a deep-link callback on
+    // mobile and a same-origin callback on web.
+    final redirectTo = kIsWeb
+        ? Uri.base.origin
+        : Uri(scheme: 'io.supabase.flutter', host: 'login-callback').toString();
+
+    await _client.auth.signInWithOAuth(
+      OAuthProvider.google,
+      redirectTo: redirectTo,
     );
   }
 
@@ -55,4 +63,3 @@ class SupabaseAuthRepository implements AuthRepository {
     await _client.auth.signOut();
   }
 }
-

@@ -14,17 +14,19 @@ class LocalProfileRepository implements ProfileRepository {
   static const String _storageKey = 'user_profile';
 
   UserProfile _profile = const UserProfile(
-    fullName: 'Alex Rivera',
-    handle: '@productlead',
-    bio:
-        'Guiding nursing and midwifery teams through safe practice, exam preparation, and compassionate leadership across our teaching hospital.',
-    profession: 'Clinical Educator',
+    fullName: '',
+    handle: '',
+    bio: '',
+    profession: '',
     avatarImageBase64: null,
     headerImageBase64: null,
   );
 
   final StreamController<UserProfile> _controller =
       StreamController<UserProfile>.broadcast();
+
+  // Local mock for following state (local mode only)
+  final Set<String> _following = {};
 
   @override
   UserProfile get profile => _profile;
@@ -69,6 +71,57 @@ class LocalProfileRepository implements ProfileRepository {
     return updated;
   }
 
+  // =========================================================================
+  // Follow operations (local mock - for offline mode)
+  // =========================================================================
+
+  @override
+  Future<bool> toggleFollow(String targetUserId) async {
+    if (_following.contains(targetUserId)) {
+      _following.remove(targetUserId);
+      return false;
+    } else {
+      _following.add(targetUserId);
+      return true;
+    }
+  }
+
+  @override
+  Future<bool> isFollowing(String targetUserId) async {
+    return _following.contains(targetUserId);
+  }
+
+  @override
+  Future<int> getFollowerCount(String userId) async {
+    // Local mode doesn't track other users' followers
+    return 0;
+  }
+
+  @override
+  Future<int> getFollowingCount(String userId) async {
+    // Return count of local following set if checking current user
+    return _following.length;
+  }
+
+  // =========================================================================
+  // Profile lookup (local mock - for offline mode)
+  // =========================================================================
+
+  @override
+  Future<UserProfile?> getProfileById(String userId) async {
+    // Local mode only knows about the current user's profile
+    return null;
+  }
+
+  @override
+  Future<UserProfile?> getProfileByHandle(String handle) async {
+    // Local mode only knows about the current user's profile
+    if (handle == _profile.handle) {
+      return _profile;
+    }
+    return null;
+  }
+
   void _emit() {
     if (!_controller.isClosed) {
       _controller.add(_profile);
@@ -79,3 +132,4 @@ class LocalProfileRepository implements ProfileRepository {
     _controller.close();
   }
 }
+

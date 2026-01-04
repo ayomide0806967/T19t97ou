@@ -123,7 +123,7 @@ class TweetMetric extends StatelessWidget {
     // Blue-gray neutral for metrics
     final neutral = const Color(0xFF4B6A88);
     // Logo brand orange for special highlight (e.g. bookmark)
-    const logoOrange = Color(0xFFFF7A1A);
+    const logoOrange = Color(0xFFFFB066);
     final isRein = data.type == TweetMetricType.rein;
     final isLike = data.type == TweetMetricType.like;
     final isShare = data.type == TweetMetricType.share;

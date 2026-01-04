@@ -6,7 +6,7 @@ class _ProfileTabs extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onChanged;
 
-  static const _tabs = ['Posts', 'Classes', 'Replies'];
+  static const _tabs = ['Posts', 'Bookmarks', 'Replies'];
 
   @override
   Widget build(BuildContext context) {
@@ -48,4 +48,3 @@ class _ProfileTabs extends StatelessWidget {
 }
 
 enum _HeaderAction { pickImage, removeImage }
-

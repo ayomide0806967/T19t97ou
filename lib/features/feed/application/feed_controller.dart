@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/di/app_providers.dart';
+import '../../../core/error/app_error_handler.dart';
 import '../domain/post_repository.dart';
 import '../../../models/post.dart';
 import '../domain/feed_state.dart';
@@ -51,10 +52,66 @@ class FeedController extends Notifier<FeedState> {
         isLoading: false,
       );
     } catch (e) {
+      final appError = AppErrorHandler.handle(e);
       state = state.copyWith(
         isLoading: false,
-        errorMessage: e.toString(),
+        errorMessage: appError.message,
       );
+    }
+  }
+
+  // =========================================================================
+  // Interaction helpers (convenience methods for UI)
+  // =========================================================================
+
+  /// Toggle like on a post. Returns true if now liked.
+  Future<bool?> toggleLike(String postId) async {
+    try {
+      return await _repository.toggleLike(postId);
+    } catch (e) {
+      final appError = AppErrorHandler.handle(e);
+      state = state.copyWith(errorMessage: appError.message);
+      return null;
+    }
+  }
+
+  /// Toggle bookmark on a post. Returns true if now bookmarked.
+  Future<bool?> toggleBookmark(String postId) async {
+    try {
+      return await _repository.toggleBookmark(postId);
+    } catch (e) {
+      final appError = AppErrorHandler.handle(e);
+      state = state.copyWith(errorMessage: appError.message);
+      return null;
+    }
+  }
+
+  /// Toggle repost on a post. Returns true if now reposted.
+  Future<bool?> toggleRepost({
+    required String postId,
+    required String userHandle,
+  }) async {
+    try {
+      return await _repository.toggleRepost(
+        postId: postId,
+        userHandle: userHandle,
+      );
+    } catch (e) {
+      final appError = AppErrorHandler.handle(e);
+      state = state.copyWith(errorMessage: appError.message);
+      return null;
+    }
+  }
+
+  /// Delete a post.
+  Future<bool> deletePost(String postId) async {
+    try {
+      await _repository.deletePost(postId: postId);
+      return true;
+    } catch (e) {
+      final appError = AppErrorHandler.handle(e);
+      state = state.copyWith(errorMessage: appError.message);
+      return false;
     }
   }
 }

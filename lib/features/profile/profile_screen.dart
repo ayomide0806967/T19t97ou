@@ -27,10 +27,16 @@ part 'profile_screen_images.dart';
 part 'profile_screen_sheets.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
-  const ProfileScreen({super.key, this.handleOverride, this.readOnly = false});
+  const ProfileScreen({
+    super.key,
+    this.handleOverride,
+    this.readOnly = false,
+    this.initialTab = 0,
+  });
 
   final String? handleOverride;
   final bool readOnly;
+  final int initialTab;
 
   @override
   ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
@@ -48,6 +54,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _notifyThreads = true;
   bool _notifyReplies = true;
   bool _pushNotificationsEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initialTab;
+    _selectedTab = initial < 0 ? 0 : (initial > 2 ? 2 : initial);
+  }
 
   String get _authHandle {
     return deriveHandleFromEmail(
@@ -85,15 +98,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final dataService = ref.watch(postRepositoryProvider);
+    final repository = ref.watch(postRepositoryProvider);
     final currentUserHandle = _currentUserHandle;
     final email =
         ref.read(authRepositoryProvider).currentUser?.email ??
         'user@institution.edu';
     final initials = initialsFrom(widget.handleOverride ?? email);
-    final posts = dataService.postsForHandle(currentUserHandle);
-    final replies = dataService.repliesForHandle(currentUserHandle);
-    final bookmarks = posts.where((post) => post.bookmarks > 0).toList();
+    final posts = repository.postsForHandle(currentUserHandle);
+    final replies = repository.repliesForHandle(currentUserHandle);
+    final bookmarks = widget.readOnly
+        ? const <PostModel>[]
+        : repository.bookmarkedPosts();
 
     final displayName = widget.readOnly
         ? _displayNameFromHandle(currentUserHandle)
@@ -113,7 +128,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     final emptyMessage = () {
       if (_selectedTab == 0) return "You haven't posted yet.";
-      if (_selectedTab == 1) return 'No classes yet.';
+      if (_selectedTab == 1) return 'No bookmarks yet.';
       return 'No replies yet.';
     }();
 

@@ -71,6 +71,11 @@ class SupabasePostRepository implements PostRepository {
     
     // Load user's interaction states
     await _loadUserInteractions();
+
+    // Ensure bookmarked posts are present in the local cache so the
+    // bookmarks screen can show "all saved posts" even if they're not
+    // in the latest timeline slice.
+    await _loadMissingBookmarkedPosts();
     
     _emitTimeline();
     
@@ -111,6 +116,27 @@ class SupabasePostRepository implements PostRepository {
     for (final row in reposts as List) {
       _repostedPostIds.add(row['post_id'] as String);
     }
+  }
+
+  Future<void> _loadMissingBookmarkedPosts() async {
+    if (_bookmarkedPostIds.isEmpty) return;
+    final existingIds = _posts.map((p) => p.id).toSet();
+    final missing = _bookmarkedPostIds.difference(existingIds).toList();
+    if (missing.isEmpty) return;
+
+    final rows = await _client
+        .from('feed_posts_view')
+        .select()
+        .inFilter('id', missing)
+        .order('created_at', ascending: false);
+
+    final missingPosts = <PostModel>[];
+    for (final row in rows as List<dynamic>) {
+      if (row is! Map<String, dynamic>) continue;
+      missingPosts.add(_fromFeedRow(row));
+    }
+    if (missingPosts.isEmpty) return;
+    _posts.addAll(missingPosts);
   }
 
   void _subscribeToFeed() {
@@ -276,9 +302,11 @@ class SupabasePostRepository implements PostRepository {
   // ============================================================================
 
   /// Check if current user has bookmarked a post.
+  @override
   bool hasUserBookmarked(String postId) => _bookmarkedPostIds.contains(postId);
 
   /// Toggle bookmark on a post. Returns true if now bookmarked.
+  @override
   Future<bool> toggleBookmark(String postId) async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) return false;
@@ -322,6 +350,14 @@ class SupabasePostRepository implements PostRepository {
   @override
   bool hasUserReposted(String postId, String userHandle) {
     return _repostedPostIds.contains(postId);
+  }
+
+  @override
+  List<PostModel> bookmarkedPosts() {
+    if (_bookmarkedPostIds.isEmpty) return const <PostModel>[];
+    return _posts
+        .where((post) => _bookmarkedPostIds.contains(post.id))
+        .toList(growable: false);
   }
 
   @override

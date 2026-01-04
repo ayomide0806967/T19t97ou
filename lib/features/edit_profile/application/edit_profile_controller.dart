@@ -3,15 +3,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../core/di/app_providers.dart';
+import '../../../core/error/app_error_handler.dart';
+import '../../../core/profile/profile_repository.dart';
+import '../../../models/user_profile.dart';
 import '../domain/edit_profile_state.dart';
 
 /// Controller for edit profile screen business logic.
 ///
 /// Uses Riverpod 3.0 Notifier pattern for state management.
+/// Integrates with [ProfileRepository] for Supabase persistence.
 class EditProfileController extends Notifier<EditProfileState> {
   late String _initialName;
   late String _initialBio;
   final ImagePicker _picker = ImagePicker();
+
+  ProfileRepository get _profileRepository => ref.read(profileRepositoryProvider);
 
   @override
   EditProfileState build() {
@@ -34,6 +41,8 @@ class EditProfileController extends Notifier<EditProfileState> {
     if (state.website.trim().isNotEmpty) return true;
     if (state.dateOfBirth != null) return true;
     if (state.isPrivateAccount) return true;
+    if (state.headerImage != null) return true;
+    if (state.profileImage != null) return true;
     return false;
   }
 
@@ -87,23 +96,64 @@ class EditProfileController extends Notifier<EditProfileState> {
     state = state.copyWith(profileImage: bytes);
   }
 
-  EditProfileResult save() {
-    state = state.copyWith(isSaving: true);
-    String bio = state.bio.trim();
-    if (bio.length > 160) {
-      bio = bio.substring(0, 160);
+  /// Save profile changes to Supabase.
+  /// Returns [EditProfileResult] on success, throws on error.
+  Future<EditProfileResult> save() async {
+    state = state.copyWith(isSaving: true, error: null);
+    
+    try {
+      // Get current profile
+      UserProfile updatedProfile = _profileRepository.profile;
+
+      // Upload avatar if changed
+      if (state.profileImage != null) {
+        updatedProfile = await _profileRepository.updateAvatar(
+          state.profileImage!.toList(),
+        );
+      }
+
+      // Upload header if changed
+      if (state.headerImage != null) {
+        updatedProfile = await _profileRepository.updateHeader(
+          state.headerImage!.toList(),
+        );
+      }
+
+      // Update profile fields
+      String bio = state.bio.trim();
+      if (bio.length > 160) {
+        bio = bio.substring(0, 160);
+      }
+
+      final newProfile = updatedProfile.copyWith(
+        fullName: state.name.trim(),
+        bio: bio,
+        // Note: location, website, dateOfBirth would need to be added to UserProfile model
+      );
+
+      await _profileRepository.updateProfile(newProfile);
+
+      state = state.copyWith(isSaving: false);
+
+      return EditProfileResult(
+        headerImage: state.headerImage,
+        profileImage: state.profileImage,
+        name: state.name.trim(),
+        bio: bio,
+        location: state.location.trim(),
+        website: state.website.trim(),
+        dateOfBirth: state.dateOfBirth,
+        isPrivateAccount: state.isPrivateAccount,
+        tipsEnabled: state.tipsEnabled,
+      );
+    } catch (e) {
+      final appError = AppErrorHandler.handle(e);
+      state = state.copyWith(
+        isSaving: false,
+        error: appError.message,
+      );
+      rethrow;
     }
-    return EditProfileResult(
-      headerImage: state.headerImage,
-      profileImage: state.profileImage,
-      name: state.name.trim(),
-      bio: bio,
-      location: state.location.trim(),
-      website: state.website.trim(),
-      dateOfBirth: state.dateOfBirth,
-      isPrivateAccount: state.isPrivateAccount,
-      tipsEnabled: state.tipsEnabled,
-    );
   }
 }
 

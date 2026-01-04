@@ -13,6 +13,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/app_tab_scaffold.dart';
 import '../../widgets/quick_control_grid.dart';
 import '../../widgets/tweet_post_card.dart';
+import '../../screens/settings_screen.dart';
 import '../auth/application/auth_controller.dart';
 import '../auth/application/session_providers.dart';
 import '../feed/application/feed_controller.dart';

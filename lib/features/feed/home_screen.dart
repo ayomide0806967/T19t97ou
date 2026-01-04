@@ -37,6 +37,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   bool _isRefreshingFeed = false;
   double _tabOverscrollAccum = 0;
   bool _openedQuickControlsFromSwipe = false;
+  bool _quickControlsSheetOpen = false;
+  int? _quickControlsSwipePointer;
+  Offset? _quickControlsSwipeStart;
 
   @override
   void initState() {
@@ -114,7 +117,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final Color line = theme.colorScheme.onSurface.withValues(
       alpha: isDark ? 0.12 : 0.06,
     );
-    const Color accent = Color(0xFFFF7A1A);
+    const Color accent = Color(0xFFFFB066);
 
     final TextStyle labelStyle =
         theme.textTheme.titleMedium ??
@@ -219,48 +222,56 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           body: TabBarView(
             controller: _tabController,
             children: [
-              NotificationListener<ScrollNotification>(
-                onNotification: (notification) {
-                  if (_tabController.index != 0) return false;
-                  if (notification.metrics.axis != Axis.horizontal) {
-                    return false;
-                  }
-
-                  if (notification is ScrollStartNotification) {
-                    _tabOverscrollAccum = 0;
-                    _openedQuickControlsFromSwipe = false;
-                    return false;
-                  }
-
-                  if (notification is OverscrollNotification) {
-                    // On the first tab, swiping right past the start produces
-                    // negative overscroll; use it as a gesture to open quick controls.
-                    if (notification.overscroll < 0 &&
-                        !_openedQuickControlsFromSwipe) {
-                      _tabOverscrollAccum += -notification.overscroll;
-                      if (_tabOverscrollAccum >= 12) {
-                        _openedQuickControlsFromSwipe = true;
-                        _showQuickControlPanel();
-                      }
+              Listener(
+                behavior: HitTestBehavior.translucent,
+                onPointerDown: _handleQuickControlsSwipePointerDown,
+                onPointerMove: _handleQuickControlsSwipePointerMove,
+                onPointerUp: _handleQuickControlsSwipePointerEnd,
+                onPointerCancel: _handleQuickControlsSwipePointerEnd,
+                child: NotificationListener<ScrollNotification>(
+                  onNotification: (notification) {
+                    if (_tabController.index != 0) return false;
+                    if (notification.metrics.axis != Axis.horizontal) {
+                      return false;
                     }
-                    return false;
-                  }
 
-                  if (notification is ScrollEndNotification) {
-                    _tabOverscrollAccum = 0;
-                    _openedQuickControlsFromSwipe = false;
-                    return false;
-                  }
+                    if (notification is ScrollStartNotification) {
+                      _tabOverscrollAccum = 0;
+                      _openedQuickControlsFromSwipe = false;
+                      return false;
+                    }
 
-                  return false;
-                },
-                child: Builder(
-                  builder: (tabContext) => _buildFeedTab(
-                    tabContext,
-                    posts: _sortedTrending(baseTimeline),
-                    currentUserHandle: currentUserHandle,
-                    pageStorageKey:
-                        const PageStorageKey<String>('feed_for_you'),
+                    if (notification is OverscrollNotification) {
+                      // On the first tab, swiping right past the start produces
+                      // negative overscroll; use it as a gesture to open quick controls.
+                      if (notification.overscroll < 0 &&
+                          !_openedQuickControlsFromSwipe &&
+                          !_quickControlsSheetOpen) {
+                        _tabOverscrollAccum += -notification.overscroll;
+                        if (_tabOverscrollAccum >= 12) {
+                          _openedQuickControlsFromSwipe = true;
+                          _showQuickControlPanel();
+                        }
+                      }
+                      return false;
+                    }
+
+                    if (notification is ScrollEndNotification) {
+                      _tabOverscrollAccum = 0;
+                      _openedQuickControlsFromSwipe = false;
+                      return false;
+                    }
+
+                    return false;
+                  },
+                  child: Builder(
+                    builder: (tabContext) => _buildFeedTab(
+                      tabContext,
+                      posts: _sortedTrending(baseTimeline),
+                      currentUserHandle: currentUserHandle,
+                      pageStorageKey:
+                          const PageStorageKey<String>('feed_for_you'),
+                    ),
                   ),
                 ),
               ),
@@ -385,31 +396,77 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
-  void _showQuickControlPanel() {
+  void _handleQuickControlsSwipePointerDown(PointerDownEvent event) {
+    if (_tabController.index != 0) return;
+    if (_quickControlsSheetOpen) return;
+    _quickControlsSwipePointer = event.pointer;
+    _quickControlsSwipeStart = event.position;
+  }
+
+  void _handleQuickControlsSwipePointerMove(PointerMoveEvent event) {
+    if (_tabController.index != 0) return;
+    if (_quickControlsSheetOpen) return;
+    if (_openedQuickControlsFromSwipe) return;
+    if (_quickControlsSwipePointer != event.pointer) return;
+
+    final start = _quickControlsSwipeStart;
+    if (start == null) return;
+
+    final dx = event.position.dx - start.dx;
+    final dy = event.position.dy - start.dy;
+    if (dx >= 18 && dx > dy.abs() * 1.4) {
+      _openedQuickControlsFromSwipe = true;
+      _showQuickControlPanel();
+    }
+  }
+
+  void _handleQuickControlsSwipePointerEnd(PointerEvent event) {
+    if (_quickControlsSwipePointer != event.pointer) return;
+    _quickControlsSwipePointer = null;
+    _quickControlsSwipeStart = null;
+    _tabOverscrollAccum = 0;
+    _openedQuickControlsFromSwipe = false;
+  }
+
+  Future<void> _showQuickControlPanel() async {
+    if (_quickControlsSheetOpen) return;
+    _quickControlsSheetOpen = true;
     final theme = Theme.of(context);
     final navigator = Navigator.of(context);
 
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) {
-        return QuickControlPanel(
-          theme: theme,
-          userCard: _buildUserProfileCard(),
-          onNavigateHome: _scrollFeedToTop,
-          onCompose: () async {
-            navigator.pop();
-            await navigator.push(
-              MaterialPageRoute(builder: (_) => const ComposeScreen()),
-            );
-          },
-          onSignOut: () async {
-            await ref.read(authControllerProvider.notifier).signOut();
-          },
-        );
-      },
-    );
+    try {
+      await showModalBottomSheet<void>(
+        context: context,
+        backgroundColor: Colors.transparent,
+        isScrollControlled: true,
+        builder: (context) {
+          return QuickControlPanel(
+            theme: theme,
+            userCard: _buildUserProfileCard(),
+            onNavigateHome: _scrollFeedToTop,
+            onCompose: () async {
+              navigator.pop();
+              await navigator.push(
+                MaterialPageRoute(builder: (_) => const ComposeScreen()),
+              );
+            },
+            onSignOut: () async {
+              await ref.read(authControllerProvider.notifier).signOut();
+            },
+          );
+        },
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _quickControlsSheetOpen = false;
+          _tabOverscrollAccum = 0;
+          _openedQuickControlsFromSwipe = false;
+        });
+      } else {
+        _quickControlsSheetOpen = false;
+      }
+    }
   }
 
   Widget _buildUserProfileCard() {
@@ -469,7 +526,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Alex Rivera',
+                        '',
                         style: TextStyle(
                           color: isDark
                               ? AppTheme.darkTextPrimary

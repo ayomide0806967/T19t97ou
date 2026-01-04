@@ -376,47 +376,7 @@ class _ReviewSummary extends StatelessWidget {
 
 // Removed unused _TweetMessage model
 
-const List<_Conversation> _demoConversations = <_Conversation>[
-  _Conversation(
-    name: 'Project Group A',
-    initials: 'PG',
-    lastMessage: 'Draft submitted. Review due Friday.',
-    timeLabel: '09:40',
-    unreadCount: 3,
-  ),
-  _Conversation(
-    name: 'Tutor Anika',
-    initials: 'TA',
-    lastMessage: 'Slides for cardio uploaded.',
-    timeLabel: 'Yesterday',
-  ),
-  _Conversation(
-    name: 'Admissions Office',
-    initials: 'AO',
-    lastMessage: 'Reminder: fee payment closes Fri.',
-    timeLabel: 'Mon',
-    unreadCount: 1,
-  ),
-  _Conversation(
-    name: 'Lab Team',
-    initials: 'LT',
-    lastMessage: 'Bring lab coats tomorrow.',
-    timeLabel: '08:12',
-  ),
-  _Conversation(
-    name: 'Study Hub',
-    initials: 'SH',
-    lastMessage: 'OSCE checklist updated.',
-    timeLabel: 'Sun',
-  ),
-  _Conversation(
-    name: 'Class Rep',
-    initials: 'CR',
-    lastMessage: 'Venue changed to Hall B.',
-    timeLabel: 'Sat',
-    unreadCount: 2,
-  ),
-];
+const List<_Conversation> _demoConversations = <_Conversation>[];
 
 // Quiz screens exist separately; access via header quiz icon.
 

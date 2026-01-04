@@ -13,15 +13,22 @@ class _InstitutionHeroText extends StatelessWidget {
     required this.accent,
     required this.titleStyle,
     required this.subtitleStyle,
+    required this.logoColor,
   });
 
   final String text;
   final Color accent;
   final TextStyle titleStyle;
   final TextStyle subtitleStyle;
+  final Color logoColor;
 
   @override
   Widget build(BuildContext context) {
+    final double titleFontSize = titleStyle.fontSize ?? 34;
+    final double titleHeight = titleStyle.height ?? 1.05;
+    final double subtitleFontSize = subtitleStyle.fontSize ?? 18;
+    final double subtitleHeight = subtitleStyle.height ?? 1.25;
+
     if (text.toUpperCase() == 'IN INSTITUTION') {
       final baseFontSize = titleStyle.fontSize ?? 34;
       final baseStyle = titleStyle.copyWith(
@@ -35,7 +42,7 @@ class _InstitutionHeroText extends StatelessWidget {
           children: [
             TextSpan(
               text: 'IN ',
-              style: baseStyle.copyWith(color: const Color(0xFFFF7A1A)),
+              style: baseStyle.copyWith(color: Colors.white),
             ),
             TextSpan(
               text: 'INSTITUTION',
@@ -46,40 +53,49 @@ class _InstitutionHeroText extends StatelessWidget {
       );
     }
 
-    final words = text.split(' ');
-    final String highlight = words.isNotEmpty ? words.first : text;
-    final String rest = words.length > 1
-        ? text.substring(highlight.length)
-        : '';
-
     final bool hideSubtitle =
         text.toLowerCase() == "the world's first social media school";
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        RichText(
+        Text(
+          text,
           textAlign: TextAlign.center,
-          text: TextSpan(
-            children: [
-              TextSpan(
-                text: highlight,
-                style: titleStyle.copyWith(
-                  color: accent.withValues(alpha: 0.98),
-                ),
-              ),
-              TextSpan(text: rest, style: titleStyle),
-            ],
+          style: titleStyle.copyWith(color: accent),
+          strutStyle: StrutStyle(
+            fontFamily: titleStyle.fontFamily,
+            fontSize: titleFontSize,
+            height: titleHeight,
+            forceStrutHeight: true,
+          ),
+          textHeightBehavior: const TextHeightBehavior(
+            applyHeightToFirstAscent: false,
+            applyHeightToLastDescent: false,
           ),
         ),
-        if (!hideSubtitle) ...[
-          const SizedBox(height: 8),
-          Text(
+        const SizedBox(height: 8),
+        Visibility(
+          visible: !hideSubtitle,
+          maintainAnimation: true,
+          maintainSize: true,
+          maintainState: true,
+          child: Text(
             'IN INSTITUTION',
             textAlign: TextAlign.center,
             style: subtitleStyle,
+            strutStyle: StrutStyle(
+              fontFamily: subtitleStyle.fontFamily,
+              fontSize: subtitleFontSize,
+              height: subtitleHeight,
+              forceStrutHeight: true,
+            ),
+            textHeightBehavior: const TextHeightBehavior(
+              applyHeightToFirstAscent: false,
+              applyHeightToLastDescent: false,
+            ),
           ),
-        ],
+        ),
       ],
     );
   }

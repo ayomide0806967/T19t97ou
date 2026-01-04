@@ -2,54 +2,42 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../auth/auth_repository.dart';
-import '../auth/local_auth_repository.dart';
+import '../class/class_repository.dart';
+import '../comment/comment_repository.dart';
 import '../config/app_config.dart';
+import '../messaging/messaging_repository.dart';
+import '../note/note_repository.dart';
+import '../notification/notification_repository.dart';
 import '../profile/profile_repository.dart';
-import '../profile/local_profile_repository.dart';
 import '../quiz/quiz_repository.dart';
-import '../quiz/local_quiz_repository.dart';
 import '../supabase/supabase_auth_repository.dart';
+import '../supabase/supabase_class_repository.dart';
+import '../supabase/supabase_comment_repository.dart';
+import '../supabase/supabase_messaging_repository.dart';
+import '../supabase/supabase_note_repository.dart';
+import '../supabase/supabase_notification_repository.dart';
 import '../supabase/supabase_post_repository.dart';
 import '../supabase/supabase_profile_repository.dart';
 import '../supabase/supabase_quiz_repository.dart';
 import '../../services/data_service.dart';
-import '../../services/profile_service.dart';
-import '../../state/app_settings.dart';
-import '../../services/simple_auth_service.dart';
 import '../../features/feed/domain/post_repository.dart';
 
 /// Core dependency graph wired through Riverpod.
 ///
-/// UI will gradually migrate to read from these providers instead of
-/// depending directly on `provider` / `ChangeNotifier`.
+/// All repositories and services are accessed through these providers,
+/// enabling easy swapping between local and Supabase implementations.
 
-final appSettingsProvider = Provider<AppSettings>((ref) {
-  throw UnimplementedError('appSettingsProvider is overridden in main.dart');
-});
-
-/// Listenable view of [AppSettings] so widgets can rebuild when the theme
-/// or other settings change.
-final appSettingsListenableProvider =
-    Provider<AppSettings>((ref) => ref.watch(appSettingsProvider));
+// ─────────────────────────────────────────────────────────────────────────────
+// Data Services
+// ─────────────────────────────────────────────────────────────────────────────
 
 final dataServiceProvider = Provider<DataService>((ref) {
   throw UnimplementedError('dataServiceProvider is overridden in main.dart');
 });
 
-/// Legacy ProfileService provider (for gradual migration).
-final profileServiceProvider = Provider<ProfileService>((ref) {
-  throw UnimplementedError('profileServiceProvider is overridden in main.dart');
-});
-
-/// New ProfileRepository provider - use this for new code.
-final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
-  throw UnimplementedError('profileRepositoryProvider is overridden in main.dart');
-});
-
-/// QuizRepository provider.
-final quizRepositoryProvider = Provider<QuizRepository>((ref) {
-  throw UnimplementedError('quizRepositoryProvider is overridden in main.dart');
-});
+// ─────────────────────────────────────────────────────────────────────────────
+// Supabase Client
+// ─────────────────────────────────────────────────────────────────────────────
 
 final supabaseClientProvider = Provider<SupabaseClient>((ref) {
   if (!AppConfig.hasSupabaseConfig) {
@@ -58,16 +46,81 @@ final supabaseClientProvider = Provider<SupabaseClient>((ref) {
   return Supabase.instance.client;
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Repository Providers
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Authentication repository - handles sign in/up/out operations.
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  if (AppConfig.hasSupabaseConfig) {
-    return SupabaseAuthRepository(ref.read(supabaseClientProvider));
+  if (!AppConfig.hasSupabaseConfig) {
+    throw StateError('Supabase is not configured');
   }
-  return LocalAuthRepository(SimpleAuthService());
+  return SupabaseAuthRepository(ref.read(supabaseClientProvider));
 });
 
-final postRepositoryProvider = Provider<PostRepository>((ref) {
-  if (AppConfig.hasSupabaseConfig && AppConfig.enableSupabaseFeed) {
-    return SupabasePostRepository(ref.read(supabaseClientProvider));
+/// Profile repository - handles user profile CRUD and image uploads.
+final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
+  if (!AppConfig.hasSupabaseConfig) {
+    throw StateError('Supabase is not configured');
   }
-  return ref.read(dataServiceProvider);
+  return SupabaseProfileRepository(ref.read(supabaseClientProvider));
+});
+
+/// Post/feed repository - handles timeline, posts, reposts, bookmarks.
+final postRepositoryProvider = Provider<PostRepository>((ref) {
+  if (!AppConfig.hasSupabaseConfig) {
+    throw StateError('Supabase is not configured');
+  }
+  if (!AppConfig.enableSupabaseFeed) {
+    throw StateError('Supabase feed is disabled (SUPABASE_FEED=false)');
+  }
+  return SupabasePostRepository(ref.read(supabaseClientProvider));
+});
+
+/// Quiz repository - handles quiz CRUD, attempts, and leaderboards.
+final quizRepositoryProvider = Provider<QuizRepository>((ref) {
+  if (!AppConfig.hasSupabaseConfig) {
+    throw StateError('Supabase is not configured');
+  }
+  return SupabaseQuizRepository(ref.read(supabaseClientProvider));
+});
+
+/// Comment repository - handles post comments with realtime updates.
+final commentRepositoryProvider = Provider<CommentRepository>((ref) {
+  if (!AppConfig.hasSupabaseConfig) {
+    throw StateError('Supabase is not configured');
+  }
+  return SupabaseCommentRepository(ref.read(supabaseClientProvider));
+});
+
+/// Class repository - handles class CRUD, membership, and invites.
+final classRepositoryProvider = Provider<ClassRepository>((ref) {
+  if (!AppConfig.hasSupabaseConfig) {
+    throw StateError('Supabase is not configured');
+  }
+  return SupabaseClassRepository(ref.read(supabaseClientProvider));
+});
+
+/// Note repository - handles class notes with sections.
+final noteRepositoryProvider = Provider<NoteRepository>((ref) {
+  if (!AppConfig.hasSupabaseConfig) {
+    throw StateError('Supabase is not configured');
+  }
+  return SupabaseNoteRepository(ref.read(supabaseClientProvider));
+});
+
+/// Messaging repository - handles conversations and messages.
+final messagingRepositoryProvider = Provider<MessagingRepository>((ref) {
+  if (!AppConfig.hasSupabaseConfig) {
+    throw StateError('Supabase is not configured');
+  }
+  return SupabaseMessagingRepository(ref.read(supabaseClientProvider));
+});
+
+/// Notification repository - handles user notifications.
+final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
+  if (!AppConfig.hasSupabaseConfig) {
+    throw StateError('Supabase is not configured');
+  }
+  return SupabaseNotificationRepository(ref.read(supabaseClientProvider));
 });

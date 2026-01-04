@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../messaging/messaging_repository.dart' as repo;
+
 /// Repository for direct messaging.
 ///
 /// Uses:
@@ -9,7 +11,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// - `conversation_participants` for membership
 /// - `messages` table for messages with realtime
 /// - `message_reads` for read receipts
-class SupabaseMessagingRepository {
+class SupabaseMessagingRepository implements repo.MessagingRepository {
   SupabaseMessagingRepository(this._client);
 
   final SupabaseClient _client;

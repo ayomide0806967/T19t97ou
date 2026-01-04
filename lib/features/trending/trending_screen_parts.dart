@@ -139,15 +139,16 @@ class _SectionHeader extends StatelessWidget {
 }
 
 class _SectionDivider extends StatelessWidget {
-  const _SectionDivider({required this.color});
+  const _SectionDivider({required this.color, this.thickness = 1});
 
   final Color color;
+  final double thickness;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Divider(height: 1, thickness: 1, color: color),
+      child: Divider(height: 1, thickness: thickness, color: color),
     );
   }
 }

@@ -16,6 +16,7 @@ class EditProfileState {
     this.isPrivateAccount = false,
     this.tipsEnabled = false,
     this.isSaving = false,
+    this.error,
   });
 
   final Uint8List? headerImage;
@@ -28,6 +29,7 @@ class EditProfileState {
   final bool isPrivateAccount;
   final bool tipsEnabled;
   final bool isSaving;
+  final String? error;
 
   EditProfileState copyWith({
     Uint8List? headerImage,
@@ -40,6 +42,7 @@ class EditProfileState {
     bool? isPrivateAccount,
     bool? tipsEnabled,
     bool? isSaving,
+    String? error,
   }) {
     return EditProfileState(
       headerImage: headerImage ?? this.headerImage,
@@ -52,9 +55,11 @@ class EditProfileState {
       isPrivateAccount: isPrivateAccount ?? this.isPrivateAccount,
       tipsEnabled: tipsEnabled ?? this.tipsEnabled,
       isSaving: isSaving ?? this.isSaving,
+      error: error,
     );
   }
 }
+
 
 /// Result returned when saving profile edits.
 class EditProfileResult {

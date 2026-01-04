@@ -66,11 +66,11 @@ class _TrendingQuickControlPanelState
         },
       ),
       QuickControlItem(
-        icon: Icons.quiz_outlined,
-        label: 'Quiz',
+        icon: Icons.workspace_premium_outlined,
+        label: 'Subscriptions',
         onPressed: () async {
           Navigator.of(context).pop();
-          await Navigator.of(context).push(AppNav.quizDashboard());
+          await Navigator.of(context).push(AppNav.subscriptions());
         },
       ),
       QuickControlItem(
@@ -94,16 +94,16 @@ class _TrendingQuickControlPanelState
         onPressed: () async => showComingSoonSnackBar(context, 'Notifications'),
       ),
       QuickControlItem(
-        icon: Icons.forum_outlined,
-        label: 'Messages',
+        icon: Icons.bookmark_border_rounded,
+        label: 'Bookmarks',
         onPressed: () async {
           Navigator.of(context).pop();
-          await Navigator.of(context).push(AppNav.classes());
+          await Navigator.of(context).push(AppNav.bookmarks());
         },
       ),
       QuickControlItem(
-        icon: Icons.search_rounded,
-        label: 'Search',
+        icon: Icons.trending_up_rounded,
+        label: 'Trending',
         onPressed: () async {
           Navigator.of(context).pop();
           // Already on search/trends page – just close the panel.

@@ -50,7 +50,7 @@ class QuizDashboardScreen extends ConsumerWidget {
                 Transform.translate(
                   offset: const Offset(0, 34),
                   child: _MyPlanCard(
-                    planName: 'Starter',
+                    planName: 'Basic',
                     usedQuizzes: publishedCount + drafts.length,
                     quizLimit: 10,
                     onTap: () {
@@ -321,7 +321,7 @@ class _MyPlanCard extends StatelessWidget {
                       Row(
                         children: [
                           Text(
-                            'My Plan',
+                            'Subscription',
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w800,
                               color: text,
@@ -354,7 +354,7 @@ class _MyPlanCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Quizzes created',
+                        'Click to view plan details >',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: text.withValues(alpha: 0.7),
                           fontWeight: FontWeight.w600,

@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/di/app_providers.dart';
+import '../../core/navigation/app_nav.dart';
+import '../../core/notification/notification_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_tab_scaffold.dart';
 
-class NotificationsScreen extends StatefulWidget {
+class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
 
   @override
-  State<NotificationsScreen> createState() => _NotificationsScreenState();
+  ConsumerState<NotificationsScreen> createState() =>
+      _NotificationsScreenState();
 }
 
-
-class _NotificationsScreenState extends State<NotificationsScreen> {
+class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   final List<String> _filters = const [
     'All',
     'Follows',
@@ -18,45 +23,156 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     'Reposts',
   ];
   int _selectedFilterIndex = 0;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotifications();
+  }
+
+  Future<void> _loadNotifications() async {
+    final repo = ref.read(notificationRepositoryProvider);
+    await repo.load();
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  List<NotificationItem> _filterNotifications(List<NotificationItem> all) {
+    switch (_selectedFilterIndex) {
+      case 1: // Follows
+        return all.where((n) => n.type == 'follow').toList();
+      case 2: // Conversations
+        return all.where((n) => n.type == 'message').toList();
+      case 3: // Reposts
+        return all.where((n) => n.type == 'repost').toList();
+      default: // All
+        return all;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final notifications = _sampleNotifications;
+    final repo = ref.watch(notificationRepositoryProvider);
 
     return AppTabScaffold(
       currentIndex: 3,
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Notifications'),
-        centerTitle: true,
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 8),
-          _buildFilterChips(theme),
-          const SizedBox(height: 8),
-          Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.only(top: 4, bottom: 20),
-              itemCount: notifications.length,
-              separatorBuilder: (_, __) => Divider(
-                height: 24,
-                thickness: 1.0,
-                color: theme.dividerColor.withValues(alpha: 0.55),
-              ),
-              itemBuilder: (context, index) {
-                final notification = notifications[index];
-                // For now, the sample data is not categorized;
-                // all filters show the same list but the UI matches
-                // the Instagram-style segmented control.
-                return Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                  child: _NotificationTile(notification: notification),
-                );
+        centerTitle: false,
+        titleSpacing: 0,
+        actions: [
+          if (repo.unreadCount > 0)
+            TextButton(
+              onPressed: () async {
+                await repo.markAllAsRead();
               },
+              child: Text(
+                'Mark all read',
+                style: TextStyle(
+                  color: AppTheme.accent,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          IconButton(
+            tooltip: 'Messages',
+            icon: const Icon(Icons.mail_outline_rounded, color: Colors.black),
+            onPressed: () {
+              Navigator.of(context).push(AppNav.inbox());
+            },
+          ),
+        ],
+      ),
+      body: StreamBuilder<List<NotificationItem>>(
+        stream: repo.watchNotifications(),
+        initialData: repo.notifications,
+        builder: (context, snapshot) {
+          if (_isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final allNotifications = snapshot.data ?? [];
+          final notifications = _filterNotifications(allNotifications);
+
+          if (notifications.isEmpty) {
+            return _buildEmptyState(theme);
+          }
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 8),
+              _buildFilterChips(theme),
+              const SizedBox(height: 8),
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: _loadNotifications,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.only(top: 4, bottom: 20),
+                    itemCount: notifications.length,
+                    separatorBuilder: (_, __) => Divider(
+                      height: 24,
+                      thickness: 1.0,
+                      color: theme.dividerColor.withValues(alpha: 0.55),
+                    ),
+                    itemBuilder: (context, index) {
+                      final notification = notifications[index];
+                      return Dismissible(
+                        key: Key(notification.id),
+                        direction: DismissDirection.endToStart,
+                        background: Container(
+                          color: Colors.red,
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.only(right: 20),
+                          child: const Icon(Icons.delete, color: Colors.white),
+                        ),
+                        onDismissed: (_) {
+                          repo.deleteNotification(notification.id);
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 4),
+                          child: _NotificationTile(
+                            notification: notification,
+                            onTap: () {
+                              if (!notification.isRead) {
+                                repo.markAsRead([notification.id]);
+                              }
+                              // TODO: Navigate to target
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(ThemeData theme) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.notifications_none_rounded,
+            size: 64,
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No notifications yet',
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
         ],
@@ -150,53 +266,31 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 }
 
-class _Notification {
-  const _Notification({
-    required this.title,
-    required this.body,
-    required this.timeAgo,
-    this.isNew = false,
+class _NotificationTile extends StatelessWidget {
+  const _NotificationTile({
+    required this.notification,
+    this.onTap,
   });
 
-  final String title;
-  final String body;
-  final String timeAgo;
-  final bool isNew;
-}
+  final NotificationItem notification;
+  final VoidCallback? onTap;
 
-const _sampleNotifications = <_Notification>[
-  _Notification(
-    title: 'New mentor reply',
-    body: 'Dr. Maya Chen shared pointers on your sterile dressing question.',
-    timeAgo: '2m ago',
-    isNew: true,
-  ),
-  _Notification(
-    title: 'Checklist reminder',
-    body: 'Complete the OSCE airway simulation before Friday.',
-    timeAgo: '15m ago',
-  ),
-  _Notification(
-    title: 'Group invite',
-    body: 'Clinical Skills Lab added you to “Medication Safety Sprint”.',
-    timeAgo: '1h ago',
-  ),
-  _Notification(
-    title: 'Insight drop',
-    body: 'Leadership Forum posted a new shift handover framework.',
-    timeAgo: '3h ago',
-  ),
-  _Notification(
-    title: 'Saved session update',
-    body: 'Night Shift Recovery tips now include a quick breathing routine.',
-    timeAgo: 'Yesterday',
-  ),
-];
-
-class _NotificationTile extends StatelessWidget {
-  const _NotificationTile({required this.notification});
-
-  final _Notification notification;
+  IconData _iconForType(String type) {
+    switch (type) {
+      case 'follow':
+        return Icons.person_add_outlined;
+      case 'like':
+        return Icons.favorite_outline;
+      case 'repost':
+        return Icons.repeat_rounded;
+      case 'comment':
+        return Icons.mode_comment_outlined;
+      case 'message':
+        return Icons.mail_outline;
+      default:
+        return Icons.notifications_none_rounded;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -206,41 +300,57 @@ class _NotificationTile extends StatelessWidget {
     final subtle = onSurface.withValues(alpha: isDark ? 0.65 : 0.6);
 
     return ListTile(
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
+      onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
       leading: CircleAvatar(
         radius: 20,
         backgroundColor:
             AppTheme.accent.withValues(alpha: isDark ? 0.3 : 0.15),
-        child: Icon(
-          notification.isNew
-              ? Icons.notifications_active_outlined
-              : Icons.notifications_none_rounded,
-          color: AppTheme.accent,
-          size: 20,
-        ),
+        child: notification.actorAvatarUrl != null
+            ? ClipOval(
+                child: Image.network(
+                  notification.actorAvatarUrl!,
+                  width: 40,
+                  height: 40,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Icon(
+                    _iconForType(notification.type),
+                    color: AppTheme.accent,
+                    size: 20,
+                  ),
+                ),
+              )
+            : Icon(
+                _iconForType(notification.type),
+                color: AppTheme.accent,
+                size: 20,
+              ),
       ),
       title: Text(
         notification.title,
         style: theme.textTheme.titleMedium?.copyWith(
           color: onSurface,
-          fontWeight: FontWeight.w600,
+          fontWeight: notification.isRead ? FontWeight.w500 : FontWeight.w600,
         ),
       ),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 4),
-          Text(
-            notification.body,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: subtle,
-              height: 1.35,
+          if (notification.body != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              notification.body!,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: subtle,
+                height: 1.35,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-          ),
+          ],
           const SizedBox(height: 6),
           Text(
-            notification.timeAgo,
+            _formatTimeAgo(notification.createdAt),
             style: theme.textTheme.labelSmall?.copyWith(
               color: subtle,
               fontWeight: FontWeight.w500,
@@ -248,7 +358,7 @@ class _NotificationTile extends StatelessWidget {
           ),
         ],
       ),
-      trailing: notification.isNew
+      trailing: !notification.isRead
           ? Container(
               width: 10,
               height: 10,
@@ -259,5 +369,22 @@ class _NotificationTile extends StatelessWidget {
             )
           : null,
     );
+  }
+
+  String _formatTimeAgo(DateTime dateTime) {
+    final now = DateTime.now();
+    final diff = now.difference(dateTime);
+
+    if (diff.inDays > 7) {
+      return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+    } else if (diff.inDays > 0) {
+      return '${diff.inDays}d ago';
+    } else if (diff.inHours > 0) {
+      return '${diff.inHours}h ago';
+    } else if (diff.inMinutes > 0) {
+      return '${diff.inMinutes}m ago';
+    } else {
+      return 'Just now';
+    }
   }
 }

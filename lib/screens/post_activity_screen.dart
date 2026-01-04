@@ -26,11 +26,8 @@ class _PostActivityScreenState extends State<PostActivityScreen> {
   @override
   void initState() {
     super.initState();
-    // Generate demo users based on post id for consistency
-    _engagedUsers = ActivityUser.generateDemoUsers(
-      8,
-      seed: widget.post.id.hashCode,
-    );
+    // Start with an empty list; real data should come from backend.
+    _engagedUsers = const <ActivityUser>[];
     for (final user in _engagedUsers) {
       _followingState[user.username] = user.isFollowing;
     }

@@ -20,16 +20,34 @@ mixin _TweetPostCardActions on _TweetPostCardStateBase {
   }
 
   void _toggleBookmark() {
-    setState(() {
-      _bookmarked = !_bookmarked;
-    });
+    unawaited(_toggleBookmarkViaRepository(showToast: false));
   }
 
   void _toggleBookmarkWithToast() {
-    setState(() {
-      _bookmarked = !_bookmarked;
-    });
-    _showToast(_bookmarked ? 'Bookmark saved' : 'Bookmark removed');
+    unawaited(_toggleBookmarkViaRepository(showToast: true));
+  }
+
+  Future<void> _toggleBookmarkViaRepository({required bool showToast}) async {
+    final repo = ref.read(postRepositoryProvider);
+    final targetId = widget.post.originalId ?? widget.post.id;
+
+    final optimistic = !_bookmarked;
+    setState(() => _bookmarked = optimistic);
+
+    try {
+      final nowBookmarked = await repo.toggleBookmark(targetId);
+      if (!mounted) return;
+      setState(() => _bookmarked = nowBookmarked);
+      if (showToast) {
+        _showToast(nowBookmarked ? 'Bookmark saved' : 'Bookmark removed');
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _bookmarked = !optimistic);
+      if (showToast) {
+        _showToast('Bookmark failed');
+      }
+    }
   }
 
   Future<void> _ensureRepostForReply() async {

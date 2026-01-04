@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../../screens/compose_screen.dart';
+import '../../screens/bookmarks_screen.dart';
 import '../../screens/notifications_screen.dart';
 import '../../screens/profile_screen.dart';
 import '../../screens/quiz_dashboard_screen.dart';
 import '../../screens/trending_screen.dart';
 import '../../screens/user_profile_screen.dart';
+import '../../features/subscription/subscribe_screen.dart';
 import '../../features/messages/messages_screen.dart';
 
 class AppNav {
@@ -16,6 +18,8 @@ class AppNav {
 
   static Route<void> quizDashboard() =>
       MaterialPageRoute(builder: (_) => const QuizDashboardScreen());
+
+  static Route<void> subscriptions() => SubscribeScreen.route();
 
   static Route<void> classes() =>
       MaterialPageRoute(builder: (_) => const MessagesScreen());
@@ -35,6 +39,9 @@ class AppNav {
 
   static Route<void> myProfile() =>
       MaterialPageRoute(builder: (_) => const ProfileScreen());
+
+  static Route<void> bookmarks() =>
+      MaterialPageRoute(builder: (_) => const BookmarksScreen());
 
   static Route<void> userProfile(String handle) =>
       MaterialPageRoute(builder: (_) => UserProfileScreen(handle: handle));

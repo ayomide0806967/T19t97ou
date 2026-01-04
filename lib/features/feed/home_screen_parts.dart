@@ -105,7 +105,7 @@ class FeedTabBarState extends State<FeedTabBar> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    const Color accent = Color(0xFFFF7A1A);
+    const Color accent = Color(0xFFFFB066);
 
     final TextStyle baseStyle =
         theme.textTheme.titleMedium ??

@@ -358,7 +358,7 @@ class _FabMenuItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
-    const Color iconAccent = Color(0xFFFF7A1A);
+    const Color iconAccent = Color(0xFFFFB066);
     final Color pillBackground = isDark
         ? Colors.white.withValues(alpha: 0.98)
         : Colors.white.withValues(alpha: 0.98);

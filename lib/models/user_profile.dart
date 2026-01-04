@@ -50,11 +50,10 @@ class UserProfile {
       };
 
   factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
-        fullName: json['fullName'] as String? ?? 'Alex Rivera',
-        handle: json['handle'] as String? ?? '@productlead',
-        bio: json['bio'] as String? ??
-            'Guiding nursing and midwifery teams through safe practice, exam preparation, and compassionate leadership across our teaching hospital.',
-        profession: json['profession'] as String? ?? 'Clinical Educator',
+        fullName: json['fullName'] as String? ?? '',
+        handle: json['handle'] as String? ?? '',
+        bio: json['bio'] as String? ?? '',
+        profession: json['profession'] as String? ?? '',
         avatarImageBase64: json['avatarImageBase64'] as String?,
         headerImageBase64: json['headerImageBase64'] as String?,
       );

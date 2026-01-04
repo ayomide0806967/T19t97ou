@@ -42,6 +42,7 @@ class AppTheme {
 
   static ThemeData lightTheme = _buildLightTheme();
   static ThemeData darkTheme = _buildDarkTheme();
+  static ThemeData blackoutDarkTheme = _buildBlackoutDarkTheme();
 
   static ThemeData _buildLightTheme() {
     final baseColorScheme = ColorScheme.fromSeed(
@@ -348,6 +349,34 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
       ),
       dividerColor: darkDivider,
+    );
+  }
+
+  static ThemeData _buildBlackoutDarkTheme() {
+    final base = _buildDarkTheme();
+    final ColorScheme cs = base.colorScheme.copyWith(
+      surface: const Color(0xFF0B0F14),
+      background: Colors.black,
+      onBackground: darkTextPrimary,
+      onSurface: darkTextPrimary,
+    );
+
+    return base.copyWith(
+      scaffoldBackgroundColor: Colors.black,
+      colorScheme: cs,
+      appBarTheme: base.appBarTheme.copyWith(
+        backgroundColor: Colors.black,
+        surfaceTintColor: Colors.transparent,
+      ),
+      dividerColor: Colors.white.withValues(alpha: 0.12),
+      cardTheme: base.cardTheme.copyWith(
+        color: const Color(0xFF0B0F14),
+        surfaceTintColor: Colors.transparent,
+      ),
+      popupMenuTheme: base.popupMenuTheme.copyWith(
+        color: const Color(0xFF0B0F14),
+        surfaceTintColor: Colors.transparent,
+      ),
     );
   }
 }

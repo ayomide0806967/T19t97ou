@@ -49,12 +49,43 @@ abstract class PostRepository {
 
   Future<void> deletePost({required String postId});
 
+  // =========================================================================
+  // Like operations
+  // =========================================================================
+
+  /// Check whether the current user has liked a post.
+  bool hasUserLiked(String postId);
+
+  /// Toggle like on a post. Returns true if now liked, false if unliked.
+  Future<bool> toggleLike(String postId);
+
+  // =========================================================================
+  // Repost operations
+  // =========================================================================
+
   bool hasUserReposted(String postId, String userHandle);
 
   Future<bool> toggleRepost({
     required String postId,
     required String userHandle,
   });
+
+  // =========================================================================
+  // Bookmark operations
+  // =========================================================================
+
+  /// Check whether the current user has saved/bookmarked a post.
+  bool hasUserBookmarked(String postId);
+
+  /// Toggle bookmark on a post. Returns true if now bookmarked.
+  Future<bool> toggleBookmark(String postId);
+
+  /// Best-effort list of bookmarked posts, based on currently loaded data.
+  List<PostModel> bookmarkedPosts();
+
+  // =========================================================================
+  // Thread & user timeline helpers
+  // =========================================================================
 
   ThreadEntry buildThreadForPost(String postId);
 
@@ -63,3 +94,4 @@ abstract class PostRepository {
 
   List<PostModel> repliesForHandle(String handle, {int minLikes});
 }
+
