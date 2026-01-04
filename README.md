@@ -9,13 +9,28 @@ This app reads Supabase config from compile-time defines.
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
 
-Example:
+Standard practice in this repo:
 
-`flutter run --dart-define=SUPABASE_URL=... --dart-define=SUPABASE_ANON_KEY=...`
+- Copy `.env.example` → `.env` and fill values (this file is git-ignored).
+- Run using `--dart-define-from-file=.env`.
 
-To enable the Supabase-backed feed (requires schema): add `--dart-define=SUPABASE_FEED=true`.
+The easiest way in this repo (reuses `admin-panel/.env.local`) is:
+
+`tool/bootstrap_env.sh` then `tool/run_live_android.sh <device-id>`
+
+To enable/disable the Supabase-backed feed: use `--dart-define=SUPABASE_FEED=true|false` (defaults to `true`).
 
 Schema reference: `docs/supabase_schema.sql`
+
+## OAuth (Google/Facebook) on mobile
+
+This app uses Supabase OAuth via `signInWithOAuth(...)` and receives the callback
+through a deep link:
+
+- `io.supabase.flutter://login-callback`
+
+Add this URL to Supabase Dashboard → Authentication → URL Configuration →
+Additional Redirect URLs.
 
 ## Getting Started
 

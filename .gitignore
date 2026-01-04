@@ -47,3 +47,7 @@ app.*.map.json
 
 # Node (admin panel, tooling)
 **/node_modules/
+
+# Local secrets / runtime config
+.env
+.env.*

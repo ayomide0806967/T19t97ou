@@ -9,6 +9,16 @@
             "flutterMode": "debug"
         },
         {
+            "name": "Flutter + Supabase (.env file)",
+            "type": "dart",
+            "request": "launch",
+            "program": "lib/main.dart",
+            "flutterMode": "debug",
+            "toolArgs": [
+                "--dart-define-from-file=.env"
+            ]
+        },
+        {
             "name": "Flutter + Supabase",
             "type": "dart",
             "request": "launch",
@@ -17,18 +27,6 @@
             "toolArgs": [
                 "--dart-define=SUPABASE_URL=${env:SUPABASE_URL}",
                 "--dart-define=SUPABASE_ANON_KEY=${env:SUPABASE_ANON_KEY}",
-                "--dart-define=SUPABASE_FEED=true"
-            ]
-        },
-        {
-            "name": "Flutter + Supabase (Hardcoded)",
-            "type": "dart",
-            "request": "launch",
-            "program": "lib/main.dart",
-            "flutterMode": "debug",
-            "toolArgs": [
-                "--dart-define=SUPABASE_URL=https://cpusfwcpbcuqfbeumifg.supabase.co",
-                "--dart-define=SUPABASE_ANON_KEY=sb_publishable_d3IvFgwzt9tHGewUQb8I8g_EAzboeoX",
                 "--dart-define=SUPABASE_FEED=true"
             ]
         },
