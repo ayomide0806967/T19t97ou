@@ -43,11 +43,14 @@ jobs:
           flutter config --enable-web
           BASE_HREF="${WEB_BASE_HREF:-/${{ github.event.repository.name }}/}"
           echo "Using BASE_HREF=${BASE_HREF}"
-          flutter build web --release \
-            --base-href "${BASE_HREF}" \
-            --dart-define="SUPABASE_URL=${{ secrets.SUPABASE_URL }}" \
-            --dart-define="SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" \
-            --dart-define="SUPABASE_FEED=true"
+
+          cat > .env <<EOF
+          SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_FEED=true
+          EOF
+
+          flutter build web --release --base-href "${BASE_HREF}" --dart-define-from-file=.env
 
           if [[ -n "${CUSTOM_DOMAIN}" ]]; then
             echo "${CUSTOM_DOMAIN}" > build/web/CNAME
