@@ -20,8 +20,13 @@ jobs:
     env:
       # Optional: set repo secret WEB_BASE_HREF to "/" when using a custom domain.
       WEB_BASE_HREF: ${{ secrets.WEB_BASE_HREF }}
+      # Optional: set repo secret CUSTOM_DOMAIN to write build/web/CNAME.
+      CUSTOM_DOMAIN: ${{ secrets.CUSTOM_DOMAIN }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -43,6 +48,11 @@ jobs:
             --dart-define="SUPABASE_URL=${{ secrets.SUPABASE_URL }}" \
             --dart-define="SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" \
             --dart-define="SUPABASE_FEED=true"
+
+          if [[ -n "${CUSTOM_DOMAIN}" ]]; then
+            echo "${CUSTOM_DOMAIN}" > build/web/CNAME
+            echo "Wrote build/web/CNAME for ${CUSTOM_DOMAIN}"
+          fi
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
