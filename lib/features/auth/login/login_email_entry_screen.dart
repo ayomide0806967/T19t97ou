@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../widgets/swiss_bank_icon.dart';
 
@@ -59,7 +60,7 @@ class _LoginEmailEntryScreenState extends State<LoginEmailEntryScreen> {
     final Color fieldFill = Colors.white;
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFF3F4F6),
         elevation: 0,
         leadingWidth: 72,
         leading: Padding(
@@ -121,8 +122,13 @@ class _LoginEmailEntryScreenState extends State<LoginEmailEntryScreen> {
                               Text(
                                 'Log in or sign up',
                                 textAlign: TextAlign.center,
-                                style: theme.textTheme.headlineSmall?.copyWith(
+                                style: GoogleFonts.inter(
+                                  fontSize:
+                                      theme.textTheme.headlineSmall?.fontSize ??
+                                      22,
                                   fontWeight: FontWeight.w700,
+                                  height: 1.1,
+                                  letterSpacing: -0.2,
                                   color: const Color(0xFF111827),
                                 ),
                               ),

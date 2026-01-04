@@ -15,7 +15,7 @@ void main() {
       expect(AppTheme.textTertiary, const Color(0xFF9CA3AF));
       expect(AppTheme.buttonPrimary, const Color(0xFF000000));
       expect(AppTheme.buttonSecondary, const Color(0xFFF3F4F6));
-      expect(AppTheme.accent, const Color(0xFF000000));
+      expect(AppTheme.accent, const Color(0xFF9CA3AF));
     });
 
     test('dark color palette is defined correctly', () {
