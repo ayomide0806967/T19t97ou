@@ -50,7 +50,8 @@ jobs:
           SUPABASE_FEED=true
           EOF
 
-          flutter build web --release --base-href "${BASE_HREF}" --dart-define-from-file=.env
+          # Disable the PWA service worker to avoid stale cached builds on GitHub Pages.
+          flutter build web --release --pwa-strategy=none --base-href "${BASE_HREF}" --dart-define-from-file=.env
 
           if [[ -n "${CUSTOM_DOMAIN}" ]]; then
             echo "${CUSTOM_DOMAIN}" > build/web/CNAME
