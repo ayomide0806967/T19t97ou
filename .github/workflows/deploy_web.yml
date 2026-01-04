@@ -17,10 +17,6 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      # GitHub Pages for project sites is served from /<repo-name>/.
-      # Update this if you rename the repository.
-      BASE_HREF: "/T19t97ou/"
     steps:
       - uses: actions/checkout@v4
 
@@ -36,6 +32,8 @@ jobs:
 
       - name: Build web
         run: |
+          flutter config --enable-web
+          BASE_HREF="/${{ github.event.repository.name }}/"
           flutter build web --release \
             --base-href "${BASE_HREF}" \
             --dart-define="SUPABASE_URL=${{ secrets.SUPABASE_URL }}" \
@@ -56,4 +54,3 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
-
