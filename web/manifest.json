@@ -1,11 +1,11 @@
 {
-    "name": "In institution",
-    "short_name": "In institution",
+    "name": "In Institution",
+    "short_name": "In Institution",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "In Institution",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
