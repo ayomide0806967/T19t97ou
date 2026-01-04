@@ -17,6 +17,9 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      # Optional: set repo secret WEB_BASE_HREF to "/" when using a custom domain.
+      WEB_BASE_HREF: ${{ secrets.WEB_BASE_HREF }}
     steps:
       - uses: actions/checkout@v4
 
@@ -33,7 +36,8 @@ jobs:
       - name: Build web
         run: |
           flutter config --enable-web
-          BASE_HREF="/${{ github.event.repository.name }}/"
+          BASE_HREF="${WEB_BASE_HREF:-/${{ github.event.repository.name }}/}"
+          echo "Using BASE_HREF=${BASE_HREF}"
           flutter build web --release \
             --base-href "${BASE_HREF}" \
             --dart-define="SUPABASE_URL=${{ secrets.SUPABASE_URL }}" \
