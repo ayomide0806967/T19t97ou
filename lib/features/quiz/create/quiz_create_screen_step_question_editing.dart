@@ -299,10 +299,9 @@ class _QuestionEditingStep extends StatelessWidget {
                                 maxLines: null, // auto-grow
                                 textInputAction: TextInputAction.newline,
                                 onChanged: (_) => onOptionChanged(),
-                                style: const TextStyle(
-                                  color: Colors.black,
-                                  fontFamily: 'Roboto',
-                                  fontSize: 16,
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  color: theme.colorScheme.onSurface,
+                                  fontSize: 14,
                                   fontWeight: FontWeight.w400,
                                 ),
                                 decoration: InputDecoration(

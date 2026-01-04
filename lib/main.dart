@@ -89,7 +89,7 @@ class MyApp extends ConsumerWidget {
     final prefs = ref.watch(appPreferencesControllerProvider);
 
     return MaterialApp(
-      title: 'IN-Institution',
+      title: 'In Institution',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme:

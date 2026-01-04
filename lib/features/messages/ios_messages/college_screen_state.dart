@@ -174,15 +174,14 @@ class _CollegeScreenState extends ConsumerState<_CollegeScreen> {
                         child: TabBar(
                           labelStyle: theme.textTheme.labelMedium?.copyWith(
                             fontWeight: FontWeight.w700,
-                            fontFamily: 'Roboto',
                           ),
                           unselectedLabelStyle: theme.textTheme.labelMedium
                               ?.copyWith(
                                 fontWeight: FontWeight.w700,
-                                fontFamily: 'Roboto',
                               ),
                           labelColor: Colors.white,
-                          unselectedLabelColor: Colors.black,
+                          unselectedLabelColor:
+                              theme.colorScheme.onSurface.withValues(alpha: 0.70),
                           indicator: BoxDecoration(
                             color: indicatorColor,
                             borderRadius: BorderRadius.circular(999),

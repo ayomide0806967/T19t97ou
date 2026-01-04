@@ -13,7 +13,8 @@ class AppTheme {
   static const Color textTertiary = Color(0xFF9CA3AF);
   static const Color buttonPrimary = Color(0xFF000000);
   static const Color buttonSecondary = Color(0xFFF3F4F6);
-  static const Color accent = Color(0xFF000000); // use black as primary accent
+  // Keep accents grayscale to match the "white/grey only" design.
+  static const Color accent = Color(0xFF9CA3AF);
 
   // Dark palette
   static const Color darkBackground = Color(0xFF0B0F14);
@@ -45,163 +46,9 @@ class AppTheme {
   static ThemeData blackoutDarkTheme = _buildBlackoutDarkTheme();
 
   static ThemeData _buildLightTheme() {
-    final baseColorScheme = ColorScheme.fromSeed(
-      seedColor: Colors.black,
-      brightness: Brightness.light,
-    );
-
-    final base = ThemeData(
-      useMaterial3: true,
-      brightness: Brightness.light,
-      // Pure white app background
-      scaffoldBackgroundColor: background,
-      // Pure white containers/cards via surface
-      colorScheme: baseColorScheme.copyWith(
-        surface: Colors.white,
-        onSurface: textPrimary,
-        primary: Colors.black,
-        secondary: Colors.black,
-        tertiary: Colors.black,
-        onPrimary: Colors.white,
-      ),
-      textTheme: GoogleFonts.interTextTheme(),
-    );
-
-    final headline = GoogleFonts.spaceGrotesk(
-      fontWeight: FontWeight.w700,
-      color: textPrimary,
-    );
-
-    final body = GoogleFonts.inter(
-      color: textSecondary,
-      height: 1.5,
-    );
-
-    return base.copyWith(
-      appBarTheme: AppBarTheme(
-        backgroundColor: background,
-        elevation: 0,
-        titleTextStyle: headline.copyWith(fontSize: 24),
-        surfaceTintColor: Colors.transparent,
-      ),
-      popupMenuTheme: const PopupMenuThemeData(
-        color: Colors.white,
-        surfaceTintColor: Colors.transparent,
-      ),
-      textTheme: base.textTheme.copyWith(
-        headlineLarge: headline.copyWith(fontSize: 44, letterSpacing: -1.2),
-        headlineMedium: headline.copyWith(fontSize: 32, letterSpacing: -0.5),
-        headlineSmall: headline.copyWith(fontSize: 24),
-        bodyLarge: body.copyWith(fontSize: 16, color: textSecondary),
-        bodyMedium: body.copyWith(fontSize: 14, color: textSecondary),
-        bodySmall: body.copyWith(fontSize: 13, color: textTertiary),
-        labelLarge: GoogleFonts.inter(
-          fontWeight: FontWeight.w600,
-          fontSize: 14,
-          color: textPrimary,
-        ),
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: background,
-        hintStyle: GoogleFonts.inter(color: textTertiary),
-        labelStyle: GoogleFonts.inter(
-          color: textPrimary,
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-        ),
-        floatingLabelStyle: GoogleFonts.inter(
-          color: textPrimary,
-          fontSize: 15,
-          fontWeight: FontWeight.w700,
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(999),
-          borderSide: const BorderSide(color: Colors.black),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(999),
-          borderSide: const BorderSide(color: Colors.black),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(999),
-          borderSide: const BorderSide(color: Colors.black, width: 1.8),
-        ),
-        disabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(999),
-          borderSide: const BorderSide(color: Colors.black54),
-        ),
-      ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          elevation: 0,
-          backgroundColor: buttonPrimary,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
-          shape: pillShape,
-          textStyle: GoogleFonts.inter(
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-          ),
-        ),
-      ),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          elevation: 0,
-          backgroundColor: buttonSecondary,
-          foregroundColor: textPrimary,
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
-          shape: pillShape,
-          side: const BorderSide(color: divider),
-          textStyle: GoogleFonts.inter(
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-          ),
-        ),
-      ),
-      textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
-          foregroundColor: textPrimary,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          textStyle: GoogleFonts.inter(
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-          ),
-        ),
-      ),
-      // Keep date/time pickers visually white without touching layout.
-      datePickerTheme: base.datePickerTheme.copyWith(
-        backgroundColor: Colors.white,
-        headerBackgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-      ),
-      timePickerTheme: base.timePickerTheme.copyWith(
-        backgroundColor: Colors.white,
-        dialBackgroundColor: Colors.white,
-      ),
-      chipTheme: base.chipTheme.copyWith(
-        backgroundColor: Colors.black12,
-        labelStyle: GoogleFonts.inter(
-          fontWeight: FontWeight.w500,
-          fontSize: 13,
-          color: Colors.black,
-        ),
-        shape: const StadiumBorder(),
-        side: BorderSide.none,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      ),
-      cardTheme: CardThemeData(
-        color: Colors.white,
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(28),
-        ),
-        margin: EdgeInsets.zero,
-        surfaceTintColor: Colors.transparent,
-      ),
-      dividerColor: divider,
-    );
+    // This app uses a "lights out" grayscale theme across platforms, so the
+    // "light" theme is intentionally dark as well (white/grey text only).
+    return _buildBlackoutDarkTheme();
   }
 
   static ThemeData _buildDarkTheme() {
@@ -225,7 +72,7 @@ class AppTheme {
       textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
     );
 
-    final headline = GoogleFonts.spaceGrotesk(
+    final headline = GoogleFonts.inter(
       fontWeight: FontWeight.w700,
       color: darkTextPrimary,
     );
@@ -239,82 +86,82 @@ class AppTheme {
       appBarTheme: AppBarTheme(
         backgroundColor: darkBackground,
         elevation: 0,
-        titleTextStyle: headline.copyWith(fontSize: 24),
+        titleTextStyle: headline.copyWith(fontSize: 20),
         surfaceTintColor: Colors.transparent,
       ),
       popupMenuTheme: const PopupMenuThemeData(
-        color: Colors.white,
+        color: darkSurface,
         surfaceTintColor: Colors.transparent,
       ),
       textTheme: base.textTheme.copyWith(
-        headlineLarge: headline.copyWith(fontSize: 44, letterSpacing: -1.2),
-        headlineMedium: headline.copyWith(fontSize: 32, letterSpacing: -0.5),
-        headlineSmall: headline.copyWith(fontSize: 24),
-        bodyLarge: body.copyWith(fontSize: 16, color: darkTextSecondary),
-        bodyMedium: body.copyWith(fontSize: 14, color: darkTextSecondary),
-        bodySmall: body.copyWith(fontSize: 13, color: darkTextTertiary),
+        headlineLarge: headline.copyWith(fontSize: 36, letterSpacing: -0.8),
+        headlineMedium: headline.copyWith(fontSize: 26, letterSpacing: -0.3),
+        headlineSmall: headline.copyWith(fontSize: 20),
+        bodyLarge: body.copyWith(fontSize: 15, color: darkTextSecondary),
+        bodyMedium: body.copyWith(fontSize: 13, color: darkTextSecondary),
+        bodySmall: body.copyWith(fontSize: 12, color: darkTextTertiary),
         labelLarge: GoogleFonts.inter(
           fontWeight: FontWeight.w600,
-          fontSize: 14,
+          fontSize: 13,
           color: darkTextPrimary,
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: darkBackground,
+        fillColor: const Color(0xFF0B0F14),
         hintStyle: GoogleFonts.inter(color: darkTextTertiary),
         labelStyle: GoogleFonts.inter(
           color: darkTextPrimary,
-          fontSize: 15,
+          fontSize: 14,
           fontWeight: FontWeight.w600,
         ),
         floatingLabelStyle: GoogleFonts.inter(
           color: darkTextPrimary,
-          fontSize: 15,
+          fontSize: 14,
           fontWeight: FontWeight.w700,
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(999),
-          borderSide: const BorderSide(color: Colors.white),
+          borderSide: const BorderSide(color: darkDivider),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(999),
-          borderSide: const BorderSide(color: Colors.white),
+          borderSide: const BorderSide(color: darkDivider),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(999),
-          borderSide: const BorderSide(color: Colors.white, width: 1.8),
+          borderSide: const BorderSide(color: darkTextTertiary, width: 1.4),
         ),
         disabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(999),
-          borderSide: const BorderSide(color: Colors.white70),
+          borderSide: const BorderSide(color: darkDivider),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           elevation: 0,
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black,
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
+          backgroundColor: const Color(0xFF111827),
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           shape: pillShape,
           textStyle: GoogleFonts.inter(
             fontWeight: FontWeight.w600,
-            fontSize: 16,
+            fontSize: 14,
           ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           elevation: 0,
-          backgroundColor: darkSurface,
+          backgroundColor: const Color(0xFF0B0F14),
           foregroundColor: darkTextPrimary,
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           shape: pillShape,
           side: const BorderSide(color: darkDivider),
           textStyle: GoogleFonts.inter(
             fontWeight: FontWeight.w600,
-            fontSize: 16,
+            fontSize: 14,
           ),
         ),
       ),
@@ -324,16 +171,16 @@ class AppTheme {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           textStyle: GoogleFonts.inter(
             fontWeight: FontWeight.w600,
-            fontSize: 16,
+            fontSize: 14,
           ),
         ),
       ),
       chipTheme: base.chipTheme.copyWith(
-        backgroundColor: accent.withValues(alpha: 0.18),
+        backgroundColor: darkDivider,
         labelStyle: GoogleFonts.inter(
           fontWeight: FontWeight.w500,
-          fontSize: 13,
-          color: accent,
+          fontSize: 12,
+          color: darkTextPrimary,
         ),
         shape: const StadiumBorder(),
         side: BorderSide.none,

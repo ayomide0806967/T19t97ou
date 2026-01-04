@@ -274,14 +274,14 @@ class SubscribeScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF3E8),
+                  color: theme.dividerColor.withValues(alpha: 0.35),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
                   'Active',
                   style: theme.textTheme.labelSmall?.copyWith(
                     fontWeight: FontWeight.w800,
-                    color: const Color(0xFFFFB066),
+                    color: Colors.white.withValues(alpha: 0.92),
                   ),
                 ),
               ),

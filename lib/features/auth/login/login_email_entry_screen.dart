@@ -53,8 +53,10 @@ class _LoginEmailEntryScreenState extends State<LoginEmailEntryScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final Color muted = Colors.black.withValues(alpha: 0.56);
-    final Color line = Colors.black.withValues(alpha: 0.10);
+    final Color onSurface = const Color(0xFF111827);
+    final Color muted = const Color(0xFF6B7280);
+    final Color line = const Color(0xFFE5E7EB);
+    final Color fieldFill = Colors.white;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -77,14 +79,14 @@ class _LoginEmailEntryScreenState extends State<LoginEmailEntryScreen> {
                 child: const Icon(
                   Icons.arrow_back_ios_new_rounded,
                   size: 18,
-                  color: Colors.black,
+                  color: Color(0xFF111827),
                 ),
               ),
             ),
           ),
         ),
       ),
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF3F4F6),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -109,7 +111,7 @@ class _LoginEmailEntryScreenState extends State<LoginEmailEntryScreen> {
                                     alignment: Alignment.bottomCenter,
                                     child: const SwissBankIcon(
                                       size: 64,
-                                      color: Colors.black,
+                                      color: Color(0xFF111827),
                                       strokeWidthFactor: 0.09,
                                     ),
                                   ),
@@ -121,14 +123,14 @@ class _LoginEmailEntryScreenState extends State<LoginEmailEntryScreen> {
                                 textAlign: TextAlign.center,
                                 style: theme.textTheme.headlineSmall?.copyWith(
                                   fontWeight: FontWeight.w700,
-                                  color: const Color(0xFFFFB066),
+                                  color: const Color(0xFF111827),
                                 ),
                               ),
                               const SizedBox(height: 10),
                               Text(
                                 'From classroom notes to viral posts, do it all in one place.',
                                 textAlign: TextAlign.center,
-                                style: theme.textTheme.bodyMedium?.copyWith(
+                               style: theme.textTheme.bodyMedium?.copyWith(
                                   fontSize:
                                       (theme.textTheme.bodyMedium?.fontSize ??
                                               14) *
@@ -144,21 +146,28 @@ class _LoginEmailEntryScreenState extends State<LoginEmailEntryScreen> {
                                 textInputAction: widget.showPassword
                                     ? TextInputAction.next
                                     : TextInputAction.done,
+                                cursorColor: Colors.black,
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  color: onSurface,
+                                  fontSize: 14,
+                                ),
                                 decoration: InputDecoration(
                                   hintText: 'Username and Email',
-                                  hintStyle: TextStyle(
-                                    color:
-                                        Colors.black.withValues(alpha: 0.35),
+                                  hintStyle: theme.textTheme.bodyLarge?.copyWith(
+                                    color: onSurface.withValues(alpha: 0.50),
+                                    fontSize: 14,
                                   ),
                                   filled: true,
-                                  fillColor: Colors.white,
+                                  fillColor: fieldFill,
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
                                     borderSide: BorderSide(color: line),
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: line),
+                                    borderSide: BorderSide(
+                                      color: onSurface.withValues(alpha: 0.24),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -167,22 +176,28 @@ class _LoginEmailEntryScreenState extends State<LoginEmailEntryScreen> {
                                 TextField(
                                   obscureText: true,
                                   textInputAction: TextInputAction.done,
+                                  cursorColor: Colors.white,
+                                  style: theme.textTheme.bodyLarge?.copyWith(
+                                    color: onSurface,
+                                    fontSize: 14,
+                                  ),
                                   decoration: InputDecoration(
                                     hintText: 'Password',
-                                    hintStyle: TextStyle(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.35,
-                                      ),
+                                    hintStyle: theme.textTheme.bodyLarge?.copyWith(
+                                      color: onSurface.withValues(alpha: 0.50),
+                                      fontSize: 14,
                                     ),
                                     filled: true,
-                                    fillColor: Colors.white,
+                                    fillColor: fieldFill,
                                     enabledBorder: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(12),
                                       borderSide: BorderSide(color: line),
                                     ),
                                     focusedBorder: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide(color: line),
+                                      borderSide: BorderSide(
+                                        color: onSurface.withValues(alpha: 0.24),
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -206,15 +221,16 @@ class _LoginEmailEntryScreenState extends State<LoginEmailEntryScreen> {
                                     backgroundColor: WidgetStateProperty.resolveWith(
                                       (states) {
                                         if (states.contains(WidgetState.disabled)) {
-                                          return const Color(0xFFE5E7EB);
+                                          return const Color(0xFF111827)
+                                              .withValues(alpha: 0.55);
                                         }
-                                        return Colors.black;
+                                        return const Color(0xFF111827);
                                       },
                                     ),
                                     foregroundColor: WidgetStateProperty.resolveWith(
                                       (states) {
                                         if (states.contains(WidgetState.disabled)) {
-                                          return Colors.black.withValues(alpha: 0.35);
+                                          return Colors.white.withValues(alpha: 0.55);
                                         }
                                         return Colors.white;
                                       },
@@ -237,7 +253,7 @@ class _LoginEmailEntryScreenState extends State<LoginEmailEntryScreen> {
                                     child: Text(
                                       'OR',
                                       style: theme.textTheme.labelMedium?.copyWith(
-                                        color: Colors.black.withValues(alpha: 0.45),
+                                        color: onSurface.withValues(alpha: 0.55),
                                         fontWeight: FontWeight.w600,
                                         letterSpacing: 0.2,
                                       ),
@@ -256,7 +272,7 @@ class _LoginEmailEntryScreenState extends State<LoginEmailEntryScreen> {
                                       _showComingSoon('Google sign in coming soon'),
                                   style: OutlinedButton.styleFrom(
                                     backgroundColor: Colors.white,
-                                    foregroundColor: Colors.black,
+                                    foregroundColor: const Color(0xFF111827),
                                     side: BorderSide(color: line),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(999),
@@ -280,19 +296,16 @@ class _LoginEmailEntryScreenState extends State<LoginEmailEntryScreen> {
                                   onPressed: () =>
                                       _showComingSoon('Facebook sign in coming soon'),
                                   style: OutlinedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF1877F2),
-                                    foregroundColor: Colors.white,
-                                    side: BorderSide(
-                                      color:
-                                          const Color(0xFF1877F2).withValues(alpha: 0.9),
-                                    ),
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: const Color(0xFF111827),
+                                    side: BorderSide(color: line),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(999),
                                     ),
                                   ),
                                   icon: const Icon(
                                     Icons.facebook_rounded,
-                                    color: Colors.white,
+                                    color: Color(0xFF9CA3AF),
                                   ),
                                   label: const Text(
                                     'Continue with Facebook',
@@ -307,19 +320,18 @@ class _LoginEmailEntryScreenState extends State<LoginEmailEntryScreen> {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 18, top: 10),
                         child: Center(
-                          child: RichText(
-                            text: TextSpan(
-                              style: (theme.textTheme.bodySmall ??
-                                      const TextStyle(fontSize: 12))
-                                  .copyWith(
-                                fontSize: 11,
-                                color: Colors.black.withValues(alpha: 0.55),
-                                decorationColor:
-                                    Colors.black.withValues(alpha: 0.45),
-                              ),
-                              children: [
-                                TextSpan(
-                                  text: 'Terms of Use',
+                        child: RichText(
+                          text: TextSpan(
+                            style: (theme.textTheme.bodySmall ??
+                                    const TextStyle(fontSize: 12))
+                                .copyWith(
+                              fontSize: 11,
+                              color: onSurface.withValues(alpha: 0.62),
+                              decorationColor: onSurface.withValues(alpha: 0.55),
+                            ),
+                            children: [
+                              TextSpan(
+                                text: 'Terms of Use',
                                   style: const TextStyle(
                                     decoration: TextDecoration.underline,
                                   ),

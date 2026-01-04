@@ -343,9 +343,15 @@ class _NoteEditingStepState extends State<_NoteEditingStep> {
                                         alignment: Alignment.center,
                                         child: Text(
                                           'Image ${index + 1}',
-                                          style: const TextStyle(
-                                            color: Colors.black54,
-                                          ),
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodyMedium
+                                              ?.copyWith(
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurface
+                                                    .withValues(alpha: 0.65),
+                                              ),
                                         ),
                                       );
                                     },
@@ -375,10 +381,9 @@ class _NoteEditingStepState extends State<_NoteEditingStep> {
                                   )
                                 : null,
                           ),
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontFamily: 'Roboto',
-                          ),
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
                           onChanged: (_) => setState(() {}),
                         ),
                   const SizedBox(height: 16),

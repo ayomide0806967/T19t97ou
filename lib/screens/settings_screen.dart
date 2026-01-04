@@ -255,8 +255,7 @@ class _SettingsGroup extends StatelessWidget {
     final headerStyle = theme.textTheme.labelSmall?.copyWith(
       letterSpacing: 1.2,
       fontWeight: FontWeight.w500,
-      color: isDark ? headerColor : Colors.black,
-      fontFamily: isDark ? null : 'Roboto',
+      color: headerColor,
     );
 
     return Column(
@@ -328,12 +327,10 @@ class _SettingsNavTile extends StatelessWidget {
     );
     final titleStyle = theme.textTheme.bodyLarge?.copyWith(
       fontWeight: FontWeight.w400,
-      color: isDark ? null : Colors.black,
-      fontFamily: isDark ? null : 'Roboto',
+      color: theme.colorScheme.onSurface,
     );
     final subtitleStyle = theme.textTheme.bodySmall?.copyWith(
-      color: isDark ? subtle : Colors.black87,
-      fontFamily: isDark ? null : 'Roboto',
+      color: subtle,
     );
 
     return ListTile(
@@ -392,11 +389,10 @@ class _SettingsActionTile extends StatelessWidget {
       color: isDark
           ? fg
           : (destructive ? theme.colorScheme.error : Colors.black),
-      fontFamily: isDark ? null : 'Roboto',
+      fontFamily: null,
     );
     final subtitleStyle = theme.textTheme.bodySmall?.copyWith(
-      color: isDark ? subtle : Colors.black87,
-      fontFamily: isDark ? null : 'Roboto',
+      color: subtle,
     );
 
     return ListTile(
@@ -445,12 +441,10 @@ class _CheckToggleTile extends StatelessWidget {
     );
     final titleStyle = theme.textTheme.bodyLarge?.copyWith(
       fontWeight: FontWeight.w400,
-      color: isDark ? null : Colors.black,
-      fontFamily: isDark ? null : 'Roboto',
+      color: theme.colorScheme.onSurface,
     );
     final subtitleStyle = theme.textTheme.bodySmall?.copyWith(
-      color: isDark ? subtle : Colors.black87,
-      fontFamily: isDark ? null : 'Roboto',
+      color: subtle,
     );
 
     return ListTile(

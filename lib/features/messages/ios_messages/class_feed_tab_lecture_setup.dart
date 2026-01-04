@@ -40,9 +40,8 @@ class _ClassActionCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w700,
-                        color: Colors.black,
-                        fontFamily: 'Roboto',
-                        fontSize: 15,
+                        color: theme.colorScheme.onSurface,
+                        fontSize: 14,
                       ),
                     ),
                   ],

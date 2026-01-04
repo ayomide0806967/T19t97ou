@@ -830,8 +830,7 @@ class _TopperTile extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: theme.textTheme.labelLarge?.copyWith(
             fontWeight: FontWeight.w400,
-            color: Colors.black,
-            fontFamily: 'Roboto',
+            color: theme.colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 2),
@@ -946,8 +945,7 @@ class _AnswerCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.w400,
-                        color: Colors.black,
-                        fontFamily: 'Roboto',
+                        color: colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 6),

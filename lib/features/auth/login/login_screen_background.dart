@@ -11,40 +11,39 @@ class _InstitutionBackground extends StatefulWidget {
 
 class _InstitutionBackgroundState extends State<_InstitutionBackground>
     with SingleTickerProviderStateMixin {
-  static const Color _logoColor = Color(0xFFFFB066);
   static const Color _white = Color(0xFFFFFFFF);
-  static const Color _offWhite = Color(0xFFF5F2EA);
-  static const Color _lightBrown = Color(0xFFFFB066);
+  static const Color _softGrey = Color(0xFF9CA3AF);
+  static const Color _dimGrey = Color(0xFF6B7280);
 
   static const _messages = <_InstitutionHeroMessage>[
     _InstitutionHeroMessage(text: 'IN INSTITUTION', accent: _white),
     _InstitutionHeroMessage(
       text: "The world's first social media school",
-      accent: _offWhite,
+      accent: _softGrey,
     ),
     _InstitutionHeroMessage(
       text: 'You own a full class',
-      accent: _lightBrown,
+      accent: _softGrey,
     ),
     _InstitutionHeroMessage(
       text: 'Create a live quiz exam',
-      accent: _offWhite,
+      accent: _white,
     ),
     _InstitutionHeroMessage(
       text: 'Create class notes',
-      accent: _lightBrown,
+      accent: _softGrey,
     ),
     _InstitutionHeroMessage(
       text: 'Monitor live quiz exam',
-      accent: _offWhite,
+      accent: _white,
     ),
     _InstitutionHeroMessage(
       text: 'Post your ideas and go viral',
-      accent: _lightBrown,
+      accent: _softGrey,
     ),
     _InstitutionHeroMessage(
       text: 'Enjoy global visibility',
-      accent: _offWhite,
+      accent: _white,
     ),
   ];
 
@@ -96,7 +95,7 @@ class _InstitutionBackgroundState extends State<_InstitutionBackground>
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF111827), Color(0xFF0B1220)],
+          colors: [Color(0xFF000000), Color(0xFF070A0E)],
         ),
       ),
     );
@@ -106,33 +105,31 @@ class _InstitutionBackgroundState extends State<_InstitutionBackground>
     final Color accent = _currentAccent();
     final TextStyle titleStyle =
         Theme.of(context).textTheme.headlineLarge?.copyWith(
+          fontSize: 26,
           color: Colors.white.withValues(alpha: textOpacity),
-          fontWeight: FontWeight.w800,
-          height: 1.05,
-          letterSpacing: 0.2,
-          fontFamily: 'Roboto',
+          fontWeight: FontWeight.w700,
+          height: 1.08,
+          letterSpacing: 0.0,
         ) ??
         TextStyle(
-          fontSize: 34,
+          fontSize: 26,
           color: Colors.white.withValues(alpha: textOpacity),
-          fontWeight: FontWeight.w800,
-          height: 1.05,
-          fontFamily: 'Roboto',
+          fontWeight: FontWeight.w700,
+          height: 1.08,
         );
     final TextStyle subtitleStyle =
         Theme.of(context).textTheme.titleMedium?.copyWith(
-          color: _offWhite.withValues(alpha: 0.78),
+          fontSize: 13,
+          color: _dimGrey.withValues(alpha: 0.92),
           fontWeight: FontWeight.w600,
           letterSpacing: 0.1,
           height: 1.25,
-          fontFamily: 'Roboto',
         ) ??
         TextStyle(
-          fontSize: 18,
-          color: _offWhite.withValues(alpha: 0.78),
+          fontSize: 13,
+          color: _dimGrey.withValues(alpha: 0.92),
           fontWeight: FontWeight.w600,
           height: 1.25,
-          fontFamily: 'Roboto',
         );
 
     return Stack(
@@ -192,7 +189,7 @@ class _InstitutionBackgroundState extends State<_InstitutionBackground>
                       isTransitioning: _isTransitioning,
                       titleStyle: titleStyle,
                       subtitleStyle: subtitleStyle,
-                      logoColor: _logoColor,
+                      logoColor: _softGrey,
                       defaultTextOpacity: textOpacity,
                     ),
                   ),

@@ -67,11 +67,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final theme = Theme.of(context);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark.copyWith(
+      value: SystemUiOverlayStyle.light.copyWith(
         statusBarColor: Colors.transparent,
       ),
       child: Scaffold(
-        backgroundColor: const Color(0xFF0B1220),
+        backgroundColor: Colors.black,
         body: SafeArea(
           top: true,
           bottom: false,
@@ -117,8 +117,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           onVerticalDragEnd: _cardCollapsed
                               ? null
                               : (_) {
+                                  // Make it easier to dismiss: any noticeable
+                                  // downward drag should collapse the card.
                                   final shouldCollapse =
-                                      _cardDragOffset > cardHeight * 0.35;
+                                      _cardDragOffset > cardHeight * 0.10;
                                   setState(() {
                                     _isDraggingCard = false;
                                     if (shouldCollapse) {
@@ -164,28 +166,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         Positioned(
                           left: 56,
                           right: 56,
-                          bottom: 12,
+                          bottom: 56,
                           child: SafeArea(
                             top: false,
-                            child: SizedBox(
+                              child: SizedBox(
                               height: 56,
                               child: ElevatedButton(
                                 onPressed: isLoading ? null : _expandCard,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white,
+                                  // Off‑white container with dark text
+                                  backgroundColor: const Color(0xFFF3F4F6),
                                   foregroundColor: const Color(0xFF111827),
                                   elevation: 6,
                                   shadowColor: const Color(
                                     0xFF111827,
-                                  ).withValues(alpha: 0.18),
+                                  ).withValues(alpha: 0.15),
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 18,
                                     vertical: 14,
                                   ),
                                   side: BorderSide(
                                     color: const Color(
-                                      0xFF111827,
-                                    ).withValues(alpha: 0.08),
+                                      0xFFFFFFFF,
+                                    ).withValues(alpha: 0.10),
                                     width: 1,
                                   ),
                                   shape: RoundedRectangleBorder(
@@ -225,13 +228,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       const SizedBox(height: 10),
       Text(
         'Sign in to Institution',
-        style: theme.textTheme.headlineSmall?.copyWith(color: Colors.black),
+        style: theme.textTheme.headlineSmall?.copyWith(
+          color: const Color(0xFF111827),
+        ),
       ),
       const SizedBox(height: 8),
       Text(
         'From classroom notes to viral posts',
         style: theme.textTheme.bodyMedium?.copyWith(
-          color: const Color(0xFF111827).withValues(alpha: 0.62),
+          color: const Color(0xFF6B7280),
         ),
       ),
       const SizedBox(height: 16),
@@ -296,7 +301,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   );
                 },
           style: OutlinedButton.styleFrom(
-            backgroundColor: const Color(0xFF111827).withValues(alpha: 0.06),
+            backgroundColor:
+                const Color(0xFF111827).withValues(alpha: 0.06),
             foregroundColor: const Color(0xFF111827),
             side: BorderSide(
               color: const Color(0xFF111827).withValues(alpha: 0.05),
@@ -313,7 +319,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         'By continuing, you agree to our Terms of Use.',
         textAlign: TextAlign.center,
         style: theme.textTheme.bodySmall?.copyWith(
-          color: const Color(0xFF111827).withValues(alpha: 0.55),
+          color: const Color(0xFF6B7280),
         ),
       ),
     ];

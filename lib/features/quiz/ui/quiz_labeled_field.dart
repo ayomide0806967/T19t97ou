@@ -50,7 +50,7 @@ class QuizLabeledField extends StatelessWidget {
                   label,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: quizWhatsAppTeal,
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.82),
                   ),
                 ),
               const Spacer(),
@@ -67,13 +67,12 @@ class QuizLabeledField extends StatelessWidget {
           inputFormatters: maxLines == 1
               ? [FilteringTextInputFormatter.singleLineFormatter]
               : null,
-          style: const TextStyle(
-            color: Colors.black,
-            fontFamily: 'Roboto',
-            fontSize: 16,
+          style: theme.textTheme.bodyLarge?.copyWith(
+            color: theme.colorScheme.onSurface,
+            fontSize: 14,
             fontWeight: FontWeight.w400,
           ),
-          cursorColor: Colors.black,
+          cursorColor: isDark ? Colors.white : Colors.black,
           decoration: InputDecoration(
             hintText: hintText,
             filled: true,
@@ -99,4 +98,3 @@ class QuizLabeledField extends StatelessWidget {
     );
   }
 }
-
