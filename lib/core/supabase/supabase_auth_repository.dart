@@ -49,7 +49,10 @@ class SupabaseAuthRepository implements AuthRepository {
     // Uses Supabase OAuth flow (browser-based) with a deep-link callback on
     // mobile and a same-origin callback on web.
     final redirectTo = kIsWeb
-        ? Uri.base.replace(queryParameters: const {}).toString()
+        // Important: drop URL fragments (e.g. `/#/`) so Supabase can append
+        // `?code=...` as real query params; fragments are not reliably handled
+        // by OAuth redirects and can prevent session exchange on web.
+        ? Uri.base.replace(queryParameters: const {}, fragment: '').toString()
         : Uri(scheme: 'io.supabase.flutter', host: 'login-callback').toString();
 
     await _client.auth.signInWithOAuth(

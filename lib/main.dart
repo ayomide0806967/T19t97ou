@@ -14,6 +14,7 @@ import 'core/supabase/supabase_profile_repository.dart';
 import 'core/supabase/supabase_quiz_repository.dart';
 import 'features/feed/domain/post_repository.dart';
 import 'screens/auth_wrapper.dart';
+import 'screens/app_bootstrapper.dart';
 import 'screens/missing_config_screen.dart';
 import 'theme/app_theme.dart';
 import 'core/ui/theme_mode_controller.dart';
@@ -50,21 +51,20 @@ void main() {
     );
 
     // On web, complete OAuth PKCE sign-in after redirect back with `?code=...`.
-    await completeWebOAuthSignIn(Supabase.instance.client);
+    // Do not block app startup on this network exchange; otherwise Flutter Web
+    // can remain stuck on the HTML splash if the request hangs.
+    unawaited(completeWebOAuthSignIn(Supabase.instance.client));
 
     final authRepository = SupabaseAuthRepository(Supabase.instance.client);
 
     final PostRepository postRepository = SupabasePostRepository(
       Supabase.instance.client,
     );
-    await postRepository.load();
 
     final profileRepository =
         SupabaseProfileRepository(Supabase.instance.client);
-    await profileRepository.load();
 
     final quizRepository = SupabaseQuizRepository(Supabase.instance.client);
-    await quizRepository.load();
 
     runApp(
       ProviderScope(
@@ -99,7 +99,7 @@ class MyApp extends ConsumerWidget {
       darkTheme:
           prefs.blackoutTheme ? AppTheme.blackoutDarkTheme : AppTheme.darkTheme,
       themeMode: themeMode,
-      home: const AuthWrapper(),
+      home: const AppBootstrapper(child: AuthWrapper()),
     );
   }
 }
