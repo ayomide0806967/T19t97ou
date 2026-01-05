@@ -1,18 +1,19 @@
 :root {
-  --bg: #0b0b0f;
-  --surface: #0f1016;
-  --card: #141521;
-  --card-strong: #191a28;
-  --text: rgba(255, 255, 255, 0.94);
-  --muted: rgba(255, 255, 255, 0.76);
-  --faint: rgba(255, 255, 255, 0.60);
-  --border: #2a2b3a;
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --card: #ffffff;
+  --card-strong: #ffffff;
+  --text: rgba(0, 0, 0, 0.92);
+  --muted: rgba(0, 0, 0, 0.68);
+  --faint: rgba(0, 0, 0, 0.56);
+  --border: rgba(0, 0, 0, 0.14);
   --brand: #ff8a3b;
-  --brand-2: #ffd4b8;
+  --brand-2: #ff8a3b;
   --focus: rgba(255, 138, 59, 0.35);
   --max: 1120px;
-  --radius: 18px;
-  --shadow: 0 18px 46px rgba(0, 0, 0, 0.35);
+  --radius: 16px;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.06),
+    0 10px 22px rgba(0, 0, 0, 0.06);
 }
 
 * {
@@ -28,10 +29,7 @@ body {
   margin: 0;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
     Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-  background:
-    radial-gradient(900px 520px at 8% 8%, rgba(255, 138, 59, 0.12), transparent 56%),
-    radial-gradient(760px 460px at 86% 18%, rgba(255, 212, 184, 0.06), transparent 60%),
-    var(--bg);
+  background: var(--bg);
   color: var(--text);
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
@@ -62,7 +60,7 @@ button:focus-visible {
   z-index: 50;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
 }
 
 .nav {
@@ -116,8 +114,9 @@ button:focus-visible {
 }
 
 .links a:hover {
-  background: var(--surface);
   color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
 .cta {
@@ -129,7 +128,7 @@ button:focus-visible {
   border-radius: 14px;
   border: 1px solid rgba(0, 0, 0, 0);
   background: var(--brand);
-  color: #0b0b0f;
+  color: #000000;
   font-weight: 700;
   font-size: 14px;
   white-space: nowrap;
@@ -147,6 +146,7 @@ button:focus-visible {
 }
 
 .cta.secondary:hover {
+  border-color: rgba(0, 0, 0, 0.24);
   color: var(--text);
 }
 
@@ -236,7 +236,7 @@ button:focus-visible {
 
 .kicker {
   font-weight: 800;
-  color: var(--brand-2);
+  color: var(--brand);
   letter-spacing: 0.8px;
   text-transform: uppercase;
   font-size: 12px;
@@ -319,7 +319,7 @@ button:focus-visible {
 .legal {
   margin-top: 14px;
   padding-top: 14px;
-  border-top: 1px dashed rgba(255, 255, 255, 0.12);
+  border-top: 1px dashed var(--border);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -346,7 +346,7 @@ button:focus-visible {
   font-size: 16px;
   letter-spacing: 0.2px;
   text-transform: uppercase;
-  color: var(--brand-2);
+  color: var(--brand);
 }
 
 .prose p,

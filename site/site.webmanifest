@@ -3,8 +3,8 @@
   "short_name": "In Institution",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0b0b0f",
-  "theme_color": "#0b0b0f",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "icons": [
     {
       "src": "/assets/brand/apple-touch-icon.png",
@@ -13,4 +13,3 @@
     }
   ]
 }
-
