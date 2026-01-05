@@ -132,6 +132,8 @@ class EditProfileController extends Notifier<EditProfileState> {
       );
 
       await _profileRepository.updateProfile(newProfile);
+      // Refresh feed so avatars/headers update everywhere immediately.
+      await ref.read(postRepositoryProvider).load();
 
       state = state.copyWith(isSaving: false);
 
@@ -198,4 +200,7 @@ final editProfileControllerProvider =
 /// Helper to create a scoped provider with parameters.
 List<Override> editProfileOverrides(EditProfileParams params) => [
       _paramsProvider.overrideWithValue(params),
+      // Ensure the controller is scoped to this ProviderScope even if the
+      // provider was previously created higher up in the tree.
+      editProfileControllerProvider.overrideWith(EditProfileController.new),
     ];

@@ -5,21 +5,45 @@ extension _ProfileScreenImages on _ProfileScreenState {
     if (widget.readOnly) return;
     final XFile? file = await _picker.pickImage(
       source: ImageSource.gallery,
-      imageQuality: 85,
-      maxWidth: 1024,
+      imageQuality: 75,
+      maxWidth: 720,
     );
     if (file == null) return;
     final bytes = await file.readAsBytes();
-    setState(() => _profileImage = bytes);
-    AppToast.showSnack(
-      context,
-      'Profile photo updated',
-      duration: ToastDurations.standard,
-    );
+    _setLocalProfileImage(bytes);
+    try {
+      await ref
+          .read(profileRepositoryProvider)
+          .updateAvatar(bytes.toList(growable: false));
+      final profile = ref.read(profileRepositoryProvider).profile;
+      final postRepo = ref.read(postRepositoryProvider);
+      if (postRepo is SupabasePostRepository) {
+        postRepo.updateAvatarUrlForHandle(_currentUserHandle, profile.avatarUrl);
+      }
+      if (!mounted) return;
+      AppToast.showSnack(
+        context,
+        'Profile photo updated',
+        duration: ToastDurations.standard,
+      );
+    } catch (e) {
+      debugPrint('Avatar upload failed: $e');
+      if (!mounted) return;
+      AppToast.showSnack(
+        context,
+        'Could not upload profile photo: ${e.toString().replaceFirst('Exception: ', '')}',
+        duration: ToastDurations.standard,
+      );
+    }
   }
 
   Future<void> _showProfilePhotoViewer() async {
-    final bool hasImage = _profileImage != null;
+    final profileRepo = ref.read(profileRepositoryProvider);
+    final remoteUrl = profileRepo.profile.avatarUrl;
+    final ImageProvider? imageProvider = _profileImage != null
+        ? MemoryImage(_profileImage!)
+        : (remoteUrl != null ? NetworkImage(remoteUrl) : null);
+    final bool hasImage = imageProvider != null;
     final String initials = initialsFrom(
       (ref.read(authRepositoryProvider).currentUser?.email ??
           'user@institution.edu'),
@@ -61,10 +85,7 @@ extension _ProfileScreenImages on _ProfileScreenState {
                     decoration: BoxDecoration(
                       color: theme.colorScheme.surfaceContainerHighest,
                       image: hasImage
-                          ? DecorationImage(
-                              image: MemoryImage(_profileImage!),
-                              fit: BoxFit.cover,
-                            )
+                          ? DecorationImage(image: imageProvider!, fit: BoxFit.cover)
                           : null,
                     ),
                     alignment: Alignment.center,
@@ -85,7 +106,7 @@ extension _ProfileScreenImages on _ProfileScreenState {
                     onPressed: () async {
                       Navigator.of(dialogContext).pop();
                       await _openFullImage(
-                        image: MemoryImage(_profileImage!),
+                        image: imageProvider!,
                         title: 'Profile photo',
                       );
                     },
@@ -109,12 +130,12 @@ extension _ProfileScreenImages on _ProfileScreenState {
                   ),
                   child: const Text('Change photo'),
                 ),
-                if (hasImage) ...[
+                if (_profileImage != null) ...[
                   const SizedBox(height: 12),
                   TextButton(
                     onPressed: () {
                       Navigator.of(dialogContext).pop();
-                      setState(() => _profileImage = null);
+                      _setLocalProfileImage(null);
                       AppToast.showSnack(
                         context,
                         'Profile photo removed',
@@ -139,7 +160,12 @@ extension _ProfileScreenImages on _ProfileScreenState {
 
   Future<void> _showHeaderImageViewer() async {
     final theme = Theme.of(context);
-    final hasImage = _headerImage != null;
+    final profileRepo = ref.read(profileRepositoryProvider);
+    final remoteUrl = profileRepo.profile.headerUrl;
+    final ImageProvider? imageProvider = _headerImage != null
+        ? MemoryImage(_headerImage!)
+        : (remoteUrl != null ? NetworkImage(remoteUrl) : null);
+    final hasImage = imageProvider != null;
     await showDialog<void>(
       context: context,
       barrierDismissible: true,
@@ -172,7 +198,7 @@ extension _ProfileScreenImages on _ProfileScreenState {
                   child: AspectRatio(
                     aspectRatio: 16 / 9,
                     child: hasImage
-                        ? Image.memory(_headerImage!, fit: BoxFit.cover)
+                        ? Image(image: imageProvider!, fit: BoxFit.cover)
                         : Container(
                             color: theme.colorScheme.surfaceContainerHigh,
                             child: Icon(
@@ -191,7 +217,7 @@ extension _ProfileScreenImages on _ProfileScreenState {
                     onPressed: () async {
                       Navigator.of(dialogContext).pop();
                       await _openFullImage(
-                        image: MemoryImage(_headerImage!),
+                        image: imageProvider!,
                         title: 'Cover photo',
                       );
                     },
@@ -208,12 +234,12 @@ extension _ProfileScreenImages on _ProfileScreenState {
                   ),
                   child: const Text('Change cover photo'),
                 ),
-                if (hasImage) ...[
+                if (_headerImage != null) ...[
                   const SizedBox(height: 8),
                   TextButton(
                     onPressed: () {
                       Navigator.of(dialogContext).pop();
-                      setState(() => _headerImage = null);
+                      _setLocalHeaderImage(null);
                       AppToast.showSnack(
                         context,
                         'Cover photo removed',
@@ -396,22 +422,34 @@ extension _ProfileScreenImages on _ProfileScreenState {
       case _HeaderAction.pickImage:
         final XFile? file = await _picker.pickImage(
           source: ImageSource.gallery,
-          imageQuality: 85,
+          imageQuality: 80,
           maxWidth: 1600,
         );
         if (file == null) return;
         final bytes = await file.readAsBytes();
-        setState(() {
-          _headerImage = bytes;
-        });
-        AppToast.showSnack(
-          context,
-          'Cover photo updated',
-          duration: ToastDurations.standard,
-        );
+        _setLocalHeaderImage(bytes);
+        try {
+          await ref
+              .read(profileRepositoryProvider)
+              .updateHeader(bytes.toList(growable: false));
+          if (!mounted) return;
+          AppToast.showSnack(
+            context,
+            'Cover photo updated',
+            duration: ToastDurations.standard,
+          );
+        } catch (e) {
+          debugPrint('Header upload failed: $e');
+          if (!mounted) return;
+          AppToast.showSnack(
+            context,
+            'Could not upload cover photo: ${e.toString().replaceFirst('Exception: ', '')}',
+            duration: ToastDurations.standard,
+          );
+        }
         break;
       case _HeaderAction.removeImage:
-        setState(() => _headerImage = null);
+        _setLocalHeaderImage(null);
         AppToast.showSnack(
           context,
           'Cover photo removed',

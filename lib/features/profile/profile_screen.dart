@@ -3,15 +3,15 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../core/auth/auth_repository.dart';
 import '../../core/di/app_providers.dart';
 import '../../core/user/handle.dart';
-import '../feed/domain/post_repository.dart';
 import '../../core/ui/initials.dart';
 import '../../models/post.dart';
+import '../../models/user_profile.dart';
 import '../../widgets/tweet_post_card.dart';
 import '../../widgets/app_tab_scaffold.dart';
 import '../../core/ui/app_toast.dart';
+import '../../core/supabase/supabase_post_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../constants/toast_durations.dart';
 import '../../screens/edit_profile_screen.dart';
@@ -54,12 +54,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _notifyThreads = true;
   bool _notifyReplies = true;
   bool _pushNotificationsEnabled = false;
+  int _followersCount = 0;
+  int _followingCount = 0;
+
+  void _setLocalHeaderImage(Uint8List? bytes) {
+    if (!mounted) return;
+    setState(() => _headerImage = bytes);
+  }
+
+  void _setLocalProfileImage(Uint8List? bytes) {
+    if (!mounted) return;
+    setState(() => _profileImage = bytes);
+  }
 
   @override
   void initState() {
     super.initState();
     final initial = widget.initialTab;
     _selectedTab = initial < 0 ? 0 : (initial > 2 ? 2 : initial);
+    _refreshFollowCounts();
   }
 
   String get _authHandle {
@@ -91,14 +104,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return name;
   }
 
-  String get _bioText =>
-      _bioOverride ??
-      'Guiding nursing and midwifery teams through safe practice, exam preparation, and compassionate leadership across our teaching hospital.';
+  String get _bioText => _bioOverride ?? '';
+
+  Future<void> _refreshFollowCounts() async {
+    if (!mounted) return;
+    if (widget.readOnly || widget.handleOverride != null) return;
+    final userId = ref.read(authRepositoryProvider).currentUser?.id;
+    if (userId == null) return;
+    final profileRepo = ref.read(profileRepositoryProvider);
+    try {
+      final followers = await profileRepo.getFollowerCount(userId);
+      final following = await profileRepo.getFollowingCount(userId);
+      if (!mounted) return;
+      setState(() {
+        _followersCount = followers;
+        _followingCount = following;
+      });
+    } catch (_) {
+      // Keep defaults (0) if unavailable.
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final repository = ref.watch(postRepositoryProvider);
+    final profileRepository = ref.read(profileRepositoryProvider);
     final currentUserHandle = _currentUserHandle;
     final email =
         ref.read(authRepositoryProvider).currentUser?.email ??
@@ -153,9 +184,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         _nameOverride = result.name.isEmpty ? null : result.name;
         _bioOverride = result.bio.isEmpty ? null : result.bio;
       });
+      await _refreshFollowCounts();
       AppToast.showSnack(
         context,
-        'Profile changes saved (coming soon)',
+        'Profile changes saved',
         duration: ToastDurations.standard,
       );
     }
@@ -195,34 +227,64 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         top: false,
         child: RefreshIndicator(
           color: Colors.black,
-          onRefresh: _handlePullToRefresh,
+          onRefresh: () async {
+            await _handlePullToRefresh();
+            await _refreshFollowCounts();
+          },
           child: CustomScrollView(
             physics: const ClampingScrollPhysics(),
             slivers: [
               SliverToBoxAdapter(
-                child: _ProfileHeader(
-                  headerImage: _headerImage,
-                  profileImage: _profileImage,
-                  initials: initials,
-                  displayName: displayName,
-                  handle: currentUserHandle,
-                  bio: _bioText,
-                  readOnly: widget.readOnly,
-                  onProfileImageTap: widget.readOnly
-                      ? _openProfilePhotoDirect
-                      : _showProfilePhotoViewer,
-                  onHeaderTap: widget.readOnly
-                      ? _openHeaderPhotoDirect
-                      : _showHeaderImageViewer,
-                  onChangeCover: _handleChangeHeader,
-                  onEditProfile: handleEditProfile,
-                  onMessage: _handleMessageUser,
-                  onToggleFollow: _handleToggleFollow,
-                  isFollowingOther: _isFollowingOther,
-                  onNotifications: handleNotifications,
-                  onMore: handleMore,
-                  activityLevelLabel: 'Novice',
-                  activityProgress: 0.5,
+                child: StreamBuilder<UserProfile>(
+                  stream: profileRepository.watchProfile(),
+                  initialData: profileRepository.profile,
+                  builder: (context, snapshot) {
+                    final profile = snapshot.data ?? profileRepository.profile;
+                    final bio = widget.readOnly
+                        ? ''
+                        : (_bioOverride ?? profile.bio.trim());
+                    final likesCount =
+                        posts.fold<int>(0, (sum, p) => sum + p.likes);
+                    final activityProgress =
+                        posts.isEmpty ? 0.0 : (posts.length / 10).clamp(0.0, 1.0);
+                    final headerUrl = (!widget.readOnly &&
+                            widget.handleOverride == null)
+                        ? profile.headerUrl
+                        : null;
+                    final avatarUrl = (!widget.readOnly &&
+                            widget.handleOverride == null)
+                        ? profile.avatarUrl
+                        : null;
+                    return _ProfileHeader(
+                      headerImage: _headerImage,
+                      headerImageUrl: headerUrl,
+                      profileImage: _profileImage,
+                      profileImageUrl: avatarUrl,
+                      initials: initials,
+                      displayName: displayName,
+                      handle: currentUserHandle,
+                      bio: bio,
+                      readOnly: widget.readOnly,
+                      onProfileImageTap: widget.readOnly
+                          ? _openProfilePhotoDirect
+                          : _showProfilePhotoViewer,
+                      onHeaderTap: widget.readOnly
+                          ? _openHeaderPhotoDirect
+                          : _showHeaderImageViewer,
+                      onChangeCover: _handleChangeHeader,
+                      onEditProfile: handleEditProfile,
+                      onMessage: _handleMessageUser,
+                      onToggleFollow: _handleToggleFollow,
+                      isFollowingOther: _isFollowingOther,
+                      onNotifications: handleNotifications,
+                      onMore: handleMore,
+                      followersCount: _followersCount,
+                      followingCount: _followingCount,
+                      likesCount: likesCount,
+                      activityLevelLabel: 'Novice',
+                      activityProgress: activityProgress,
+                    );
+                  },
                 ),
               ),
               SliverPadding(

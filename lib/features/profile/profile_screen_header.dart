@@ -3,7 +3,9 @@ part of 'profile_screen.dart';
 class _ProfileHeader extends StatelessWidget {
   const _ProfileHeader({
     required this.headerImage,
+    required this.headerImageUrl,
     required this.profileImage,
+    required this.profileImageUrl,
     required this.initials,
     required this.displayName,
     required this.handle,
@@ -18,12 +20,17 @@ class _ProfileHeader extends StatelessWidget {
     required this.isFollowingOther,
     required this.onNotifications,
     required this.onMore,
+    required this.followersCount,
+    required this.followingCount,
+    required this.likesCount,
     required this.activityLevelLabel,
     required this.activityProgress,
   });
 
   final Uint8List? headerImage;
   final Uint8List? profileImage;
+  final String? headerImageUrl;
+  final String? profileImageUrl;
   final String initials;
   final String displayName;
   final String handle;
@@ -38,8 +45,23 @@ class _ProfileHeader extends StatelessWidget {
   final bool isFollowingOther;
   final VoidCallback onNotifications;
   final VoidCallback onMore;
+  final int followersCount;
+  final int followingCount;
+  final int likesCount;
   final String activityLevelLabel;
   final double activityProgress;
+
+  static String _formatCount(int value) {
+    if (value < 1000) return '$value';
+    if (value < 1000000) {
+      final k = value / 1000.0;
+      final text = k >= 10 ? k.toStringAsFixed(0) : k.toStringAsFixed(1);
+      return '${text}K';
+    }
+    final m = value / 1000000.0;
+    final text = m >= 10 ? m.toStringAsFixed(0) : m.toStringAsFixed(1);
+    return '${text}M';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,12 +69,23 @@ class _ProfileHeader extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final onSurface = theme.colorScheme.onSurface;
     final subtle = onSurface.withValues(alpha: isDark ? 0.7 : 0.58);
-    final coverPlaceholderColor = theme.colorScheme.surfaceContainerHigh
-        .withValues(alpha: isDark ? 0.32 : 0.6);
+    const Color coverPlaceholderColor = Color(0xFFFFD3B0);
 
     final double screenWidth = MediaQuery.of(context).size.width;
     const double coverHeight = 200;
     const double avatarSize = 96;
+
+    final ImageProvider<Object>? coverProvider = headerImage != null
+        ? MemoryImage(headerImage!)
+        : (headerImageUrl != null && headerImageUrl!.isNotEmpty
+            ? NetworkImage(headerImageUrl!)
+            : null);
+
+    final ImageProvider<Object>? avatarProvider = profileImage != null
+        ? MemoryImage(profileImage!)
+        : (profileImageUrl != null && profileImageUrl!.isNotEmpty
+            ? NetworkImage(profileImageUrl!)
+            : null);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -70,9 +103,25 @@ class _ProfileHeader extends StatelessWidget {
                 child: SizedBox(
                   width: double.infinity,
                   height: coverHeight,
-                  child: headerImage != null
-                      ? Image.memory(headerImage!, fit: BoxFit.cover)
-                      : Container(color: coverPlaceholderColor),
+                  child: coverProvider != null
+                      ? Image(image: coverProvider, fit: BoxFit.cover)
+                      : Container(
+                          color: coverPlaceholderColor,
+                          child: Center(
+                            child: Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.28),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.image_outlined,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                            ),
+                          ),
+                        ),
                 ),
               ),
               // Back button overlay
@@ -150,9 +199,9 @@ class _ProfileHeader extends StatelessWidget {
                             offset: const Offset(0, 8),
                           ),
                         ],
-                        image: profileImage != null
+                        image: avatarProvider != null
                             ? DecorationImage(
-                                image: MemoryImage(profileImage!),
+                                image: avatarProvider,
                                 fit: BoxFit.cover,
                               )
                             : null,
@@ -163,13 +212,17 @@ class _ProfileHeader extends StatelessWidget {
                             : null,
                       ),
                       alignment: Alignment.center,
-                      child: profileImage == null
-                          ? Text(
-                              initials,
-                              style: theme.textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 28,
-                                color: onSurface,
+                      child: avatarProvider == null
+                          ? Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.28),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.image_outlined,
+                                color: Colors.white,
+                                size: 24,
                               ),
                             )
                           : null,
@@ -191,9 +244,9 @@ class _ProfileHeader extends StatelessWidget {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      side: const BorderSide(color: Colors.black),
+                      side: const BorderSide(color: Color(0xFFFF8A3B)),
                       foregroundColor: Colors.white,
-                      backgroundColor: Colors.black,
+                      backgroundColor: const Color(0xFFFF8A3B),
                     ),
                     child: const Text('Edit profile'),
                   ),
@@ -311,25 +364,36 @@ class _ProfileHeader extends StatelessWidget {
                 handle,
                 style: AppTheme.tweetBody(subtle),
               ),
-              const SizedBox(height: 12),
-              Text(
-                bio,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: onSurface,
-                  height: 1.45,
-                  fontSize: 13.5,
+              SizedBox(height: bio.trim().isEmpty ? 10 : 12),
+              if (bio.trim().isNotEmpty) ...[
+                Text(
+                  bio,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: onSurface,
+                    height: 1.45,
+                    fontSize: 13.5,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 14),
+                const SizedBox(height: 14),
+              ],
               // Followers and counts under bio
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const _ProfileStat(value: '18.4K', label: 'Followers'),
+                  _ProfileStat(
+                    value: _formatCount(followersCount),
+                    label: 'Followers',
+                  ),
                   const SizedBox(width: 24),
-                  const _ProfileStat(value: '1.2K', label: 'Following'),
+                  _ProfileStat(
+                    value: _formatCount(followingCount),
+                    label: 'Following',
+                  ),
                   const SizedBox(width: 24),
-                  const _ProfileStat(value: '5.8K', label: 'Likes'),
+                  _ProfileStat(
+                    value: _formatCount(likesCount),
+                    label: 'Likes',
+                  ),
                   const SizedBox(width: 24),
                   _ProfileLevelStat(
                     label: activityLevelLabel,

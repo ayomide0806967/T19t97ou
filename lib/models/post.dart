@@ -35,6 +35,7 @@ class PostModel {
     required this.id,
     required this.author,
     required this.handle,
+    this.avatarUrl,
     required this.timeAgo,
     required this.body,
     this.tags = const <String>[],
@@ -52,6 +53,7 @@ class PostModel {
   final String id;
   final String author;
   final String handle;
+  final String? avatarUrl;
   final String timeAgo;
   final String body;
   final List<String> tags;
@@ -69,6 +71,7 @@ class PostModel {
         'id': id,
         'author': author,
         'handle': handle,
+        'avatarUrl': avatarUrl,
         'timeAgo': timeAgo,
         'body': body,
         'tags': tags,
@@ -87,6 +90,7 @@ class PostModel {
         id: json['id'] as String,
         author: json['author'] as String,
         handle: json['handle'] as String,
+        avatarUrl: json['avatarUrl'] as String?,
         timeAgo: json['timeAgo'] as String,
         body: json['body'] as String,
         tags: (json['tags'] as List?)?.cast<String>() ?? const <String>[],
@@ -108,6 +112,7 @@ class PostModel {
     String? id,
     String? author,
     String? handle,
+    String? avatarUrl,
     String? timeAgo,
     String? body,
     List<String>? tags,
@@ -125,6 +130,7 @@ class PostModel {
         id: id ?? this.id,
         author: author ?? this.author,
         handle: handle ?? this.handle,
+        avatarUrl: avatarUrl ?? this.avatarUrl,
         timeAgo: timeAgo ?? this.timeAgo,
         body: body ?? this.body,
         tags: tags ?? this.tags,
@@ -139,4 +145,3 @@ class PostModel {
         originalId: originalId ?? this.originalId,
       );
 }
-

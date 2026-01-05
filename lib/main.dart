@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/config/app_config.dart';
 import 'core/di/app_providers.dart';
+import 'core/auth/web_oauth_callback.dart';
 import 'core/supabase/supabase_auth_repository.dart';
 import 'core/supabase/supabase_post_repository.dart';
 import 'core/supabase/supabase_profile_repository.dart';
@@ -47,6 +48,9 @@ void main() {
       url: AppConfig.supabaseUrl,
       anonKey: AppConfig.supabaseAnonKey,
     );
+
+    // On web, complete OAuth PKCE sign-in after redirect back with `?code=...`.
+    await completeWebOAuthSignIn(Supabase.instance.client);
 
     final authRepository = SupabaseAuthRepository(Supabase.instance.client);
 

@@ -50,7 +50,7 @@ class _ProfileLevelStat extends StatelessWidget {
     );
     final clamped = progress.clamp(0.0, 1.0);
     // Use brand accent color for the progress fill
-    const Color barFg = Color(0xFFFFB066);
+    const Color barFg = Color(0xFFFF8A3B);
     return InkWell(
       onTap: interactive ? () => _openLevelDetails(context) : null,
       borderRadius: BorderRadius.circular(8),
@@ -90,7 +90,7 @@ class _ProfileLevelStat extends StatelessWidget {
 
   Color _progressColor(ThemeData theme, double value) {
     // Keep modal details in sync with the main bar color.
-    return const Color(0xFFFFB066);
+    return const Color(0xFFFF8A3B);
   }
 
   void _openLevelDetails(BuildContext context) {

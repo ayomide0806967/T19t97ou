@@ -229,19 +229,29 @@ mixin _TweetPostCardBuild on _TweetPostCardStateBase, _TweetPostCardActions {
       },
       child: HexagonAvatar(
         size: 48,
-        backgroundColor: theme.colorScheme.surfaceContainerHighest,
+        backgroundColor: (widget.post.avatarUrl == null ||
+                widget.post.avatarUrl!.trim().isEmpty)
+            ? Colors.white
+            : theme.colorScheme.surfaceContainerHighest,
         borderColor: theme.colorScheme.primary.withValues(alpha: 0.35),
         borderWidth: 1.5,
-        child: Center(
-          child: Text(
-            _initialsFrom(widget.post.author),
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: primaryTextColor,
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
+        image: (widget.post.avatarUrl != null &&
+                widget.post.avatarUrl!.trim().isNotEmpty)
+            ? NetworkImage(widget.post.avatarUrl!.trim())
+            : null,
+        child: (widget.post.avatarUrl == null ||
+                widget.post.avatarUrl!.trim().isEmpty)
+            ? Center(
+                child: Text(
+                  _initialsFrom(widget.post.author),
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: primaryTextColor,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              )
+            : null,
       ),
     );
 

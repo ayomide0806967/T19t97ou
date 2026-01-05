@@ -106,16 +106,21 @@ class SupabaseProfileRepository implements ProfileRepository {
     await _client.storage.from('avatars').uploadBinary(
           path,
           Uint8List.fromList(imageBytes),
-          fileOptions: const FileOptions(upsert: true),
+          fileOptions: const FileOptions(
+            upsert: true,
+            contentType: 'image/jpeg',
+            cacheControl: '3600',
+          ),
         );
 
     final publicUrl = _client.storage.from('avatars').getPublicUrl(path);
+    final versionedUrl = '$publicUrl?v=${DateTime.now().millisecondsSinceEpoch}';
 
     await _client.from('profiles').update({
-      'avatar_url': publicUrl,
+      'avatar_url': versionedUrl,
     }).eq('id', userId);
 
-    _profile = _profile.copyWith(avatarImageBase64: publicUrl);
+    _profile = _profile.copyWith(avatarImageBase64: versionedUrl);
     _emit();
     return _profile;
   }
@@ -131,16 +136,21 @@ class SupabaseProfileRepository implements ProfileRepository {
     await _client.storage.from('avatars').uploadBinary(
           path,
           Uint8List.fromList(imageBytes),
-          fileOptions: const FileOptions(upsert: true),
+          fileOptions: const FileOptions(
+            upsert: true,
+            contentType: 'image/jpeg',
+            cacheControl: '3600',
+          ),
         );
 
     final publicUrl = _client.storage.from('avatars').getPublicUrl(path);
+    final versionedUrl = '$publicUrl?v=${DateTime.now().millisecondsSinceEpoch}';
 
     await _client.from('profiles').update({
-      'header_url': publicUrl,
+      'header_url': versionedUrl,
     }).eq('id', userId);
 
-    _profile = _profile.copyWith(headerImageBase64: publicUrl);
+    _profile = _profile.copyWith(headerImageBase64: versionedUrl);
     _emit();
     return _profile;
   }
@@ -306,4 +316,3 @@ class SupabaseProfileRepository implements ProfileRepository {
     _controller.close();
   }
 }
-

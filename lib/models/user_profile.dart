@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 class UserProfile {
   const UserProfile({
@@ -21,6 +22,14 @@ class UserProfile {
       avatarImageBase64 != null && avatarImageBase64!.isNotEmpty;
   bool get hasHeaderImage =>
       headerImageBase64 != null && headerImageBase64!.isNotEmpty;
+
+  bool get hasAvatarUrl =>
+      avatarImageBase64 != null && avatarImageBase64!.startsWith('http');
+  bool get hasHeaderUrl =>
+      headerImageBase64 != null && headerImageBase64!.startsWith('http');
+
+  String? get avatarUrl => hasAvatarUrl ? avatarImageBase64 : null;
+  String? get headerUrl => hasHeaderUrl ? headerImageBase64 : null;
 
   UserProfile copyWith({
     String? fullName,
@@ -66,8 +75,8 @@ class UserProfile {
   static String? encodeBytes(List<int>? bytes) =>
       bytes == null || bytes.isEmpty ? null : base64Encode(bytes);
 
-  List<int>? decodeBytes() {
-    if (!hasAvatarImage) return null;
+  Uint8List? decodeBytes() {
+    if (!hasAvatarImage || hasAvatarUrl) return null;
     try {
       return base64Decode(avatarImageBase64!);
     } catch (_) {
@@ -75,8 +84,8 @@ class UserProfile {
     }
   }
 
-  List<int>? decodeHeaderBytes() {
-    if (!hasHeaderImage) return null;
+  Uint8List? decodeHeaderBytes() {
+    if (!hasHeaderImage || hasHeaderUrl) return null;
     try {
       return base64Decode(headerImageBase64!);
     } catch (_) {

@@ -23,6 +23,27 @@ class SupabasePostRepository implements PostRepository {
   final Set<String> _bookmarkedPostIds = <String>{};
   final Set<String> _repostedPostIds = <String>{};
 
+  /// Update cached avatar URLs for all posts authored by [handle] and re-emit the timeline.
+  /// This avoids a full network reload after a profile avatar update.
+  void updateAvatarUrlForHandle(String handle, String? avatarUrl) {
+    final normalized = _normalizeHandle(handle);
+    bool changed = false;
+    for (var i = 0; i < _posts.length; i++) {
+      final post = _posts[i];
+      if (_normalizeHandle(post.handle) != normalized) continue;
+      if (post.avatarUrl == avatarUrl) continue;
+      _posts[i] = post.copyWith(avatarUrl: avatarUrl);
+      changed = true;
+    }
+    if (changed) _emitTimeline();
+  }
+
+  String _normalizeHandle(String handle) {
+    final trimmed = handle.trim();
+    if (trimmed.isEmpty) return '';
+    return trimmed.startsWith('@') ? trimmed : '@$trimmed';
+  }
+
   @override
   List<PostModel> get posts => List.unmodifiable(_posts);
 
@@ -490,6 +511,7 @@ class SupabasePostRepository implements PostRepository {
       id: (row['id'] ?? '').toString(),
       author: (row['author'] ?? 'Unknown').toString(),
       handle: (row['handle'] ?? '@unknown').toString(),
+      avatarUrl: row['avatar_url'] as String?,
       timeAgo: formatTimeAgo(ts),
       body: (row['body'] ?? '').toString(),
       tags: tags,
