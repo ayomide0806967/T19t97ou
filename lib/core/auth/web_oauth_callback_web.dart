@@ -56,8 +56,9 @@ Future<void> completeWebOAuthSignIn(SupabaseClient client) async {
       ..remove('error')
       ..remove('error_code')
       ..remove('error_description');
-    final nextFrag =
-        fragParams.isEmpty ? fragPath : '$fragPath?${Uri(queryParameters: fragParams).query}';
+    final nextFrag = fragParams.isEmpty
+        ? fragPath
+        : '$fragPath?${Uri(queryParameters: fragParams).query}';
     cleanedFragment = nextFrag;
   }
 

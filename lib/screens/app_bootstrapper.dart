@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/di/app_providers.dart';
-import '../features/auth/application/auth_controller.dart';
+import '../features/auth/application/session_providers.dart';
 
 /// Runs lightweight side-effects that should happen when auth state changes.
 ///
@@ -22,40 +22,31 @@ class AppBootstrapper extends ConsumerStatefulWidget {
 
 class _AppBootstrapperState extends ConsumerState<AppBootstrapper> {
   String? _lastUserId;
-  ProviderSubscription<AsyncValue<AppUser?>>? _authSubscription;
 
-  @override
-  void initState() {
-    super.initState();
-
-    _authSubscription = ref.listenManual<AsyncValue<AppUser?>>(
-      authStateProvider,
-      (prev, next) {
-        final user = next.value;
-        final userId = user?.id;
-        if (userId == null || userId.isEmpty) {
-          _lastUserId = null;
-          return;
-        }
-        if (_lastUserId == userId) return;
-        _lastUserId = userId;
-
-        unawaited(ref.read(profileRepositoryProvider).load());
-        unawaited(ref.read(quizRepositoryProvider).load());
-        // Reload the feed to pick up per-user interactions (likes/bookmarks).
-        unawaited(ref.read(postRepositoryProvider).load());
-      },
-      fireImmediately: true,
-    );
+  void _bootstrapForUser(String userId) {
+    unawaited(ref.read(profileRepositoryProvider).load());
+    unawaited(ref.read(quizRepositoryProvider).load());
+    // Reload the feed to pick up per-user interactions (likes/bookmarks).
+    unawaited(ref.read(postRepositoryProvider).load());
   }
 
   @override
-  void dispose() {
-    _authSubscription?.close();
-    _authSubscription = null;
-    super.dispose();
-  }
+  Widget build(BuildContext context) {
+    final userId = ref.watch(currentUserIdProvider);
+    if (userId.isEmpty) {
+      _lastUserId = null;
+      return widget.child;
+    }
 
-  @override
-  Widget build(BuildContext context) => widget.child;
+    if (_lastUserId != userId) {
+      _lastUserId = userId;
+      Future.microtask(() {
+        if (!mounted) return;
+        if (_lastUserId != userId) return;
+        _bootstrapForUser(userId);
+      });
+    }
+
+    return widget.child;
+  }
 }
