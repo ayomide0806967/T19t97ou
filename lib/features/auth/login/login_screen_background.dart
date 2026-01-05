@@ -1,170 +1,107 @@
 part of 'login_screen.dart';
 
-class _InstitutionBackground extends StatefulWidget {
-  const _InstitutionBackground({required this.cardCollapsed});
+class _CometBackground extends StatelessWidget {
+  const _CometBackground({required this.cardCollapsed});
 
   final bool cardCollapsed;
 
   @override
-  State<_InstitutionBackground> createState() => _InstitutionBackgroundState();
-}
-
-class _InstitutionBackgroundState extends State<_InstitutionBackground>
-    with SingleTickerProviderStateMixin {
-  static const Color _white = Color(0xFFFFFFFF);
-  static const Color _softGrey = Color(0xFF9CA3AF);
-  static const Color _dimGrey = Color(0xFF6B7280);
-
-  static const _messages = <_InstitutionHeroMessage>[
-    _InstitutionHeroMessage(text: 'IN INSTITUTION', accent: _white),
-    _InstitutionHeroMessage(
-      text: "The world's first social media school",
-      accent: _softGrey,
-    ),
-    _InstitutionHeroMessage(
-      text: 'You own a full class',
-      accent: _softGrey,
-    ),
-    _InstitutionHeroMessage(
-      text: 'Create a live quiz exam',
-      accent: _white,
-    ),
-    _InstitutionHeroMessage(
-      text: 'Create class notes',
-      accent: _softGrey,
-    ),
-    _InstitutionHeroMessage(
-      text: 'Monitor live quiz exam',
-      accent: _white,
-    ),
-    _InstitutionHeroMessage(
-      text: 'Post your ideas and go viral',
-      accent: _softGrey,
-    ),
-    _InstitutionHeroMessage(
-      text: 'Enjoy global visibility',
-      accent: _white,
-    ),
-  ];
-
-  Timer? _timer;
-  late final AnimationController _controller;
-
-  int _index = 0;
-  int _nextIndex = 1;
-  bool _isTransitioning = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 880),
-      vsync: this,
-    );
-    _timer = Timer.periodic(const Duration(milliseconds: 2200), (_) {
-      if (!mounted) return;
-      _beginTransition();
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _beginTransition() {
-    if (_isTransitioning) return;
-    _isTransitioning = true;
-    _nextIndex = (_index + 1) % _messages.length;
-    _controller.forward(from: 0).whenComplete(() {
-      if (!mounted) return;
-      setState(() {
-        _index = _nextIndex;
-        _isTransitioning = false;
-      });
-    });
-    setState(() {});
-  }
-
-  @override
   Widget build(BuildContext context) {
-    const base = DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF000000), Color(0xFF070A0E)],
-        ),
-      ),
-    );
-
-    final bool showStronger = widget.cardCollapsed;
-    final double textOpacity = showStronger ? 0.96 : 0.88;
-    final Color accent = _currentAccent();
-    final TextStyle titleStyle =
-        Theme.of(context).textTheme.headlineLarge?.copyWith(
-          fontSize: 26,
-          color: Colors.white.withValues(alpha: textOpacity),
-          fontWeight: FontWeight.w700,
-          height: 1.08,
-          letterSpacing: 0.0,
-        ) ??
-        TextStyle(
-          fontSize: 26,
-          color: Colors.white.withValues(alpha: textOpacity),
-          fontWeight: FontWeight.w700,
-          height: 1.08,
-        );
-    final TextStyle subtitleStyle =
-        Theme.of(context).textTheme.titleMedium?.copyWith(
-          fontSize: 13,
-          color: _dimGrey.withValues(alpha: 0.92),
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.1,
-          height: 1.25,
-        ) ??
-        TextStyle(
-          fontSize: 13,
-          color: _dimGrey.withValues(alpha: 0.92),
-          fontWeight: FontWeight.w600,
-          height: 1.25,
-        );
+    final alignment = cardCollapsed
+        ? const Alignment(0, -0.05)
+        : const Alignment(0, -0.42);
 
     return Stack(
       children: [
-        Positioned.fill(child: base),
-        // Soft accent glows (mature, low-contrast) that shift with the message.
-        Positioned(
-          top: -120,
-          left: -140,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 500),
-            curve: Curves.easeOutCubic,
-            width: 340,
-            height: 340,
+        const Positioned.fill(
+          child: DecoratedBox(
             decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(
-                colors: [accent.withValues(alpha: 0.20), Colors.transparent],
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFF000000),
+                  Color(0xFF060A10),
+                  Color(0xFF000000),
+                ],
+              ),
+            ),
+          ),
+        ),
+        Positioned.fill(
+          child: CustomPaint(
+            painter: _StarfieldPainter(
+              starCount: 140,
+              seed: 7,
+            ),
+          ),
+        ),
+        // Soft nebula glow.
+        const Positioned.fill(
+          child: IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment(-0.2, -0.5),
+                  radius: 1.2,
+                  colors: [
+                    Color(0x332B6CB0),
+                    Color(0x00111111),
+                  ],
+                ),
               ),
             ),
           ),
         ),
         Positioned(
-          top: 120,
-          right: -160,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 500),
-            curve: Curves.easeOutCubic,
-            width: 380,
-            height: 380,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(
-                colors: [accent.withValues(alpha: 0.16), Colors.transparent],
-              ),
+          top: -18,
+          left: -30,
+          child: _Planet(
+            diameter: 110,
+            baseColor: const Color(0xFFB7791F),
+            accentColor: const Color(0xFF2B6CB0),
+            highlight: Colors.white.withValues(alpha: 0.14),
+          ),
+        ),
+        Positioned(
+          left: -120,
+          right: -120,
+          bottom: -260,
+          child: _Planet(
+            diameter: 620,
+            baseColor: const Color(0xFFB7791F),
+            accentColor: const Color(0xFF2B6CB0),
+            highlight: Colors.white.withValues(alpha: 0.10),
+          ),
+        ),
+        SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
+            child: Row(
+              children: [
+                const Spacer(),
+                _PageDots(
+                  count: 4,
+                  activeIndex: 0,
+                ),
+                const Spacer(),
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.10),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.14),
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.volume_up_rounded,
+                    color: Colors.white.withValues(alpha: 0.72),
+                    size: 18,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -173,26 +110,35 @@ class _InstitutionBackgroundState extends State<_InstitutionBackground>
             child: AnimatedAlign(
               duration: const Duration(milliseconds: 420),
               curve: Curves.easeOutCubic,
-              alignment:
-                  showStronger ? Alignment.center : const Alignment(0, -0.40),
+              alignment: alignment,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 28),
-                child: SizedBox(
-                  height: 148,
-                  child: Align(
-                    alignment: Alignment.center,
-                    child: _InstitutionHeroCyclingText(
-                      controller: _controller,
-                      messages: _messages,
-                      index: _index,
-                      nextIndex: _nextIndex,
-                      isTransitioning: _isTransitioning,
-                      titleStyle: titleStyle,
-                      subtitleStyle: subtitleStyle,
-                      logoColor: _softGrey,
-                      defaultTextOpacity: textOpacity,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const BrandMark(size: 74),
+                    const SizedBox(height: 16),
+                    Text(
+                      'institution',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                            fontSize: 54,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white.withValues(alpha: 0.92),
+                            letterSpacing: -1.2,
+                            height: 0.95,
+                          ),
                     ),
-                  ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'From classroom notes to viral posts',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Colors.white.withValues(alpha: 0.62),
+                            height: 1.35,
+                          ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -201,192 +147,223 @@ class _InstitutionBackgroundState extends State<_InstitutionBackground>
       ],
     );
   }
+}
 
-  Color _currentAccent() {
-    final current = _messages[_index].accent;
-    if (!_isTransitioning) return current;
-    final next = _messages[_nextIndex].accent;
-    final t = CurvedAnimation(
-      parent: _controller,
-      curve: const Interval(0.28, 1.0, curve: Curves.easeInOutCubic),
-    ).value;
-    return Color.lerp(current, next, t) ?? next;
+class _PageDots extends StatelessWidget {
+  const _PageDots({required this.count, required this.activeIndex});
+
+  final int count;
+  final int activeIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(count, (i) {
+        final bool active = i == activeIndex;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          margin: const EdgeInsets.symmetric(horizontal: 3),
+          width: active ? 22 : 6,
+          height: 6,
+          decoration: BoxDecoration(
+            color: active
+                ? Colors.white.withValues(alpha: 0.92)
+                : Colors.white.withValues(alpha: 0.35),
+            borderRadius: BorderRadius.circular(999),
+          ),
+        );
+      }),
+    );
   }
 }
 
-class _InstitutionHeroCyclingText extends StatelessWidget {
-  const _InstitutionHeroCyclingText({
-    required this.controller,
-    required this.messages,
-    required this.index,
-    required this.nextIndex,
-    required this.isTransitioning,
-    required this.titleStyle,
-    required this.subtitleStyle,
-    required this.logoColor,
-    required this.defaultTextOpacity,
+class _Planet extends StatelessWidget {
+  const _Planet({
+    required this.diameter,
+    required this.baseColor,
+    required this.accentColor,
+    required this.highlight,
   });
 
-  final Animation<double> controller;
-  final List<_InstitutionHeroMessage> messages;
-  final int index;
-  final int nextIndex;
-  final bool isTransitioning;
-  final TextStyle titleStyle;
-  final TextStyle subtitleStyle;
-  final Color logoColor;
-  final double defaultTextOpacity;
+  final double diameter;
+  final Color baseColor;
+  final Color accentColor;
+  final Color highlight;
 
   @override
   Widget build(BuildContext context) {
-    final current = messages[index];
-    final next = messages[nextIndex];
-
-    if (!isTransitioning) {
-      return _InstitutionHeroText(
-        text: current.text,
-        accent: current.accent,
-        titleStyle: titleStyle,
-        subtitleStyle: subtitleStyle,
-        logoColor: logoColor,
-      );
-    }
-
-    final focusIn = CurvedAnimation(
-      parent: controller,
-      curve: const Interval(0.0, 0.32, curve: Curves.easeOutCubic),
-    );
-    final focusOut = CurvedAnimation(
-      parent: controller,
-      curve: const Interval(0.32, 0.62, curve: Curves.easeInCubic),
-    );
-    final focusOpacity = Tween<double>(
-      begin: 0,
-      end: 1,
-    ).animate(focusIn);
-    final focusFade = Tween<double>(
-      begin: 1,
-      end: 0,
-    ).animate(focusOut);
-
-    final focusScale = Tween<double>(
-      begin: 0.92,
-      end: 1.0,
-    ).animate(
-      CurvedAnimation(
-        parent: controller,
-        curve: const Interval(0.0, 0.32, curve: Curves.easeOutBack),
-      ),
-    );
-
-    final textT = CurvedAnimation(
-      parent: controller,
-      curve: const Interval(0.22, 1.0, curve: Curves.easeInOutCubic),
-    );
-
-    final outgoingOpacity = Tween<double>(begin: 1, end: 0).animate(
-      CurvedAnimation(
-        parent: controller,
-        curve: const Interval(0.22, 0.72, curve: Curves.easeInCubic),
-      ),
-    );
-    final incomingOpacity = Tween<double>(begin: 0, end: 1).animate(textT);
-
-    final outgoingScale = Tween<double>(begin: 1.0, end: 0.98).animate(
-      CurvedAnimation(
-        parent: controller,
-        curve: const Interval(0.22, 0.72, curve: Curves.easeInCubic),
-      ),
-    );
-    final incomingScale = Tween<double>(begin: 1.02, end: 1.0).animate(textT);
-
-    final animatedAccent = ColorTween(
-      begin: current.accent.withValues(alpha: defaultTextOpacity),
-      end: next.accent.withValues(alpha: defaultTextOpacity),
-    ).animate(textT);
-
-    final focusColor = ColorTween(
-      begin: current.accent.withValues(alpha: 0.10),
-      end: next.accent.withValues(alpha: 0.14),
-    ).animate(textT);
-
-    return AnimatedBuilder(
-      animation: controller,
-      builder: (context, _) {
-        final focusAlpha = focusOpacity.value * focusFade.value;
-        return Stack(
-          alignment: Alignment.center,
-          children: [
-            Transform.scale(
-              scale: focusScale.value,
-              child: Opacity(
-                opacity: focusAlpha.clamp(0.0, 1.0),
-                child: _FocusRect(
-                  color: focusColor.value ?? next.accent.withValues(alpha: 0.12),
+    return SizedBox(
+      width: diameter,
+      height: diameter,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(
+            center: const Alignment(-0.25, -0.35),
+            radius: 0.92,
+            colors: [
+              baseColor.withValues(alpha: 0.95),
+              baseColor.withValues(alpha: 0.58),
+              const Color(0xFF000000),
+            ],
+          ),
+        ),
+        child: ClipOval(
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: _PlanetBandsPainter(
+                    accentColor: accentColor,
+                    highlight: highlight,
+                  ),
                 ),
               ),
-            ),
-            ScaleTransition(
-              scale: outgoingScale,
-              child: FadeTransition(
-                opacity: outgoingOpacity,
-                child: _InstitutionHeroText(
-                  text: current.text,
-                  accent: current.accent,
-                  titleStyle: titleStyle,
-                  subtitleStyle: subtitleStyle,
-                  logoColor: logoColor,
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: RadialGradient(
+                      center: const Alignment(-0.1, -0.2),
+                      radius: 0.95,
+                      colors: [
+                        Colors.white.withValues(alpha: 0.08),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
                 ),
               ),
-            ),
-            ScaleTransition(
-              scale: incomingScale,
-              child: FadeTransition(
-                opacity: incomingOpacity,
-                child: _InstitutionHeroText(
-                  text: next.text,
-                  accent: animatedAccent.value ?? next.accent,
-                  titleStyle: titleStyle,
-                  subtitleStyle: subtitleStyle,
-                  logoColor: logoColor,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
 
-class _FocusRect extends StatelessWidget {
-  const _FocusRect({required this.color});
+class _PlanetBandsPainter extends CustomPainter {
+  _PlanetBandsPainter({required this.accentColor, required this.highlight});
 
-  final Color color;
+  final Color accentColor;
+  final Color highlight;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(
-        maxWidth: 520,
-        minHeight: 86,
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        color: color,
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.10),
-          width: 1,
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..isAntiAlias = true;
+    final rect = Offset.zero & size;
+
+    void band({
+      required double dy,
+      required double thickness,
+      required Color color,
+      required double rotation,
+      required double opacity,
+    }) {
+      canvas.save();
+      canvas.translate(size.width / 2, size.height / 2);
+      canvas.rotate(rotation);
+      canvas.translate(-size.width / 2, -size.height / 2);
+      paint.color = color.withValues(alpha: opacity);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(-size.width * 0.2, dy, size.width * 1.4, thickness),
+          Radius.circular(thickness),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.25),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
+        paint,
+      );
+      canvas.restore();
+    }
+
+    band(
+      dy: size.height * 0.42,
+      thickness: size.height * 0.16,
+      color: accentColor,
+      rotation: -0.25,
+      opacity: 0.35,
     );
+    band(
+      dy: size.height * 0.52,
+      thickness: size.height * 0.10,
+      color: highlight,
+      rotation: -0.25,
+      opacity: 0.55,
+    );
+    band(
+      dy: size.height * 0.62,
+      thickness: size.height * 0.12,
+      color: accentColor,
+      rotation: -0.25,
+      opacity: 0.22,
+    );
+
+    // Subtle vignette.
+    paint.shader = const RadialGradient(
+      center: Alignment(0.25, 0.25),
+      radius: 1.05,
+      colors: [Color(0x00000000), Color(0xAA000000)],
+    ).createShader(rect);
+    canvas.drawRect(rect, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _PlanetBandsPainter oldDelegate) {
+    return oldDelegate.accentColor != accentColor ||
+        oldDelegate.highlight != highlight;
+  }
+}
+
+class _StarfieldPainter extends CustomPainter {
+  _StarfieldPainter({required this.starCount, required this.seed});
+
+  final int starCount;
+  final int seed;
+
+  double _hash(int n) {
+    // Deterministic pseudo-random in [0, 1).
+    final x = math.sin((n + seed) * 12.9898) * 43758.5453;
+    return x - x.floorToDouble();
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..isAntiAlias = true;
+    final w = size.width;
+    final h = size.height;
+
+    for (var i = 0; i < starCount; i++) {
+      final fx = _hash(i * 3);
+      final fy = _hash(i * 3 + 1);
+      final fr = _hash(i * 3 + 2);
+
+      final x = fx * w;
+      final y = fy * h;
+      final r = 0.6 + fr * 1.4;
+      final a = 0.10 + fr * 0.55;
+
+      paint.color = Colors.white.withValues(alpha: a);
+      canvas.drawCircle(Offset(x, y), r, paint);
+    }
+
+    // A few "bright" stars.
+    for (var i = 0; i < 10; i++) {
+      final fx = _hash(999 + i * 4);
+      final fy = _hash(999 + i * 4 + 1);
+      final fr = _hash(999 + i * 4 + 2);
+      final x = fx * w;
+      final y = fy * h;
+      final r = 1.6 + fr * 1.6;
+
+      paint.color = Colors.white.withValues(alpha: 0.72);
+      canvas.drawCircle(Offset(x, y), r, paint);
+      paint.color = Colors.white.withValues(alpha: 0.12);
+      canvas.drawCircle(Offset(x, y), r * 3.0, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _StarfieldPainter oldDelegate) {
+    return oldDelegate.starCount != starCount || oldDelegate.seed != seed;
   }
 }

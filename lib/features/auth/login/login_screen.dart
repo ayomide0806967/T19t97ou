@@ -1,15 +1,16 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../application/auth_controller.dart';
+import '../../../widgets/brand_mark.dart';
 import '../../../widgets/swiss_bank_icon.dart';
 import 'login_email_entry_screen.dart';
 
 part 'login_screen_background.dart';
-part 'login_screen_hero.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -78,11 +79,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           child: Stack(
             children: [
               Positioned.fill(
-                child: _InstitutionBackground(cardCollapsed: _cardCollapsed),
+                child: _CometBackground(cardCollapsed: _cardCollapsed),
               ),
               LayoutBuilder(
                 builder: (context, constraints) {
-                  final double cardHeight = constraints.maxHeight * 0.5;
+                  final double cardHeight = math.min(
+                    constraints.maxHeight * 0.54,
+                    520,
+                  );
                   const double cardRadius = 36;
                   final double hiddenBottom = -cardHeight - 24;
                   final double clampedDragOffset = _cardCollapsed
@@ -164,45 +168,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       if (_cardCollapsed)
                         Positioned(
-                          left: 56,
-                          right: 56,
-                          bottom: 56,
+                          left: 24,
+                          right: 24,
+                          bottom: 40,
                           child: SafeArea(
                             top: false,
-                              child: SizedBox(
-                              height: 56,
-                              child: ElevatedButton(
-                                onPressed: isLoading ? null : _expandCard,
-                                style: ElevatedButton.styleFrom(
-                                  // Off‑white container with dark text
-                                  backgroundColor: const Color(0xFFF3F4F6),
-                                  foregroundColor: const Color(0xFF111827),
-                                  elevation: 6,
-                                  shadowColor: const Color(
-                                    0xFF111827,
-                                  ).withValues(alpha: 0.15),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 18,
-                                    vertical: 14,
-                                  ),
-                                  side: BorderSide(
-                                    color: const Color(
-                                      0xFFFFFFFF,
-                                    ).withValues(alpha: 0.10),
-                                    width: 1,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _SlideToGetStarted(
+                                  enabled: !isLoading,
+                                  onCompleted: _expandCard,
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'By continuing, you agree to the\nTerms of Service and Privacy Policy',
+                                  textAlign: TextAlign.center,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: Colors.white.withValues(alpha: 0.62),
+                                    height: 1.35,
                                   ),
                                 ),
-                                child: const Text(
-                                  "Let's get inside",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 0.6,
-                                  ),
-                                ),
-                              ),
+                              ],
                             ),
                           ),
                         ),
@@ -323,5 +310,129 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ),
       ),
     ];
+  }
+}
+
+class _SlideToGetStarted extends StatefulWidget {
+  const _SlideToGetStarted({
+    required this.enabled,
+    required this.onCompleted,
+  });
+
+  final bool enabled;
+  final VoidCallback onCompleted;
+
+  @override
+  State<_SlideToGetStarted> createState() => _SlideToGetStartedState();
+}
+
+class _SlideToGetStartedState extends State<_SlideToGetStarted> {
+  static const double _height = 56;
+  static const double _knobSize = 44;
+  static const double _padding = 6;
+
+  double _dragX = 0;
+  bool _dragging = false;
+  bool _completed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final textStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: Colors.white.withValues(alpha: widget.enabled ? 0.88 : 0.42),
+          fontWeight: FontWeight.w600,
+        );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxDrag = math.max(
+          0.0,
+          constraints.maxWidth - _knobSize - _padding * 2,
+        );
+        final clamped = _dragX.clamp(0.0, maxDrag);
+
+        return GestureDetector(
+          onHorizontalDragStart: widget.enabled
+              ? (_) => setState(() => _dragging = true)
+              : null,
+          onHorizontalDragUpdate: widget.enabled
+              ? (details) {
+                  if (_completed) return;
+                  setState(() => _dragX = _dragX + details.delta.dx);
+                }
+              : null,
+          onHorizontalDragEnd: widget.enabled
+              ? (_) async {
+                  if (_completed) return;
+                  setState(() => _dragging = false);
+                  final didComplete = clamped >= maxDrag * 0.92;
+                  if (!didComplete) {
+                    setState(() => _dragX = 0);
+                    return;
+                  }
+
+                  setState(() {
+                    _dragX = maxDrag;
+                    _completed = true;
+                  });
+                  HapticFeedback.lightImpact();
+                  await Future<void>.delayed(const Duration(milliseconds: 120));
+                  widget.onCompleted();
+                }
+              : null,
+          child: Semantics(
+            button: true,
+            enabled: widget.enabled,
+            label: 'Slide to get started',
+            child: Container(
+              height: _height,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(_height / 2),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.14),
+                  width: 1,
+                ),
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Text('Slide to get started', style: textStyle),
+                  AnimatedPositioned(
+                    duration: _dragging
+                        ? Duration.zero
+                        : const Duration(milliseconds: 220),
+                    curve: Curves.easeOutCubic,
+                    left: _padding + clamped,
+                    top: (_height - _knobSize) / 2,
+                    child: Container(
+                      width: _knobSize,
+                      height: _knobSize,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(
+                          alpha: widget.enabled ? 0.92 : 0.55,
+                        ),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.35),
+                            blurRadius: 16,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.arrow_forward_rounded,
+                        color: Colors.black.withValues(alpha: 0.86),
+                        size: 22,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }
