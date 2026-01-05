@@ -7,143 +7,71 @@ class _CometBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final alignment = cardCollapsed
-        ? const Alignment(0, -0.05)
-        : const Alignment(0, -0.42);
-
     return Stack(
       children: [
+        // Ultra-dark, flat space background with subtle blue undertone.
         const Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFF000000),
-                  Color(0xFF060A10),
-                  Color(0xFF000000),
-                ],
+          child: ColoredBox(
+            color: Color(0xFF0F151A),
+          ),
+        ),
+        // Very fine film-grain style noise for depth.
+        Positioned.fill(
+          child: IgnorePointer(
+            child: CustomPaint(
+              painter: _NoisePainter(
+                seed: 11,
+                density: 0.85,
               ),
             ),
           ),
         ),
+        // Sparse, tiny star speckles (no glow, low opacity).
         Positioned.fill(
-          child: CustomPaint(
-            painter: _StarfieldPainter(
-              starCount: 140,
-              seed: 7,
+          child: IgnorePointer(
+            child: CustomPaint(
+              painter: _StarfieldPainter(
+                starCount: 110,
+                seed: 7,
+              ),
             ),
           ),
         ),
-        // Soft nebula glow.
-        const Positioned.fill(
+        // Soft vignette toward the edges to frame content.
+        Positioned.fill(
           child: IgnorePointer(
             child: DecoratedBox(
               decoration: BoxDecoration(
                 gradient: RadialGradient(
-                  center: Alignment(-0.2, -0.5),
+                  center: Alignment.center,
                   radius: 1.2,
                   colors: [
-                    Color(0x332B6CB0),
-                    Color(0x00111111),
+                    Colors.transparent,
+                    Colors.black.withValues(alpha: 0.55),
                   ],
+                  stops: [0.45, 1.0],
                 ),
               ),
             ),
           ),
         ),
-        Positioned(
-          top: -18,
-          left: -30,
-          child: _Planet(
-            diameter: 110,
-            baseColor: const Color(0xFFB7791F),
-            accentColor: const Color(0xFF2B6CB0),
-            highlight: Colors.white.withValues(alpha: 0.14),
-          ),
-        ),
-        Positioned(
-          left: -120,
-          right: -120,
-          bottom: -260,
-          child: _Planet(
-            diameter: 620,
-            baseColor: const Color(0xFFB7791F),
-            accentColor: const Color(0xFF2B6CB0),
-            highlight: Colors.white.withValues(alpha: 0.10),
-          ),
-        ),
         SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
+            padding: const EdgeInsets.fromLTRB(18, 80, 18, 0),
             child: Row(
               children: [
                 const Spacer(),
                 _PageDots(
                   count: 4,
-                  activeIndex: 0,
+                  activeIndex: cardCollapsed ? 0 : 1,
                 ),
                 const Spacer(),
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.10),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.14),
-                    ),
-                  ),
-                  child: Icon(
-                    Icons.volume_up_rounded,
-                    color: Colors.white.withValues(alpha: 0.72),
-                    size: 18,
-                  ),
-                ),
               ],
             ),
           ),
         ),
-        Positioned.fill(
-          child: IgnorePointer(
-            child: AnimatedAlign(
-              duration: const Duration(milliseconds: 420),
-              curve: Curves.easeOutCubic,
-              alignment: alignment,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 28),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const BrandMark(size: 74),
-                    const SizedBox(height: 16),
-                    Text(
-                      'institution',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                            fontSize: 54,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.white.withValues(alpha: 0.92),
-                            letterSpacing: -1.2,
-                            height: 0.95,
-                          ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'From classroom notes to viral posts',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.white.withValues(alpha: 0.62),
-                            height: 1.35,
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
+        // Foreground content is rendered by the login screen overlay to keep
+        // it perfectly aligned with the slider/policy block.
       ],
     );
   }
@@ -179,138 +107,126 @@ class _PageDots extends StatelessWidget {
   }
 }
 
-class _Planet extends StatelessWidget {
-  const _Planet({
-    required this.diameter,
-    required this.baseColor,
-    required this.accentColor,
-    required this.highlight,
-  });
-
-  final double diameter;
-  final Color baseColor;
-  final Color accentColor;
-  final Color highlight;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: diameter,
-      height: diameter,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(
-            center: const Alignment(-0.25, -0.35),
-            radius: 0.92,
-            colors: [
-              baseColor.withValues(alpha: 0.95),
-              baseColor.withValues(alpha: 0.58),
-              const Color(0xFF000000),
-            ],
-          ),
-        ),
-        child: ClipOval(
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: CustomPaint(
-                  painter: _PlanetBandsPainter(
-                    accentColor: accentColor,
-                    highlight: highlight,
-                  ),
-                ),
-              ),
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: RadialGradient(
-                      center: const Alignment(-0.1, -0.2),
-                      radius: 0.95,
-                      colors: [
-                        Colors.white.withValues(alpha: 0.08),
-                        Colors.transparent,
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PlanetBandsPainter extends CustomPainter {
-  _PlanetBandsPainter({required this.accentColor, required this.highlight});
-
-  final Color accentColor;
-  final Color highlight;
-
+class _HorizonSpherePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..isAntiAlias = true;
-    final rect = Offset.zero & size;
+    final baseBg = const Color(0xFF0E1418);
+    final teal = const Color(0xD96FAFA6); // ≈85%
+    final olive = const Color(0xCC8F8A4E); // ≈80%
+    final charcoal = const Color(0xE61E2422); // ≈90%
 
-    void band({
-      required double dy,
-      required double thickness,
-      required Color color,
-      required double rotation,
-      required double opacity,
-    }) {
-      canvas.save();
-      canvas.translate(size.width / 2, size.height / 2);
-      canvas.rotate(rotation);
-      canvas.translate(-size.width / 2, -size.height / 2);
-      paint.color = color.withValues(alpha: opacity);
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(-size.width * 0.2, dy, size.width * 1.4, thickness),
-          Radius.circular(thickness),
-        ),
-        paint,
-      );
-      canvas.restore();
+    // Large rounded rectangle rising from the bottom; only top band visible.
+    final width = size.width * 1.4;
+    final height = size.height * 0.9;
+    final rect = Rect.fromLTWH(
+      (size.width - width) / 2,
+      size.height - height * 0.42,
+      width,
+      height,
+    );
+    final outerRadius = Radius.circular(height * 0.55);
+    final outerRRect = RRect.fromRectAndRadius(rect, outerRadius);
+
+    final paint = Paint()..isAntiAlias = true;
+    final clip = Path()..addRRect(outerRRect);
+
+    // Draw into a clipped layer so feathering/noise stays inside the shape.
+    canvas.save();
+    canvas.clipPath(clip);
+
+    // Base charcoal field (matte).
+    paint
+      ..shader = null
+      ..maskFilter = null
+      ..color = charcoal;
+    canvas.drawRRect(outerRRect, paint);
+
+    // Overlapping matte color fields with feathered boundaries.
+    // Use a blur mask for soft edges (no highlights / no gloss).
+    const featherSigma = 18.0;
+    paint.maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, featherSigma);
+
+    final corner = Radius.circular((height * 0.22).clamp(16.0, 44.0));
+
+    // Left rectangular field (muted teal).
+    paint
+      ..shader = null
+      ..color = teal;
+    final leftRect = Rect.fromLTWH(
+      rect.left + rect.width * -0.05,
+      rect.top + rect.height * -0.02,
+      rect.width * 0.58,
+      rect.height * 1.05,
+    );
+    canvas.drawRRect(RRect.fromRectAndRadius(leftRect, corner), paint);
+
+    // Right rectangular field (olive-gold).
+    paint.color = olive;
+    final rightRect = Rect.fromLTWH(
+      rect.left + rect.width * 0.47,
+      rect.top + rect.height * -0.02,
+      rect.width * 0.60,
+      rect.height * 1.05,
+    );
+    canvas.drawRRect(RRect.fromRectAndRadius(rightRect, corner), paint);
+
+    // Central overlap field (deep charcoal), drawn last to keep overlap dark.
+    paint.color = charcoal;
+    final midRect = Rect.fromLTWH(
+      rect.left + rect.width * 0.32,
+      rect.top + rect.height * -0.03,
+      rect.width * 0.36,
+      rect.height * 1.04,
+    );
+    canvas.drawRRect(RRect.fromRectAndRadius(midRect, corner), paint);
+
+    // Very fine monochrome grain on the sphere (4–6% opacity).
+    paint
+      ..maskFilter = null
+      ..shader = null
+      ..isAntiAlias = false;
+    final area = rect.width * rect.height;
+    final count = (area / 1400).round().clamp(800, 5200);
+    for (var i = 0; i < count; i++) {
+      final fx = _hash(i * 3);
+      final fy = _hash(i * 3 + 1);
+      final fr = _hash(i * 3 + 2);
+      final x = rect.left + fx * rect.width;
+      final y = rect.top + fy * rect.height;
+      final alpha = 0.04 + fr * 0.02; // 4–6%
+      final isLight = fr > 0.5;
+      paint.color =
+          (isLight ? Colors.white : Colors.black).withValues(alpha: alpha);
+      canvas.drawRect(Rect.fromLTWH(x, y, 1, 1), paint);
     }
 
-    band(
-      dy: size.height * 0.42,
-      thickness: size.height * 0.16,
-      color: accentColor,
-      rotation: -0.25,
-      opacity: 0.35,
-    );
-    band(
-      dy: size.height * 0.52,
-      thickness: size.height * 0.10,
-      color: highlight,
-      rotation: -0.25,
-      opacity: 0.55,
-    );
-    band(
-      dy: size.height * 0.62,
-      thickness: size.height * 0.12,
-      color: accentColor,
-      rotation: -0.25,
-      opacity: 0.22,
-    );
+    canvas.restore();
 
-    // Subtle vignette.
-    paint.shader = const RadialGradient(
-      center: Alignment(0.25, 0.25),
-      radius: 1.05,
-      colors: [Color(0x00000000), Color(0xAA000000)],
-    ).createShader(rect);
-    canvas.drawRect(rect, paint);
+    // Soft edge blur around the shape perimeter (~15px feather), blending into background.
+    final edgeFeatherPx = 15.0;
+    final maxExtent = (rect.width + rect.height) / 2;
+    final edgeStop = (1.0 - (edgeFeatherPx / maxExtent)).clamp(0.0, 1.0);
+    paint
+      ..isAntiAlias = true
+      ..maskFilter = null
+      ..shader = RadialGradient(
+        center: Alignment(0, -0.1),
+        radius: 1.0,
+        colors: [
+          Colors.transparent,
+          baseBg,
+        ],
+        stops: [edgeStop, 1.0],
+      ).createShader(rect);
+    canvas.drawRRect(outerRRect, paint);
   }
 
   @override
-  bool shouldRepaint(covariant _PlanetBandsPainter oldDelegate) {
-    return oldDelegate.accentColor != accentColor ||
-        oldDelegate.highlight != highlight;
+  bool shouldRepaint(covariant _HorizonSpherePainter oldDelegate) => false;
+
+  double _hash(int n) {
+    final x = math.sin(n * 12.9898) * 43758.5453;
+    return x - x.floorToDouble();
   }
 }
 
@@ -339,31 +255,59 @@ class _StarfieldPainter extends CustomPainter {
 
       final x = fx * w;
       final y = fy * h;
-      final r = 0.6 + fr * 1.4;
-      final a = 0.10 + fr * 0.55;
+      final r = 0.4 + fr * 0.9;
+      final a = 0.10 + fr * 0.30;
 
       paint.color = Colors.white.withValues(alpha: a);
       canvas.drawCircle(Offset(x, y), r, paint);
-    }
-
-    // A few "bright" stars.
-    for (var i = 0; i < 10; i++) {
-      final fx = _hash(999 + i * 4);
-      final fy = _hash(999 + i * 4 + 1);
-      final fr = _hash(999 + i * 4 + 2);
-      final x = fx * w;
-      final y = fy * h;
-      final r = 1.6 + fr * 1.6;
-
-      paint.color = Colors.white.withValues(alpha: 0.72);
-      canvas.drawCircle(Offset(x, y), r, paint);
-      paint.color = Colors.white.withValues(alpha: 0.12);
-      canvas.drawCircle(Offset(x, y), r * 3.0, paint);
     }
   }
 
   @override
   bool shouldRepaint(covariant _StarfieldPainter oldDelegate) {
     return oldDelegate.starCount != starCount || oldDelegate.seed != seed;
+  }
+}
+
+class _NoisePainter extends CustomPainter {
+  const _NoisePainter({
+    required this.seed,
+    required this.density,
+  });
+
+  final int seed;
+  final double density; // 0–1, controls how many samples to draw.
+
+  double _hash(int n) {
+    final x = math.sin((n + seed) * 78.233) * 43758.5453;
+    return x - x.floorToDouble();
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..isAntiAlias = false;
+    final area = size.width * size.height;
+    final count = (area / 900 * density).round().clamp(200, 2200);
+
+    for (var i = 0; i < count; i++) {
+      final fx = _hash(i * 2);
+      final fy = _hash(i * 2 + 1);
+      final fr = _hash(i * 2 + 2);
+
+      final dx = fx * size.width;
+      final dy = fy * size.height;
+      final a = 0.03 + fr * 0.06;
+
+      paint.color = Colors.white.withValues(alpha: a);
+      canvas.drawRect(
+        Rect.fromLTWH(dx, dy, 1, 1),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _NoisePainter oldDelegate) {
+    return oldDelegate.seed != seed || oldDelegate.density != density;
   }
 }
