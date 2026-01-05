@@ -19,20 +19,25 @@ import 'core/ui/theme_mode_controller.dart';
 import 'core/ui/app_preferences_controller.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Log any framework errors to the zone as well.
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    Zone.current.handleUncaughtError(
+      details.exception,
+      details.stack ?? StackTrace.empty,
+    );
+  };
+
   runZonedGuarded(() async {
-    WidgetsFlutterBinding.ensureInitialized();
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark.copyWith(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.dark,
     ));
 
-    // Log any framework errors to the zone as well
-    FlutterError.onError = (FlutterErrorDetails details) {
-      FlutterError.presentError(details);
-      Zone.current.handleUncaughtError(details.exception, details.stack ?? StackTrace.empty);
-    };
-
-    // Initialize Supabase if configured
+    // Initialize Supabase if configured. Show UI immediately to avoid a blank
+    // screen while async initialization is in progress.
     if (!AppConfig.hasSupabaseConfig) {
       runApp(
         const MaterialApp(
@@ -43,41 +48,108 @@ void main() {
       return;
     }
 
-    await Supabase.initialize(
-      url: AppConfig.supabaseUrl,
-      anonKey: AppConfig.supabaseAnonKey,
-    );
+    runApp(const _InitLoadingApp());
 
-    final authRepository = SupabaseAuthRepository(Supabase.instance.client);
+    try {
+      await Supabase.initialize(
+        url: AppConfig.supabaseUrl,
+        anonKey: AppConfig.supabaseAnonKey,
+      );
 
-    final PostRepository postRepository = SupabasePostRepository(
-      Supabase.instance.client,
-    );
-    await postRepository.load();
+      final authRepository = SupabaseAuthRepository(Supabase.instance.client);
 
-    final profileRepository =
-        SupabaseProfileRepository(Supabase.instance.client);
-    await profileRepository.load();
+      final PostRepository postRepository = SupabasePostRepository(
+        Supabase.instance.client,
+      );
+      await postRepository.load();
 
-    final quizRepository = SupabaseQuizRepository(Supabase.instance.client);
-    await quizRepository.load();
+      final profileRepository =
+          SupabaseProfileRepository(Supabase.instance.client);
+      await profileRepository.load();
 
-    runApp(
-      ProviderScope(
-        overrides: [
-          authRepositoryProvider.overrideWithValue(authRepository),
-          postRepositoryProvider.overrideWithValue(postRepository),
-          profileRepositoryProvider.overrideWithValue(profileRepository),
-          quizRepositoryProvider.overrideWithValue(quizRepository),
-        ],
-        child: const MyApp(),
-      ),
-    );
+      final quizRepository = SupabaseQuizRepository(Supabase.instance.client);
+      await quizRepository.load();
+
+      runApp(
+        ProviderScope(
+          overrides: [
+            authRepositoryProvider.overrideWithValue(authRepository),
+            postRepositoryProvider.overrideWithValue(postRepository),
+            profileRepositoryProvider.overrideWithValue(profileRepository),
+            quizRepositoryProvider.overrideWithValue(quizRepository),
+          ],
+          child: const MyApp(),
+        ),
+      );
+    } catch (e) {
+      runApp(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: _InitErrorScreen(error: e),
+        ),
+      );
+    }
   }, (error, stack) {
-    // Ensure crashes are visible in logs instead of silently terminating
     debugPrint('Uncaught error: $error');
     debugPrint(stack.toString());
   });
+}
+
+class _InitLoadingApp extends StatelessWidget {
+  const _InitLoadingApp();
+
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        backgroundColor: Colors.black,
+        body: SafeArea(
+          child: Center(
+            child: SizedBox(
+              width: 28,
+              height: 28,
+              child: CircularProgressIndicator(strokeWidth: 2.6),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InitErrorScreen extends StatelessWidget {
+  const _InitErrorScreen({required this.error});
+
+  final Object error;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF3F4F6),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFF3F4F6),
+        title: const Text('Startup Error'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'The app failed to start.',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              error.toString(),
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class MyApp extends ConsumerWidget {
