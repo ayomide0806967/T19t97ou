@@ -1,9 +1,13 @@
 part of 'login_screen.dart';
 
 class _CometBackground extends StatelessWidget {
-  const _CometBackground({required this.cardCollapsed});
+  const _CometBackground({
+    required this.cardCollapsed,
+    required this.pageIndex,
+  });
 
   final bool cardCollapsed;
+  final int pageIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -62,8 +66,9 @@ class _CometBackground extends StatelessWidget {
               children: [
                 const Spacer(),
                 _PageDots(
-                  count: 4,
-                  activeIndex: cardCollapsed ? 0 : 1,
+                  count: cardCollapsed ? 4 : 6,
+                  activeIndex: pageIndex,
+                  isExpanded: !cardCollapsed,
                 ),
                 const Spacer(),
               ],
@@ -78,13 +83,23 @@ class _CometBackground extends StatelessWidget {
 }
 
 class _PageDots extends StatelessWidget {
-  const _PageDots({required this.count, required this.activeIndex});
+  const _PageDots({
+    required this.count,
+    required this.activeIndex,
+    this.isExpanded = false,
+  });
 
   final int count;
   final int activeIndex;
+  final bool isExpanded;
 
   @override
   Widget build(BuildContext context) {
+    final double dotHeight = isExpanded ? 10 : 6;
+    final double inactiveWidth = isExpanded ? 10 : 6;
+    final double activeWidth = isExpanded ? 34 : 22;
+    final double gap = isExpanded ? 5 : 3;
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(count, (i) {
@@ -92,14 +107,23 @@ class _PageDots extends StatelessWidget {
         return AnimatedContainer(
           duration: const Duration(milliseconds: 220),
           curve: Curves.easeOutCubic,
-          margin: const EdgeInsets.symmetric(horizontal: 3),
-          width: active ? 22 : 6,
-          height: 6,
+          margin: EdgeInsets.symmetric(horizontal: gap),
+          width: active ? activeWidth : inactiveWidth,
+          height: dotHeight,
           decoration: BoxDecoration(
             color: active
-                ? Colors.white.withValues(alpha: 0.92)
+                ? const Color(0xFFFF8A3B)
                 : Colors.white.withValues(alpha: 0.35),
             borderRadius: BorderRadius.circular(999),
+            boxShadow: isExpanded && active
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFFFF8A3B).withValues(alpha: 0.35),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
+                    ),
+                  ]
+                : const [],
           ),
         );
       }),

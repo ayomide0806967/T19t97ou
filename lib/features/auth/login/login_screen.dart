@@ -2,11 +2,14 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../application/auth_controller.dart';
+import '../../legal/privacy_policy_screen.dart';
+import '../../legal/terms_of_service_screen.dart';
 import '../../../widgets/brand_mark.dart';
 import '../../../widgets/swiss_bank_icon.dart';
 import 'login_email_entry_screen.dart';
@@ -24,6 +27,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _cardCollapsed = true;
   bool _isDraggingCard = false;
   double _cardDragOffset = 0;
+  double _sliderProgress = 0;
+  int _bannerIndex = 0;
 
   @override
   void dispose() {
@@ -34,6 +39,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() {
       _cardCollapsed = false;
       _cardDragOffset = 0;
+      _bannerIndex = 0;
+    });
+  }
+
+  void _collapseCard() {
+    setState(() {
+      _cardCollapsed = true;
+      _cardDragOffset = 0;
+      _sliderProgress = 0;
+      _bannerIndex = 0;
     });
   }
 
@@ -62,6 +77,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  void _openTermsOfService() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const TermsOfServiceScreen()),
+    );
+  }
+
+  void _openPrivacyPolicy() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authUi = ref.watch(authControllerProvider);
@@ -78,9 +105,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           top: true,
           bottom: false,
           child: Stack(
-            children: [
+	            children: [
               Positioned.fill(
-                child: _CometBackground(cardCollapsed: _cardCollapsed),
+                child: _CometBackground(
+                  cardCollapsed: _cardCollapsed,
+                  pageIndex: _cardCollapsed
+                      ? (_sliderProgress <= 0.01 ? 0 : 1)
+                      : (1 + _bannerIndex.clamp(0, 4)),
+                ),
               ),
               LayoutBuilder(
                 builder: (context, constraints) {
@@ -99,6 +131,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                   return Stack(
                     children: [
+                      if (!_cardCollapsed)
+                        Positioned.fill(
+                          child: IgnorePointer(
+                            child: Align(
+                              alignment: const Alignment(0, -0.48),
+                              child: _AnimatedPromoBanner(
+                                onIndexChanged: (index) {
+                                  setState(() {
+                                    _bannerIndex = index;
+                                  });
+                                },
+                              ),
+                            ),
+                          ),
+                        ),
                       AnimatedPositioned(
                         duration: _isDraggingCard
                             ? Duration.zero
@@ -129,15 +176,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   setState(() {
                                     _isDraggingCard = false;
                                     if (shouldCollapse) {
-                                      _cardCollapsed = true;
-                                      _cardDragOffset = 0;
+                                      _collapseCard();
                                     } else {
                                       _cardDragOffset = 0;
                                     }
                                   });
                                 },
                           child: Material(
-                            color: Colors.white,
+                            color: const Color(0xFFF3F4F6),
                             elevation: 18,
                             shadowColor: Colors.black.withValues(alpha: 0.35),
                             shape: const RoundedRectangleBorder(
@@ -167,23 +213,39 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ),
                       ),
-                      if (_cardCollapsed)
-                        Positioned.fill(
-                          child: SafeArea(
-                            top: false,
-                            child: Align(
-                              alignment: const Alignment(0, -0.05),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                ),
+                      if (!_cardCollapsed)
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: cardHeight + bottomOffset,
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.translucent,
+                            onTap: _collapseCard,
+                          ),
+                        ),
+	                      if (_cardCollapsed)
+	                        Positioned.fill(
+	                          child: SafeArea(
+	                            top: false,
+	                            child: Align(
+	                              alignment: const Alignment(0, -0.05),
+	                              child: Padding(
+	                                padding: const EdgeInsets.symmetric(
+	                                  horizontal: 24,
+	                                ),
                                 child: _OnboardingCenterBlock(
                                   enabled: !isLoading,
                                   onStarted: _expandCard,
+                                  onProgress: (value) {
+                                    setState(() {
+                                      _sliderProgress = value;
+                                    });
+                                  },
                                 ),
-                              ),
-                            ),
-                          ),
+	                              ),
+	                            ),
+	                          ),
                         ),
                     ],
                   );
@@ -199,6 +261,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   List<Widget> _buildGetStarted(ThemeData theme) {
     final authUi = ref.watch(authControllerProvider);
     final isLoading = authUi.isLoading;
+    final policyStyle = theme.textTheme.bodySmall?.copyWith(
+      color: const Color(0xFF6B7280),
+      height: 1.35,
+    );
+    final policyLinkStyle = policyStyle?.copyWith(
+      color: const Color(0xFF111827).withValues(alpha: 0.88),
+      decoration: TextDecoration.underline,
+      decorationColor: const Color(0xFF111827).withValues(alpha: 0.35),
+      fontWeight: FontWeight.w600,
+    );
     return <Widget>[
       const Align(
         alignment: Alignment.centerLeft,
@@ -294,12 +366,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ),
       ),
       const SizedBox(height: 12),
-      Text(
-        'By continuing, you agree to our Terms of Use.',
-        textAlign: TextAlign.center,
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: const Color(0xFF6B7280),
+      Text.rich(
+        TextSpan(
+          style: policyStyle,
+          children: [
+            const TextSpan(text: 'By continuing, you agree to our '),
+            TextSpan(
+              text: 'Terms of Service',
+              style: policyLinkStyle,
+              recognizer: TapGestureRecognizer()
+                ..onTap = isLoading ? null : _openTermsOfService,
+            ),
+            const TextSpan(text: ' and '),
+            TextSpan(
+              text: 'Privacy Policy',
+              style: policyLinkStyle,
+              recognizer: TapGestureRecognizer()
+                ..onTap = isLoading ? null : _openPrivacyPolicy,
+            ),
+            const TextSpan(text: '.'),
+          ],
         ),
+        textAlign: TextAlign.center,
       ),
     ];
   }
@@ -309,10 +397,12 @@ class _OnboardingCenterBlock extends StatelessWidget {
   const _OnboardingCenterBlock({
     required this.enabled,
     required this.onStarted,
+    this.onProgress,
   });
 
   final bool enabled;
   final VoidCallback onStarted;
+  final ValueChanged<double>? onProgress;
 
   static const Color _logoOrange = Color(0xFFFF8A3B);
 
@@ -353,6 +443,7 @@ class _OnboardingCenterBlock extends StatelessWidget {
       subtitleStyle: subtitleStyle,
       policyBase: policyBase,
       policyLink: policyLink,
+      onProgress: onProgress,
     );
   }
 }
@@ -365,6 +456,7 @@ class _OnboardingTitleAndSlider extends StatefulWidget {
     required this.subtitleStyle,
     required this.policyBase,
     required this.policyLink,
+    this.onProgress,
   });
 
   final bool enabled;
@@ -373,6 +465,7 @@ class _OnboardingTitleAndSlider extends StatefulWidget {
   final TextStyle? subtitleStyle;
   final TextStyle? policyBase;
   final TextStyle? policyLink;
+  final ValueChanged<double>? onProgress;
 
   @override
   State<_OnboardingTitleAndSlider> createState() =>
@@ -382,6 +475,18 @@ class _OnboardingTitleAndSlider extends StatefulWidget {
 class _OnboardingTitleAndSliderState extends State<_OnboardingTitleAndSlider> {
   static const Color _logoOrange = Color(0xFFFF8A3B);
   double _progress = 0;
+
+  void _openTermsOfService() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const TermsOfServiceScreen()),
+    );
+  }
+
+  void _openPrivacyPolicy() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -452,7 +557,7 @@ class _OnboardingTitleAndSliderState extends State<_OnboardingTitleAndSlider> {
           textAlign: TextAlign.center,
           style: subtitleStyle,
         ),
-        const SizedBox(height: 28),
+        const SizedBox(height: 40),
         _SlideToGetStarted(
           enabled: widget.enabled,
           onCompleted: widget.onStarted,
@@ -460,18 +565,27 @@ class _OnboardingTitleAndSliderState extends State<_OnboardingTitleAndSlider> {
             setState(() {
               _progress = value;
             });
+            widget.onProgress?.call(value);
           },
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 28),
         RichText(
           textAlign: TextAlign.center,
           text: TextSpan(
             style: policyBase,
             children: [
               const TextSpan(text: 'By continuing, you agree to the\n'),
-              TextSpan(text: 'Terms of Service', style: policyLink),
+              TextSpan(
+                text: 'Terms of Service',
+                style: policyLink,
+                recognizer: TapGestureRecognizer()..onTap = _openTermsOfService,
+              ),
               const TextSpan(text: ' and '),
-              TextSpan(text: 'Privacy Policy', style: policyLink),
+              TextSpan(
+                text: 'Privacy Policy',
+                style: policyLink,
+                recognizer: TapGestureRecognizer()..onTap = _openPrivacyPolicy,
+              ),
             ],
           ),
         ),
@@ -660,11 +774,12 @@ class _SlideToGetStartedState extends State<_SlideToGetStarted>
 		                          ),
 		                          builder: (context, _) {
 		                            final knobOffset = canAuto
-		                                ? _autoSlideOffset(
-		                                    (autoAnimation as Animation<double>)
-		                                        .value,
-		                                    maxDrag,
-		                                  )
+		                                ? maxDrag *
+		                                    0.08 *
+		                                    Curves.easeInOutCubic.transform(
+		                                      (autoAnimation as Animation<double>)
+	                                              .value,
+		                                    )
 		                                : clamped;
 		                            final pulseT =
 		                                (pulseAnimation as Animation<double>).value;
@@ -751,10 +866,10 @@ class _SlideToGetStartedState extends State<_SlideToGetStarted>
 	    );
   }
 
-  List<InlineSpan> _buildWordSpans(
-    TextStyle? baseStyle,
-    double baseAlpha,
-  ) {
+	  List<InlineSpan> _buildWordSpans(
+	    TextStyle? baseStyle,
+	    double baseAlpha,
+	  ) {
     final words = ['Slide', 'to', 'get', 'started'];
     final gaps = [' ', ' ', ' ', ''];
     final spans = <InlineSpan>[];
@@ -769,23 +884,100 @@ class _SlideToGetStartedState extends State<_SlideToGetStarted>
         color: Colors.white.withValues(alpha: baseAlpha * alphaFactor),
       );
       spans.add(TextSpan(text: words[i] + gaps[i], style: style));
-    }
-    return spans;
+	    }
+	    return spans;
+	  }
+	}
+
+class _AnimatedPromoBanner extends StatefulWidget {
+  const _AnimatedPromoBanner({this.onIndexChanged});
+
+  final ValueChanged<int>? onIndexChanged;
+
+  @override
+  State<_AnimatedPromoBanner> createState() => _AnimatedPromoBannerState();
+}
+
+class _AnimatedPromoBannerState extends State<_AnimatedPromoBanner> {
+  static const List<String> _messages = <String>[
+    "The world's first social media school",
+    'You own a full class',
+    'Monitor live exam',
+    'Post your ideas and go viral',
+    'Enjoy global visibility',
+  ];
+
+  static const Duration _tick = Duration(milliseconds: 70);
+  static const int _holdTicks = 22;
+
+  late String _currentMessage;
+  int _messageIndex = 0;
+  int _charIndex = 0;
+  int _holdCounter = 0;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentMessage = _messages[_messageIndex];
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.onIndexChanged?.call(_messageIndex);
+    });
+    _timer = Timer.periodic(_tick, _onTick);
   }
 
-  double _autoSlideOffset(double t, double maxDrag) {
-    if (maxDrag <= 0) return 0;
-    // Forward-only demo motion: slide right, pause briefly, then snap back.
-    const forwardFrac = 0.08;
-    if (t < 0.72) {
-      final p = Curves.easeInOutCubic.transform(t / 0.72);
-      return maxDrag * forwardFrac * p;
-    }
-    if (t < 0.84) {
-      return maxDrag * forwardFrac;
-    }
-    // Quick return to start (keeps it feeling like it "moves forward").
-    final p = Curves.easeOutCubic.transform((t - 0.84) / 0.16);
-    return maxDrag * forwardFrac * (1.0 - p);
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _onTick(Timer _) {
+    if (!mounted) return;
+    setState(() {
+      if (_charIndex < _currentMessage.length) {
+        _charIndex++;
+        return;
+      }
+      if (_holdCounter < _holdTicks) {
+        _holdCounter++;
+        return;
+      }
+      _holdCounter = 0;
+      _charIndex = 0;
+      _messageIndex = (_messageIndex + 1) % _messages.length;
+      _currentMessage = _messages[_messageIndex];
+      widget.onIndexChanged?.call(_messageIndex);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final text = _currentMessage.substring(
+      0,
+      _charIndex.clamp(0, _currentMessage.length),
+    );
+
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 240),
+      opacity: _charIndex == 0 ? 0 : 1,
+      child: SizedBox(
+        height: 56,
+        child: Center(
+          child: Text(
+            text,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: Colors.white,
+              fontSize: 20,
+              height: 1.25,
+              letterSpacing: 0.15,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
