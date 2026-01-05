@@ -330,10 +330,23 @@ class _SlideToGetStartedState extends State<_SlideToGetStarted> {
   static const double _height = 56;
   static const double _knobSize = 44;
   static const double _padding = 6;
+  static const double _completeThreshold = 0.62;
 
   double _dragX = 0;
   bool _dragging = false;
   bool _completed = false;
+
+  Future<void> _complete(double maxDrag) async {
+    if (_completed) return;
+    setState(() {
+      _dragX = maxDrag;
+      _completed = true;
+      _dragging = false;
+    });
+    HapticFeedback.lightImpact();
+    await Future<void>.delayed(const Duration(milliseconds: 90));
+    widget.onCompleted();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -351,6 +364,8 @@ class _SlideToGetStartedState extends State<_SlideToGetStarted> {
         final clamped = _dragX.clamp(0.0, maxDrag);
 
         return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: widget.enabled ? () => _complete(maxDrag) : null,
           onHorizontalDragStart: widget.enabled
               ? (_) => setState(() => _dragging = true)
               : null,
@@ -364,19 +379,12 @@ class _SlideToGetStartedState extends State<_SlideToGetStarted> {
               ? (_) async {
                   if (_completed) return;
                   setState(() => _dragging = false);
-                  final didComplete = clamped >= maxDrag * 0.92;
+                  final didComplete = clamped >= maxDrag * _completeThreshold;
                   if (!didComplete) {
                     setState(() => _dragX = 0);
                     return;
                   }
-
-                  setState(() {
-                    _dragX = maxDrag;
-                    _completed = true;
-                  });
-                  HapticFeedback.lightImpact();
-                  await Future<void>.delayed(const Duration(milliseconds: 120));
-                  widget.onCompleted();
+                  await _complete(maxDrag);
                 }
               : null,
           child: Semantics(
