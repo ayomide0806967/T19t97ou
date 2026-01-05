@@ -1,17 +1,18 @@
 :root {
   --bg: #0b0b0f;
-  --card: rgba(255, 255, 255, 0.06);
-  --card-strong: rgba(255, 255, 255, 0.09);
-  --text: rgba(255, 255, 255, 0.92);
-  --muted: rgba(255, 255, 255, 0.72);
-  --faint: rgba(255, 255, 255, 0.56);
-  --border: rgba(255, 255, 255, 0.12);
+  --surface: #0f1016;
+  --card: #141521;
+  --card-strong: #191a28;
+  --text: rgba(255, 255, 255, 0.94);
+  --muted: rgba(255, 255, 255, 0.76);
+  --faint: rgba(255, 255, 255, 0.60);
+  --border: #2a2b3a;
   --brand: #ff8a3b;
   --brand-2: #ffd4b8;
-  --focus: rgba(255, 138, 59, 0.45);
+  --focus: rgba(255, 138, 59, 0.35);
   --max: 1120px;
   --radius: 18px;
-  --shadow: 0 22px 60px rgba(0, 0, 0, 0.45);
+  --shadow: 0 18px 46px rgba(0, 0, 0, 0.35);
 }
 
 * {
@@ -27,8 +28,9 @@ body {
   margin: 0;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
     Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-  background: radial-gradient(1100px 600px at 10% 10%, rgba(255, 138, 59, 0.18), transparent 55%),
-    radial-gradient(1000px 500px at 90% 30%, rgba(255, 212, 184, 0.10), transparent 55%),
+  background:
+    radial-gradient(900px 520px at 8% 8%, rgba(255, 138, 59, 0.12), transparent 56%),
+    radial-gradient(760px 460px at 86% 18%, rgba(255, 212, 184, 0.06), transparent 60%),
     var(--bg);
   color: var(--text);
   line-height: 1.55;
@@ -58,9 +60,9 @@ button:focus-visible {
   position: sticky;
   top: 0;
   z-index: 50;
-  backdrop-filter: blur(14px);
-  background: rgba(11, 11, 15, 0.72);
+  background: var(--bg);
   border-bottom: 1px solid var(--border);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
 }
 
 .nav {
@@ -83,7 +85,7 @@ button:focus-visible {
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface);
   border: 1px solid var(--border);
 }
 
@@ -114,7 +116,7 @@ button:focus-visible {
 }
 
 .links a:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface);
   color: var(--text);
 }
 
@@ -125,22 +127,22 @@ button:focus-visible {
   gap: 10px;
   padding: 10px 14px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 138, 59, 0.28);
-  background: linear-gradient(180deg, rgba(255, 138, 59, 0.22), rgba(255, 138, 59, 0.10));
-  color: var(--text);
+  border: 1px solid rgba(0, 0, 0, 0);
+  background: var(--brand);
+  color: #0b0b0f;
   font-weight: 700;
   font-size: 14px;
   white-space: nowrap;
 }
 
 .cta:hover {
-  border-color: rgba(255, 138, 59, 0.5);
-  box-shadow: 0 0 0 4px rgba(255, 138, 59, 0.08);
+  background: #ff7b22;
+  box-shadow: 0 0 0 4px rgba(255, 138, 59, 0.12);
 }
 
 .cta.secondary {
   border-color: var(--border);
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface);
   color: var(--muted);
 }
 
@@ -151,7 +153,7 @@ button:focus-visible {
 .menu {
   display: none;
   border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface);
   color: var(--text);
   border-radius: 14px;
   padding: 10px 12px;
@@ -198,7 +200,7 @@ button:focus-visible {
   border-radius: 999px;
   padding: 8px 12px;
   color: var(--muted);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface);
   font-weight: 650;
   font-size: 13px;
 }
@@ -260,7 +262,7 @@ button:focus-visible {
   padding: 16px;
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface);
 }
 
 .feature h3 {
@@ -317,7 +319,7 @@ button:focus-visible {
 .legal {
   margin-top: 14px;
   padding-top: 14px;
-  border-top: 1px dashed rgba(255, 255, 255, 0.14);
+  border-top: 1px dashed rgba(255, 255, 255, 0.12);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -394,11 +396,9 @@ button:focus-visible {
     padding: 12px;
     border-radius: 18px;
     border: 1px solid var(--border);
-    background: rgba(11, 11, 15, 0.92);
-    backdrop-filter: blur(14px);
+    background: var(--bg);
   }
   .links.open a {
     padding: 12px 12px;
   }
 }
-
