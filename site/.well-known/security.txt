@@ -1,0 +1,5 @@
+Contact: mailto:helpininstitutionapp@gmail.com
+Contact: mailto:ininstitutionapp@gmail.com
+Preferred-Languages: en
+Policy: https://ininstitution.com/security/
+Canonical: https://ininstitution.com/.well-known/security.txt

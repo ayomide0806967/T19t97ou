@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <meta name="theme-color" content="#0b0b0f" />
+    <title>Page not found — In Institution</title>
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
+  <body>
+    <script>
+      (function () {
+        const path = window.location.pathname || "/";
+        if (path.startsWith("/app/")) {
+          window.location.replace("/app/");
+          return;
+        }
+      })();
+    </script>
+
+    <header class="topbar">
+      <div class="container">
+        <nav class="nav">
+          <a class="brand" href="/">
+            <img src="/assets/brand/homelogo.png" alt="In Institution logo" width="34" height="34" />
+            <span class="name">
+              <span>In Institution</span>
+              <small>Social media school app</small>
+            </span>
+          </a>
+          <a class="cta secondary" href="/app/" rel="nofollow">Open the App</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="section">
+        <div class="card pad">
+          <div class="kicker">404</div>
+          <h2>This page doesn’t exist.</h2>
+          <p class="lead">Try the homepage or open the app.</p>
+          <div style="display:flex; gap:12px; flex-wrap:wrap">
+            <a class="cta" href="/">Go to homepage</a>
+            <a class="cta secondary" href="/app/" rel="nofollow">Open the App</a>
+            <a class="cta secondary" href="/contact/">Contact support</a>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
+

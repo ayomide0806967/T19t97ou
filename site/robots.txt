@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ininstitution.com/sitemap.xml
+
+# Keep the Flutter app out of the index; marketing pages are the SEO surface.
+Disallow: /app/
