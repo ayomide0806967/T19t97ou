@@ -1,11 +1,17 @@
 {
   "name": "In Institution",
   "short_name": "In Institution",
+  "description": "Social media school app for real-time quizzes, class notes, exam scheduling, and viral classroom feeds.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "theme_color": "#00374D",
   "icons": [
+    {
+      "src": "/assets/brand/favicon.png",
+      "sizes": "16x16",
+      "type": "image/png"
+    },
     {
       "src": "/assets/brand/apple-touch-icon.png",
       "sizes": "180x180",
