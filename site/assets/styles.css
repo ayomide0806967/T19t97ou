@@ -2261,19 +2261,21 @@ svg {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, rgba(0, 55, 77, 0.95) 0%, rgba(0, 77, 107, 0.95) 100%);
-  backdrop-filter: blur(10px);
+  background:
+    radial-gradient(900px 480px at 50% 25%, rgba(0, 55, 77, 0.10) 0%, rgba(255, 255, 255, 0.92) 55%, rgba(240, 129, 43, 0.06) 100%),
+    linear-gradient(180deg, #ffffff 0%, #fbf9f4 55%, #f7f1e8 100%);
+  backdrop-filter: blur(8px);
 }
 
 .app-banner-content {
   position: relative;
-  background: linear-gradient(180deg, #ffffff 0%, #f9f4f0 100%);
-  border-radius: var(--radius-lg);
-  padding: 48px 32px 32px;
-  max-width: 380px;
+  background: transparent;
+  border-radius: 0;
+  padding: 64px 24px 28px;
+  max-width: 420px;
   width: 100%;
   text-align: center;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: none;
   animation: bannerSlideUp 0.4s ease-out;
 }
 
@@ -2290,14 +2292,15 @@ svg {
 }
 
 .app-banner-close {
-  position: absolute;
+  position: fixed;
   top: 16px;
   right: 16px;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
   border: none;
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -2306,11 +2309,11 @@ svg {
 }
 
 .app-banner-close:hover {
-  background: rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .app-banner-close svg {
-  color: var(--muted);
+  color: rgba(17, 24, 39, 0.75);
 }
 
 .app-banner-logo {
@@ -2318,10 +2321,10 @@ svg {
 }
 
 .app-banner-logo img {
-  width: 80px;
-  height: 80px;
-  border-radius: 20px;
-  box-shadow: 0 8px 24px rgba(0, 55, 77, 0.15);
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  box-shadow: 0 10px 26px rgba(0, 55, 77, 0.12);
 }
 
 .app-banner-content h2 {
@@ -2338,38 +2341,92 @@ svg {
   margin-bottom: 24px;
 }
 
-.app-banner-stats {
+.app-banner-meta {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 24px;
-  padding: 16px;
-  background: rgba(0, 55, 77, 0.04);
-  border-radius: var(--radius-sm);
-  margin-bottom: 24px;
+  gap: 18px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(17, 24, 39, 0.10);
+  border-radius: 16px;
+  margin-bottom: 22px;
+  box-shadow: 0 10px 26px rgba(0, 55, 77, 0.10);
+  backdrop-filter: blur(10px);
 }
 
-.app-banner-stats .stat {
+.app-banner-meta-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
+  min-width: 132px;
 }
 
-.app-banner-stats .stat-icon {
-  font-size: 24px;
-}
-
-.app-banner-stats .stat span {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--primary);
-}
-
-.app-banner-stats .stat-divider {
+.app-banner-meta-divider {
   width: 1px;
-  height: 40px;
-  background: var(--border);
+  height: 46px;
+  background: rgba(17, 24, 39, 0.12);
+}
+
+.app-banner-avatars {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-banner-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.10);
+  margin-left: -8px;
+}
+
+.app-banner-avatar:first-child {
+  margin-left: 0;
+}
+
+.app-banner-avatar:nth-child(1) {
+  background: linear-gradient(135deg, #F0812B 0%, #ffb16f 100%);
+}
+
+.app-banner-avatar:nth-child(2) {
+  background: linear-gradient(135deg, #00374D 0%, #2d7ea0 100%);
+}
+
+.app-banner-avatar:nth-child(3) {
+  background: linear-gradient(135deg, #4f46e5 0%, #a78bfa 100%);
+}
+
+.app-banner-avatar:nth-child(4) {
+  background: linear-gradient(135deg, #16a34a 0%, #86efac 100%);
+}
+
+.app-banner-meta-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.1;
+}
+
+.app-banner-meta-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(17, 24, 39, 0.82);
+}
+
+.app-banner-stars {
+  font-size: 16px;
+  letter-spacing: 1px;
+  color: #f59e0b;
+}
+
+.app-banner-meta-sub {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(17, 24, 39, 0.65);
 }
 
 .app-banner-btn {
@@ -2379,22 +2436,22 @@ svg {
   gap: 12px;
   width: 100%;
   padding: 16px 24px;
-  background: var(--accent);
+  background: #1f7a7a;
   color: white;
   font-size: 16px;
   font-weight: 700;
   border: none;
-  border-radius: 50px;
+  border-radius: 14px;
   cursor: pointer;
   text-decoration: none;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 16px rgba(240, 129, 43, 0.3);
+  box-shadow: 0 10px 24px rgba(31, 122, 122, 0.28);
 }
 
 .app-banner-btn:hover {
-  background: var(--accent-light);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(240, 129, 43, 0.4);
+  background: #176a6a;
+  transform: translateY(-1px);
+  box-shadow: 0 12px 30px rgba(31, 122, 122, 0.34);
 }
 
 .app-banner-btn svg {
@@ -2403,16 +2460,16 @@ svg {
 
 .app-banner-skip {
   margin-top: 16px;
-  padding: 12px 24px;
+  padding: 10px 16px;
   background: transparent;
   border: none;
-  color: var(--muted);
+  color: rgba(17, 24, 39, 0.62);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: color 0.2s ease;
 }
 
 .app-banner-skip:hover {
-  color: var(--primary);
+  color: rgba(17, 24, 39, 0.82);
 }
