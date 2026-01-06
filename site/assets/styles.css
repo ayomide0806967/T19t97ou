@@ -2376,33 +2376,19 @@ svg {
 }
 
 .app-banner-avatar {
-  width: 26px;
-  height: 26px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.95);
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.10);
-  margin-left: -8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  margin-left: -10px;
+  object-fit: cover;
 }
 
 .app-banner-avatar:first-child {
   margin-left: 0;
 }
 
-.app-banner-avatar:nth-child(1) {
-  background: linear-gradient(135deg, #F0812B 0%, #ffb16f 100%);
-}
-
-.app-banner-avatar:nth-child(2) {
-  background: linear-gradient(135deg, #00374D 0%, #2d7ea0 100%);
-}
-
-.app-banner-avatar:nth-child(3) {
-  background: linear-gradient(135deg, #4f46e5 0%, #a78bfa 100%);
-}
-
-.app-banner-avatar:nth-child(4) {
-  background: linear-gradient(135deg, #16a34a 0%, #86efac 100%);
-}
 
 .app-banner-meta-text {
   display: flex;
@@ -2436,7 +2422,7 @@ svg {
   gap: 12px;
   width: 100%;
   padding: 16px 24px;
-  background: #1f7a7a;
+  background: var(--accent);
   color: white;
   font-size: 16px;
   font-weight: 700;
@@ -2445,13 +2431,13 @@ svg {
   cursor: pointer;
   text-decoration: none;
   transition: all 0.2s ease;
-  box-shadow: 0 10px 24px rgba(31, 122, 122, 0.28);
+  box-shadow: 0 10px 24px rgba(240, 129, 43, 0.30);
 }
 
 .app-banner-btn:hover {
-  background: #176a6a;
+  background: var(--accent-light);
   transform: translateY(-1px);
-  box-shadow: 0 12px 30px rgba(31, 122, 122, 0.34);
+  box-shadow: 0 12px 30px rgba(240, 129, 43, 0.36);
 }
 
 .app-banner-btn svg {
