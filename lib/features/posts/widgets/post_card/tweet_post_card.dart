@@ -106,6 +106,7 @@ abstract class _TweetPostCardStateBase extends ConsumerState<TweetPostCard> {
     final repo = ref.read(postRepositoryProvider);
     final targetId = widget.post.originalId ?? widget.post.id;
     _bookmarked = repo.hasUserBookmarked(targetId);
+    _liked = repo.hasUserLiked(targetId);
   }
 
   @override
@@ -123,6 +124,7 @@ abstract class _TweetPostCardStateBase extends ConsumerState<TweetPostCard> {
       final repo = ref.read(postRepositoryProvider);
       final targetId = widget.post.originalId ?? widget.post.id;
       _bookmarked = repo.hasUserBookmarked(targetId);
+      _liked = repo.hasUserLiked(targetId);
     }
   }
 

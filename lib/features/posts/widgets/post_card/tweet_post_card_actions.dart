@@ -13,10 +13,37 @@ mixin _TweetPostCardActions on _TweetPostCardStateBase {
   }
 
   void _toggleLike() {
+    unawaited(_toggleLikeViaRepository());
+  }
+
+  Future<void> _toggleLikeViaRepository() async {
+    final repo = ref.read(postRepositoryProvider);
+    final targetId = widget.post.originalId ?? widget.post.id;
+
+    final optimisticLiked = !_liked;
     setState(() {
-      _liked = !_liked;
-      _likes += _liked ? 1 : -1;
+      _liked = optimisticLiked;
+      _likes += optimisticLiked ? 1 : -1;
     });
+
+    try {
+      final nowLiked = await repo.toggleLike(targetId);
+      if (!mounted) return;
+
+      if (nowLiked != _liked) {
+        setState(() {
+          _liked = nowLiked;
+          _likes += nowLiked ? 1 : -1;
+        });
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _liked = !optimisticLiked;
+        _likes += optimisticLiked ? -1 : 1;
+      });
+      _showToast('Like failed');
+    }
   }
 
   void _toggleBookmark() {

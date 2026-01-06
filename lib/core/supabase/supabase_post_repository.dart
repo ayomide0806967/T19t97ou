@@ -17,6 +17,9 @@ class SupabasePostRepository implements PostRepository {
       StreamController<List<PostModel>>.broadcast();
 
   RealtimeChannel? _feedChannel;
+  bool _realtimeSubscribed = false;
+  Timer? _realtimeReloadTimer;
+  bool _realtimeReloadInFlight = false;
   
   // Cache post interaction states for current user
   final Set<String> _likedPostIds = <String>{};
@@ -161,17 +164,47 @@ class SupabasePostRepository implements PostRepository {
   }
 
   void _subscribeToFeed() {
-    _feedChannel?.unsubscribe();
+    if (_realtimeSubscribed) return;
+    _realtimeSubscribed = true;
+
+    void requestReload() {
+      _realtimeReloadTimer?.cancel();
+      _realtimeReloadTimer = Timer(const Duration(milliseconds: 250), () async {
+        if (_realtimeReloadInFlight) return;
+        _realtimeReloadInFlight = true;
+        try {
+          await load();
+        } finally {
+          _realtimeReloadInFlight = false;
+        }
+      });
+    }
+
     _feedChannel = _client
         .channel('feed:posts')
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
           schema: 'public',
           table: 'posts',
-          callback: (payload) {
-            // Reload feed on any post change
-            load();
-          },
+          callback: (_) => requestReload(),
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'post_likes',
+          callback: (_) => requestReload(),
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'post_reposts',
+          callback: (_) => requestReload(),
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'post_comments',
+          callback: (_) => requestReload(),
         )
         .subscribe();
   }
