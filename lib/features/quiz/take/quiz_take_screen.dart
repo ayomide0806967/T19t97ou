@@ -13,11 +13,20 @@ part 'quiz_take_question_navigator_sheet.dart';
 part 'quiz_take_screen_ui.dart';
 
 class QuizTakeScreen extends ConsumerStatefulWidget {
-  const QuizTakeScreen({super.key, this.title, this.subtitle, this.questions});
+  const QuizTakeScreen({
+    super.key,
+    this.title,
+    this.subtitle,
+    this.questions,
+    this.isTimed = true,
+    this.timerMinutes,
+  });
 
   final String? title;
   final String? subtitle;
   final List<QuizTakeQuestion>? questions;
+  final bool isTimed;
+  final int? timerMinutes;
 
   @override
   ConsumerState<QuizTakeScreen> createState() => _QuizTakeScreenState();
@@ -37,18 +46,21 @@ class _QuizTakeScreenState extends ConsumerState<QuizTakeScreen> {
     super.initState();
     _questions =
         widget.questions ?? ref.read(quizSourceProvider).sampleQuestions;
-    _totalDuration = const Duration(minutes: 12);
+    final minutes = (widget.timerMinutes ?? 12).clamp(1, 360);
+    _totalDuration = widget.isTimed ? Duration(minutes: minutes) : Duration.zero;
     _timeLeft = _totalDuration;
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) return;
-      setState(() {
-        if (_timeLeft.inSeconds == 0) {
-          timer.cancel();
-        } else {
-          _timeLeft -= const Duration(seconds: 1);
-        }
+    if (widget.isTimed) {
+      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (!mounted) return;
+        setState(() {
+          if (_timeLeft.inSeconds == 0) {
+            timer.cancel();
+          } else {
+            _timeLeft -= const Duration(seconds: 1);
+          }
+        });
       });
-    });
+    }
   }
 
   @override
@@ -75,56 +87,59 @@ class _QuizTakeScreenState extends ConsumerState<QuizTakeScreen> {
                   ? _buildSinglePageBody(theme)
                   : _buildOneQuestionBody(theme, question, isLast),
             ),
-            Positioned(
-              top: 12,
-              right: 20,
-              child: Material(
-                color: Colors.transparent,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        _formatClock(_timeLeft),
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                          letterSpacing: 0.8,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black.withValues(alpha: 0.9),
+            if (widget.isTimed)
+              Positioned(
+                top: 12,
+                right: 20,
+                child: Material(
+                  color: Colors.transparent,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          _formatClock(_timeLeft),
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                            letterSpacing: 0.8,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black.withValues(alpha: 0.9),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      SizedBox(
-                        width: 80,
-                        height: 4,
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(999),
-                          child: LinearProgressIndicator(
-                            value:
-                                _timeLeft.inSeconds / _totalDuration.inSeconds,
-                            backgroundColor: Colors.black.withValues(
-                              alpha: 0.12,
-                            ),
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.red.withValues(alpha: 0.9),
+                        const SizedBox(width: 12),
+                        SizedBox(
+                          width: 80,
+                          height: 4,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(999),
+                            child: LinearProgressIndicator(
+                              value: _totalDuration.inSeconds == 0
+                                  ? 0
+                                  : _timeLeft.inSeconds /
+                                      _totalDuration.inSeconds,
+                              backgroundColor: Colors.black.withValues(
+                                alpha: 0.12,
+                              ),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.red.withValues(alpha: 0.9),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
           ],
         ),
       ),

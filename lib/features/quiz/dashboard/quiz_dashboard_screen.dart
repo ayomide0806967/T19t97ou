@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'dart:ui';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/config/app_config.dart';
+import '../../../core/di/app_providers.dart';
 import '../../../models/quiz.dart';
 import '../../messages/ios_messages_screen.dart';
 import '../application/quiz_providers.dart';
@@ -747,17 +749,38 @@ class _Metric extends StatelessWidget {
   }
 }
 
-class _RecentlyPublishedCard extends StatelessWidget {
+class _RecentlyPublishedCard extends ConsumerWidget {
   const _RecentlyPublishedCard({required this.title});
 
   final String title;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final Color subtle = theme.colorScheme.onSurface.withValues(alpha: 0.65);
-    final String quizLink =
-        'https://quiz.myapp.local/share/${Uri.encodeComponent(title)}';
+
+    Future<String> resolveLink() async {
+      if (!AppConfig.hasSupabaseConfig) {
+        return title;
+      }
+      final client = ref.read(supabaseClientProvider);
+      final userId = client.auth.currentUser?.id;
+      if (userId == null) return title;
+
+      final row = await client
+          .from('quizzes')
+          .select('id')
+          .eq('author_id', userId)
+          .eq('title', title)
+          .eq('status', 'published')
+          .order('published_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
+      final quizId = row?['id'] as String?;
+      if (quizId == null) return title;
+      return AppConfig.quizShareLink(quizId);
+    }
 
     return Container(
       decoration: BoxDecoration(
@@ -803,32 +826,41 @@ class _RecentlyPublishedCard extends StatelessWidget {
               color: theme.colorScheme.surfaceVariant.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    quizLink,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(Icons.copy_rounded, size: 20),
-                  onPressed: () async {
-                    await Clipboard.setData(ClipboardData(text: quizLink));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Quiz link copied to clipboard'),
+            child: FutureBuilder<String>(
+              future: resolveLink(),
+              builder: (context, snapshot) {
+                final quizLink = snapshot.data ?? title;
+                return Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        quizLink,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.8,
+                          ),
+                        ),
                       ),
-                    );
-                  },
-                  tooltip: 'Copy quiz link',
-                ),
-              ],
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.copy_rounded, size: 20),
+                      onPressed: () async {
+                        await Clipboard.setData(ClipboardData(text: quizLink));
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Quiz link copied to clipboard'),
+                          ),
+                        );
+                      },
+                      tooltip: 'Copy quiz link',
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ],

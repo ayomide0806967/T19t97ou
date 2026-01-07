@@ -455,6 +455,62 @@ mixin _QuizCreateScreenActions on _QuizCreateScreenStateBase {
     return true;
   }
 
+  Future<String> _publishQuizToSupabase({
+    required String title,
+    required String description,
+    required List<QuizTakeQuestion> questions,
+  }) async {
+    if (!AppConfig.hasSupabaseConfig) {
+      throw StateError('Supabase is not configured');
+    }
+
+    final client = ref.read(supabaseClientProvider);
+    final userId = client.auth.currentUser?.id;
+    if (userId == null) {
+      throw StateError('Not signed in');
+    }
+
+    final quizRow = await client.from('quizzes').insert({
+      'author_id': userId,
+      'title': title,
+      'description': description.isEmpty ? null : description,
+      'status': 'published',
+      'published_at': DateTime.now().toIso8601String(),
+      'is_timed': _isTimed,
+      'timer_minutes': _isTimed ? _timeLimitMinutes.clamp(1, 360).round() : null,
+      'closing_date': _hasDeadline ? _closingDate?.toIso8601String() : null,
+      'require_pin': _requiresPin,
+      'pin': _requiresPin ? _pinController.text.trim() : null,
+      'visibility': 'public',
+      'max_attempts': _attemptLimit,
+    }).select('id').single();
+
+    final quizId = (quizRow['id'] as String);
+
+    final questionRows = questions.asMap().entries.map((entry) {
+      final q = entry.value;
+      final options = q.options.asMap().entries.map((optEntry) => {
+            'text': optEntry.value,
+            'is_correct': optEntry.key == q.answerIndex,
+          }).toList();
+
+      return {
+        'quiz_id': quizId,
+        'order_index': entry.key,
+        'prompt': q.prompt,
+        'options': options,
+        'question_type': 'multiple_choice',
+        'points': 1,
+      };
+    }).toList(growable: false);
+
+    if (questionRows.isNotEmpty) {
+      await client.from('quiz_questions').insert(questionRows);
+    }
+
+    return quizId;
+  }
+
   void _publishQuiz() async {
     if (!_detailsCompleted) {
       _showSnack('Complete the details step first.');
@@ -487,10 +543,17 @@ mixin _QuizCreateScreenActions on _QuizCreateScreenStateBase {
       );
     }).toList();
 
-    ref.read(quizSourceProvider).recordPublishedQuiz(
-          title: title,
-          questions: takeQuestions,
-        );
+    String? quizId;
+    try {
+      quizId = await _publishQuizToSupabase(
+        title: title,
+        description: _descriptionController.text.trim(),
+        questions: takeQuestions,
+      );
+    } catch (e) {
+      _showSnack('Failed to publish quiz. Make sure you are signed in.');
+      return;
+    }
 
     // If we were launched from the note-creation flow, just return
     // the title to the caller without sharing or navigating.
@@ -500,9 +563,11 @@ mixin _QuizCreateScreenActions on _QuizCreateScreenStateBase {
       return;
     }
 
+    final shareLink = AppConfig.quizShareLink(quizId);
     final shareMessage =
         'I just created a new quiz: "$title". '
-        'Tap to try it and test your knowledge.';
+        'Tap to try it and test your knowledge.\n'
+        'Quiz link: $shareLink';
     bool shareSupported = true;
     try {
       await Share.share(shareMessage, subject: 'New quiz: $title');
@@ -555,24 +620,62 @@ mixin _QuizCreateScreenActions on _QuizCreateScreenStateBase {
     );
   }
 
-  void _saveDraft() {
+  Future<void> _saveDraft() async {
+    if (!AppConfig.hasSupabaseConfig) {
+      _showSnack('Supabase is not configured.');
+      return;
+    }
+    final client = ref.read(supabaseClientProvider);
+    final userId = client.auth.currentUser?.id;
+    if (userId == null) {
+      _showSnack('Sign in to save drafts.');
+      return;
+    }
+
     final title = _titleController.text.trim().isEmpty
         ? 'Untitled quiz'
         : _titleController.text.trim();
-    final draft = QuizDraft(
-      id: 'draft_${DateTime.now().millisecondsSinceEpoch}',
-      title: title,
-      updatedAt: DateTime.now(),
-      questionCount: _questions.length,
-      isTimed: _isTimed,
-      timerMinutes: _isTimed ? (_timeLimitMinutes.clamp(1, 360).round()) : null,
-      closingDate: _hasDeadline ? _closingDate : null,
-      requirePin: _requiresPin,
-      pin: _requiresPin ? _pinController.text.trim() : null,
-      visibility: _visibility.name,
-    );
 
-    ref.read(quizSourceProvider).saveDraft(draft);
-    _showSnack('Draft saved', success: true);
+    try {
+      if (_draftQuizId == null) {
+        final row = await client.from('quizzes').insert({
+          'author_id': userId,
+          'title': title,
+          'description': _descriptionController.text.trim().isEmpty
+              ? null
+              : _descriptionController.text.trim(),
+          'status': 'draft',
+          'is_timed': _isTimed,
+          'timer_minutes':
+              _isTimed ? _timeLimitMinutes.clamp(1, 360).round() : null,
+          'closing_date': _hasDeadline ? _closingDate?.toIso8601String() : null,
+          'require_pin': _requiresPin,
+          'pin': _requiresPin ? _pinController.text.trim() : null,
+          'visibility': 'public',
+          'max_attempts': _attemptLimit,
+        }).select('id').single();
+        _draftQuizId = row['id'] as String;
+      } else {
+        await client.from('quizzes').update({
+          'title': title,
+          'description': _descriptionController.text.trim().isEmpty
+              ? null
+              : _descriptionController.text.trim(),
+          'is_timed': _isTimed,
+          'timer_minutes':
+              _isTimed ? _timeLimitMinutes.clamp(1, 360).round() : null,
+          'closing_date': _hasDeadline ? _closingDate?.toIso8601String() : null,
+          'require_pin': _requiresPin,
+          'pin': _requiresPin ? _pinController.text.trim() : null,
+          'visibility': 'public',
+          'max_attempts': _attemptLimit,
+          'updated_at': DateTime.now().toIso8601String(),
+        }).eq('id', _draftQuizId as String);
+      }
+
+      _showSnack('Draft saved', success: true);
+    } catch (e) {
+      _showSnack('Failed to save draft.');
+    }
   }
 }

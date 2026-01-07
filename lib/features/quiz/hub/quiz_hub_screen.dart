@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../create/quiz_create_screen.dart';
 import '../dashboard/quiz_dashboard_screen.dart';
+import '../join/quiz_join_screen.dart';
 
 class QuizHubScreen extends StatelessWidget {
   const QuizHubScreen({super.key});
@@ -38,6 +39,15 @@ class QuizHubScreen extends StatelessWidget {
               icon: Icons.create_outlined,
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const QuizCreateScreen()),
+              ),
+            ),
+            const SizedBox(height: 16),
+            _HubCard(
+              title: 'Join quiz',
+              subtitle: 'Paste a quiz link/ID and start immediately.',
+              icon: Icons.link_rounded,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const QuizJoinScreen()),
               ),
             ),
           ],

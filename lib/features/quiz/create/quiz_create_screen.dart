@@ -10,6 +10,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../models/quiz.dart';
+import '../../../core/config/app_config.dart';
+import '../../../core/di/app_providers.dart';
 import '../aiken/aiken_import_models.dart';
 import '../aiken/aiken_import_review_screen.dart';
 import '../results/quiz_results_screen.dart';
@@ -53,6 +55,7 @@ class QuizCreateScreen extends ConsumerStatefulWidget {
 abstract class _QuizCreateScreenStateBase
     extends ConsumerState<QuizCreateScreen> {
   final ScrollController _scrollController = ScrollController();
+  String? _draftQuizId;
 
   // Which step is currently being edited
   // 0 = Details, 1 = Settings, 2 = Question setup, 3+ = Questions

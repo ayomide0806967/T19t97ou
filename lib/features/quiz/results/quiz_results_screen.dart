@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../core/config/app_config.dart';
+import '../../../core/di/app_providers.dart';
 import '../../../models/quiz.dart';
 import '../../../widgets/analytics_progress_arc.dart';
 import '../../../widgets/vertical_action_menu.dart';
@@ -321,13 +323,43 @@ class _QuizResultDetailsScreenState
                       );
                     },
                     onShareQuiz: () {
-                      final link = Uri.parse(
-                        'https://quiz.myapp.local/share/${Uri.encodeComponent(widget.result.title)}',
-                      );
-                      Share.share(
-                        'Try this quiz: ${widget.result.title}\n$link',
-                        subject: widget.result.title,
-                      );
+                      () async {
+                        try {
+                          if (!AppConfig.hasSupabaseConfig) {
+                            throw StateError('Supabase not configured');
+                          }
+                          final client = ref.read(supabaseClientProvider);
+                          final userId = client.auth.currentUser?.id;
+                          if (userId == null) {
+                            throw StateError('Not signed in');
+                          }
+
+                          final row = await client
+                              .from('quizzes')
+                              .select('id')
+                              .eq('author_id', userId)
+                              .eq('title', widget.result.title)
+                              .eq('status', 'published')
+                              .order('published_at', ascending: false)
+                              .limit(1)
+                              .maybeSingle();
+
+                          final quizId = row?['id'] as String?;
+                          final link = quizId != null
+                              ? AppConfig.quizShareLink(quizId)
+                              : widget.result.title;
+
+                          await Share.share(
+                            'Try this quiz: ${widget.result.title}\n$link',
+                            subject: widget.result.title,
+                          );
+                        } catch (_) {
+                          await Share.share(
+                            'Try this quiz: ${widget.result.title}',
+                            subject: widget.result.title,
+                          );
+                        }
+                      }();
                     },
                     onViewAnswers: () {
                       Navigator.of(context).push(

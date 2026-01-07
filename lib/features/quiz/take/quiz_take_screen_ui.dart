@@ -428,7 +428,9 @@ extension _QuizTakeScreenUi on _QuizTakeScreenState {
                     const Text('•', style: TextStyle(fontSize: 12)),
                     const SizedBox(width: 8),
                     Text(
-                      '${_totalDuration.inMinutes} min',
+                      widget.isTimed
+                          ? '${_totalDuration.inMinutes} min'
+                          : 'No timer',
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: theme.colorScheme.onSurface.withValues(
                           alpha: 0.7,
