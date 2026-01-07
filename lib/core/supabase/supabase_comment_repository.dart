@@ -20,6 +20,13 @@ class SupabaseCommentRepository implements CommentRepository {
   final Set<String> _likedCommentIds = {};
 
   String? get _userId => _client.auth.currentUser?.id;
+  static bool _isMissingTable(PostgrestException e, String table) {
+    final msg = e.message.toLowerCase();
+    final t = table.toLowerCase();
+    return (e.code == '42P01') ||
+        (msg.contains('does not exist') && msg.contains(t)) ||
+        (msg.contains('relation') && msg.contains(t));
+  }
 
   @override
   Stream<List<Comment>> watchComments(String postId) {
@@ -80,7 +87,45 @@ class SupabaseCommentRepository implements CommentRepository {
         .eq('post_id', postId)
         .order('created_at', ascending: true);
 
-    return (rows as List).map((row) => _commentFromRow(row)).toList();
+    final comments =
+        (rows as List).map((row) => _commentFromRow(row)).toList(growable: false);
+    return _withLikes(comments);
+  }
+
+  Future<List<Comment>> _withLikes(List<Comment> comments) async {
+    if (comments.isEmpty) return comments;
+    final userId = _userId;
+
+    try {
+      final ids = comments.map((c) => c.id).toList(growable: false);
+      final likeRows = await _client
+          .from('comment_likes')
+          .select('comment_id, user_id')
+          .inFilter('comment_id', ids);
+
+      final Map<String, int> counts = <String, int>{};
+      final Set<String> liked = <String>{};
+
+      for (final row in (likeRows as List)) {
+        final commentId = (row['comment_id']).toString();
+        counts[commentId] = (counts[commentId] ?? 0) + 1;
+        if (userId != null && row['user_id']?.toString() == userId) {
+          liked.add(commentId);
+        }
+      }
+
+      return comments
+          .map(
+            (c) => c.copyWith(
+              likes: counts[c.id] ?? 0,
+              isLiked: liked.contains(c.id),
+            ),
+          )
+          .toList(growable: false);
+    } on PostgrestException catch (e) {
+      if (_isMissingTable(e, 'comment_likes')) return comments;
+      rethrow;
+    }
   }
 
   @override
@@ -144,14 +189,44 @@ class SupabaseCommentRepository implements CommentRepository {
 
   @override
   Future<bool> toggleLike(String commentId) async {
-    // Note: Comment likes table not in current schema
-    // This is a client-side mock until comment_likes table is added
-    if (_likedCommentIds.contains(commentId)) {
-      _likedCommentIds.remove(commentId);
-      return false;
-    } else {
-      _likedCommentIds.add(commentId);
+    final userId = _userId;
+    if (userId == null) {
+      throw StateError('Not signed in');
+    }
+
+    try {
+      final existing = await _client
+          .from('comment_likes')
+          .select('id')
+          .eq('comment_id', commentId)
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      if (existing != null) {
+        await _client
+            .from('comment_likes')
+            .delete()
+            .eq('comment_id', commentId)
+            .eq('user_id', userId);
+        return false;
+      }
+
+      await _client.from('comment_likes').insert({
+        'comment_id': commentId,
+        'user_id': userId,
+      });
       return true;
+    } on PostgrestException catch (e) {
+      if (!_isMissingTable(e, 'comment_likes')) rethrow;
+
+      // Fallback: client-side state only (legacy behavior).
+      if (_likedCommentIds.contains(commentId)) {
+        _likedCommentIds.remove(commentId);
+        return false;
+      } else {
+        _likedCommentIds.add(commentId);
+        return true;
+      }
     }
   }
 

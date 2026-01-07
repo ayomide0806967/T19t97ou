@@ -1,13 +1,23 @@
 part of '../ios_messages_screen.dart';
 
-mixin _CommentTileBuild on _CommentTileStateBase, _CommentTileActions {
+mixin _CommentTileBuild on _CommentTileStateBase {
+  static String _handleKey(String handle) =>
+      handle.trim().replaceFirst(RegExp(r'^@'), '').toLowerCase();
+
+  static String _timeAgo(DateTime date) {
+    final Duration diff = DateTime.now().difference(date);
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m';
+    if (diff.inHours < 24) return '${diff.inHours}h';
+    return '${diff.inDays}d';
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     final _ThreadComment comment = widget.comment;
-    final bool isMine =
-        comment.author == widget.currentUserHandle || comment.author == 'You';
+    final bool isMine = _handleKey(comment.authorHandle) ==
+        _handleKey(widget.currentUserHandle);
     // Light: own replies white, others white.
     final Color lightMine = Colors.white;
     final Color lightOther = Colors.white;
@@ -43,12 +53,9 @@ mixin _CommentTileBuild on _CommentTileStateBase, _CommentTileActions {
     final Color selectedHover = widget.isDark
         ? Colors.white.withValues(alpha: 0.08)
         : const Color(0xFFF3F4F6);
-    // When a reply has been reposted, highlight its card border in green.
-    final Color borderColor = _reposted
-        ? const Color(0xFF00BA7C)
-        : (isDark
-              ? Colors.white.withValues(alpha: 0.10)
-              : const Color(0xFFE5E7EB));
+    final Color borderColor = isDark
+        ? Colors.white.withValues(alpha: 0.10)
+        : const Color(0xFFE5E7EB);
     // Avatar used inside the card for other users.
     final String displayAuthor = comment.author
         .replaceFirst(RegExp(r'^\s*@'), '')
@@ -105,14 +112,17 @@ mixin _CommentTileBuild on _CommentTileStateBase, _CommentTileActions {
                     children: [
                       Expanded(
                         child: Text(
-                          comment.author.replaceFirst(RegExp(r'^\s*@'), ''),
+                          (comment.authorName.isNotEmpty
+                                  ? comment.authorName
+                                  : comment.authorHandle)
+                              .replaceFirst(RegExp(r'^\s*@'), ''),
                           style: theme.textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),
                       Text(
-                        comment.timeAgo,
+                        _timeAgo(comment.createdAt),
                         style: theme.textTheme.bodySmall?.copyWith(color: meta),
                       ),
                       if (widget.onMore != null) ...[
@@ -211,126 +221,6 @@ mixin _CommentTileBuild on _CommentTileStateBase, _CommentTileActions {
                     ],
                   ),
                 ],
-                if (_reposted && !_showRepostActions) ...[
-                  const SizedBox(height: 4),
-                  Align(
-                    alignment: Alignment.center,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const XRetweetIcon(size: 14, color: Color(0xFF00BA7C)),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Reposted',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF00BA7C),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-                if (_showRepostActions) ...[
-                  const SizedBox(height: 6),
-                  Align(
-                    alignment: Alignment.center,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.onSurface.withValues(
-                          alpha: widget.isDark ? 0.25 : 0.06,
-                        ),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          InkWell(
-                            borderRadius: BorderRadius.circular(999),
-                            onTap: () {
-                              HapticFeedback.lightImpact();
-                              setState(() {
-                                _reposted = !_reposted;
-                                _reposts += _reposted ? 1 : -1;
-                                if (_reposts < 0) _reposts = 0;
-                                _showRepostActions = false;
-                              });
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  XRetweetIcon(
-                                    size: 16,
-                                    color: _reposted
-                                        ? const Color(0xFF00BA7C)
-                                        : meta,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    _reposted ? 'Unrepost' : 'Repost',
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: 0.3,
-                                      color: _reposted ? Colors.green : meta,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          Container(
-                            width: 1,
-                            height: 18,
-                            color: theme.colorScheme.onSurface.withValues(
-                              alpha: widget.isDark ? 0.35 : 0.25,
-                            ),
-                          ),
-                          InkWell(
-                            borderRadius: BorderRadius.circular(999),
-                            onTap: () {
-                              setState(() {
-                                _showRepostActions = false;
-                              });
-                              widget.onSwipeReply?.call();
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.reply_rounded, size: 16),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'Reply',
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: meta,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
               ],
             ),
           ),
@@ -374,14 +264,7 @@ mixin _CommentTileBuild on _CommentTileStateBase, _CommentTileActions {
     );
 
     return GestureDetector(
-      onTap: () {
-        if (widget.onTap != null) {
-          widget.onTap!();
-        } else {
-          _toggleRepostActions();
-        }
-      },
-      onDoubleTap: _openReactionPicker,
+      onTap: widget.onTap,
       onLongPress: widget.onLongPress,
       onHorizontalDragUpdate: (details) {
         _dx += details.delta.dx;
@@ -423,10 +306,7 @@ mixin _CommentTileBuild on _CommentTileStateBase, _CommentTileActions {
           children: [
             // Reply bubble + swipe background
             Padding(
-              padding: EdgeInsets.only(
-                left: 0,
-                bottom: _reactions.isNotEmpty ? 14 : 0,
-              ),
+              padding: const EdgeInsets.only(left: 0, bottom: 0),
               child: Stack(
                 alignment: Alignment.centerLeft,
                 children: [
@@ -444,64 +324,6 @@ mixin _CommentTileBuild on _CommentTileStateBase, _CommentTileActions {
                 ],
               ),
             ),
-            if (_reactions.isNotEmpty)
-              Positioned(
-                left: isMine ? 12 : avatarSize / 2 + 12,
-                bottom: -10,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Builder(
-                    builder: (_) {
-                      final List<MapEntry<String, int>> sorted =
-                          _reactions.entries.toList()
-                            ..sort((a, b) => b.value.compareTo(a.value));
-                      const int maxVisible = 4;
-                      final int visibleCount = sorted.length > maxVisible
-                          ? maxVisible
-                          : sorted.length;
-
-                      int totalCount = 0;
-                      for (final entry in sorted) {
-                        totalCount += entry.value;
-                      }
-
-                      return Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          for (int i = 0; i < visibleCount; i++) ...[
-                            _EmojiReactionChip(
-                              emoji: sorted[i].key,
-                              count: sorted[i].value,
-                              isActive: sorted[i].key == _currentUserReaction,
-                              onTap: () => _showReactionDetails(sorted[i].key),
-                            ),
-                            if (i != visibleCount - 1) const SizedBox(width: 8),
-                          ],
-                          if (totalCount > 0) ...[
-                            const SizedBox(width: 6),
-                            Text(
-                              '$totalCount',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                fontSize: 11,
-                                color: theme.colorScheme.onSurface.withValues(
-                                  alpha: 0.8,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      );
-                    },
-                  ),
-                ),
-              ),
           ],
         ),
       ),

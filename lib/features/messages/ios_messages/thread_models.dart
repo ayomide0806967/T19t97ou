@@ -24,8 +24,8 @@ class _ThreadCommentsView extends StatelessWidget {
   final ValueChanged<_ThreadNode>? onReply;
   final ValueChanged<_ThreadNode>? onMore;
   final bool selectionMode;
-  final Set<_ThreadNode> selected;
-  final void Function(_ThreadNode node) onToggleSelect;
+  final Set<String> selected;
+  final void Function(String commentId) onToggleSelect;
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +42,7 @@ class _ThreadCommentsView extends StatelessWidget {
             onMore: onMore,
             selectionMode: selectionMode,
             selected: selected,
-            onToggleSelect: () => onToggleSelect(nodes[i]),
+            onToggleSelect: onToggleSelect,
           ),
       ],
     );
@@ -68,8 +68,8 @@ class _ThreadNodeTile extends StatelessWidget {
   final ValueChanged<_ThreadNode>? onReply;
   final ValueChanged<_ThreadNode>? onMore;
   final bool selectionMode;
-  final Set<_ThreadNode> selected;
-  final VoidCallback onToggleSelect;
+  final Set<String> selected;
+  final void Function(String commentId) onToggleSelect;
 
   @override
   Widget build(BuildContext context) {
@@ -111,9 +111,10 @@ class _ThreadNodeTile extends StatelessWidget {
                       ? null
                       : () => onReply?.call(node),
                   onMore: selectionMode ? null : () => onMore?.call(node),
-                  selected: selected.contains(node),
-                  onLongPress: onToggleSelect,
-                  onTap: selectionMode ? onToggleSelect : null,
+                  selected: selected.contains(node.comment.id),
+                  onLongPress: () => onToggleSelect(node.comment.id),
+                  onTap:
+                      selectionMode ? () => onToggleSelect(node.comment.id) : null,
                 ),
               ),
             ],
@@ -144,17 +145,25 @@ class _ThreadNodeTile extends StatelessWidget {
 
 class _ThreadComment {
   const _ThreadComment({
-    required this.author,
-    required this.timeAgo,
+    required this.id,
+    required this.authorName,
+    required this.authorHandle,
     required this.body,
+    required this.createdAt,
     this.likes = 0,
+    this.isLiked = false,
+    this.parentCommentId,
     this.quotedFrom,
     this.quotedBody,
   });
-  final String author;
-  final String timeAgo;
+  final String id;
+  final String authorName;
+  final String authorHandle;
   final String body;
+  final DateTime createdAt;
   final int likes;
+  final bool isLiked;
+  final String? parentCommentId;
   final String? quotedFrom;
   final String? quotedBody;
 }

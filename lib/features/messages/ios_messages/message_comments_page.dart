@@ -19,53 +19,132 @@ class _MessageCommentsPage extends ConsumerStatefulWidget {
 class _MessageCommentsPageState extends ConsumerState<_MessageCommentsPage> {
   final TextEditingController _composer = TextEditingController();
   final FocusNode _composerFocusNode = FocusNode();
-  _ThreadNode? _replyTarget;
-  late List<_ThreadNode> _threads;
+  String? _replyTargetCommentId;
+  List<Comment> _comments = const <Comment>[];
+  StreamSubscription<List<Comment>>? _commentsSub;
+  Object? _commentsError;
+  bool _commentsLoading = true;
   bool _composerVisible = true; // Keep composer open by default on comments
-  final Set<_ThreadNode> _selected = <_ThreadNode>{};
+  final Set<String> _selected = <String>{};
 
   @override
   void initState() {
     super.initState();
-    _threads = <_ThreadNode>[
-      _ThreadNode(
-        comment: const _ThreadComment(
-          author: '@Naureen Ali',
-          timeAgo: '14h',
-          body:
-              "Use Google authenticator instead of recovery Gmail and no what's ths??",
-          likes: 1,
-        ),
-      ),
-      _ThreadNode(
-        comment: const _ThreadComment(
-          author: '@Athisham Nawaz',
-          timeAgo: '14h',
-          body: 'Google authenticator app ha',
-        ),
-      ),
-      _ThreadNode(
-        comment: const _ThreadComment(
-          author: '@Jan Mi',
-          timeAgo: '2h',
-          body: 'Naureen Ali Google auth app is more reliable.',
-        ),
-      ),
-      _ThreadNode(
-        comment: const _ThreadComment(
-          author: '@Mahan Rehman',
-          timeAgo: '13h',
-          body: 'Channel suspended. Got a notification — what should I do?',
-        ),
-      ),
-    ];
+    _subscribeToComments();
   }
 
   @override
   void dispose() {
     _composer.dispose();
     _composerFocusNode.dispose();
+    _commentsSub?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant _MessageCommentsPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.message.id != widget.message.id) {
+      _subscribeToComments();
+    }
+  }
+
+  void _subscribeToComments() {
+    _commentsSub?.cancel();
+    setState(() {
+      _commentsLoading = true;
+      _commentsError = null;
+      _comments = const <Comment>[];
+      _replyTargetCommentId = null;
+      _selected.clear();
+    });
+
+    _commentsSub = ref
+        .read(commentRepositoryProvider)
+        .watchComments(widget.message.id)
+        .listen(
+          (comments) {
+            if (!mounted) return;
+            setState(() {
+              _comments = comments;
+              _commentsLoading = false;
+              _commentsError = null;
+            });
+          },
+          onError: (e) {
+            if (!mounted) return;
+            setState(() {
+              _commentsError = e;
+              _commentsLoading = false;
+            });
+          },
+        );
+  }
+
+  static String _withAt(String handle) {
+    final h = handle.trim();
+    if (h.isEmpty) return '';
+    return h.startsWith('@') ? h : '@$h';
+  }
+
+  List<_ThreadNode> _buildThreadNodes(List<Comment> comments) {
+    final Map<String, _ThreadNode> byId = <String, _ThreadNode>{};
+
+    for (final c in comments) {
+      byId[c.id] = _ThreadNode(
+        comment: _ThreadComment(
+          id: c.id,
+          authorName: c.authorName,
+          authorHandle: _withAt(c.authorHandle),
+          body: c.body,
+          createdAt: c.createdAt,
+          likes: c.likes,
+          isLiked: c.isLiked,
+          parentCommentId: c.parentCommentId,
+        ),
+      );
+    }
+
+    final List<_ThreadNode> roots = <_ThreadNode>[];
+    for (final node in byId.values) {
+      final parentId = node.comment.parentCommentId;
+      if (parentId != null && byId.containsKey(parentId)) {
+        byId[parentId]!.children.add(node);
+      } else {
+        roots.add(node);
+      }
+    }
+
+    void sortNode(_ThreadNode n) {
+      n.children.sort(
+        (a, b) => a.comment.createdAt.compareTo(b.comment.createdAt),
+      );
+      for (final c in n.children) {
+        sortNode(c);
+      }
+    }
+
+    roots.sort((a, b) => a.comment.createdAt.compareTo(b.comment.createdAt));
+    for (final r in roots) {
+      sortNode(r);
+    }
+    return roots;
+  }
+
+  _ThreadNode? _findNodeById(List<_ThreadNode> nodes, String id) {
+    for (final n in nodes) {
+      if (n.comment.id == id) return n;
+      final found = _findNodeById(n.children, id);
+      if (found != null) return found;
+    }
+    return null;
+  }
+
+  Iterable<_ThreadNode> _flatten(List<_ThreadNode> nodes) sync* {
+    for (final n in nodes) {
+      yield n;
+      yield* _flatten(n.children);
+    }
   }
 
   Future<void> _ensureRepostForReply() async {
@@ -82,7 +161,7 @@ class _MessageCommentsPageState extends ConsumerState<_MessageCommentsPage> {
 
   void _setReplyTarget(_ThreadNode node) {
     setState(() {
-      _replyTarget = node;
+      _replyTargetCommentId = node.comment.id;
       _composerVisible = true;
     });
     // Bring up keyboard for quick reply
@@ -93,41 +172,47 @@ class _MessageCommentsPageState extends ConsumerState<_MessageCommentsPage> {
     });
   }
 
-  void _sendReply() {
+  Future<void> _sendReply() async {
     final text = _composer.text.trim();
     if (text.isEmpty) return;
 
     // Ensure replying also surfaces the post on the global feed as a repost.
     _ensureRepostForReply();
 
-    final _ThreadNode newNode = _ThreadNode(
-      comment: _ThreadComment(
-        author: 'You',
-        timeAgo: 'now',
-        body: text,
-        quotedFrom: _replyTarget?.comment.author,
-        quotedBody: _replyTarget?.comment.body,
-      ),
-    );
-
-    // Keep the timeline chronological (append at end) even when replying.
-    _threads.add(newNode);
-
+    final parentId = _replyTargetCommentId;
     setState(() {
-      _replyTarget = null;
+      _replyTargetCommentId = null;
       _composer.clear();
     });
 
-    AppToast.showTopOverlay(
-      context,
-      'Comment sent',
-      duration: ToastDurations.standard,
-    );
+    try {
+      await ref.read(commentRepositoryProvider).addComment(
+            postId: widget.message.id,
+            body: text,
+            parentCommentId: parentId,
+          );
+      if (!mounted) return;
+      AppToast.showTopOverlay(
+        context,
+        'Comment sent',
+        duration: ToastDurations.standard,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      AppToast.showTopOverlay(
+        context,
+        'Failed to send comment',
+        duration: ToastDurations.standard,
+      );
+    }
   }
 
   void _openCommentMoreSheet(_ThreadNode node) {
-    final bool isMine =
-        node.comment.author == widget.currentUserHandle || node.comment.author == 'You';
+    final String currentHandle = widget.currentUserHandle.trim();
+    String handleKey(String h) =>
+        h.trim().replaceFirst(RegExp(r'^@'), '').toLowerCase();
+    final bool isMine = currentHandle.isNotEmpty &&
+        handleKey(node.comment.authorHandle) == handleKey(currentHandle);
 
     Future<void> copyText() async {
       await Clipboard.setData(ClipboardData(text: node.comment.body));
@@ -139,17 +224,31 @@ class _MessageCommentsPageState extends ConsumerState<_MessageCommentsPage> {
       );
     }
 
-    void deleteComment() {
-      setState(() {
-        _threads = _filterNodes(_threads, <_ThreadNode>{node});
-        _selected.remove(node);
-        if (identical(_replyTarget, node)) _replyTarget = null;
-      });
-      AppToast.showTopOverlay(
-        context,
-        'Comment deleted',
-        duration: ToastDurations.standard,
-      );
+    Future<void> deleteComment() async {
+      try {
+        await ref
+            .read(commentRepositoryProvider)
+            .deleteComment(node.comment.id);
+        if (!mounted) return;
+        setState(() {
+          _selected.remove(node.comment.id);
+          if (_replyTargetCommentId == node.comment.id) {
+            _replyTargetCommentId = null;
+          }
+        });
+        AppToast.showTopOverlay(
+          context,
+          'Comment deleted',
+          duration: ToastDurations.standard,
+        );
+      } catch (e) {
+        if (!mounted) return;
+        AppToast.showTopOverlay(
+          context,
+          'Failed to delete comment',
+          duration: ToastDurations.standard,
+        );
+      }
     }
 
     AppActionSheet.show(
@@ -178,12 +277,12 @@ class _MessageCommentsPageState extends ConsumerState<_MessageCommentsPage> {
     );
   }
 
-  void _toggleSelection(_ThreadNode node) {
+  void _toggleSelection(String commentId) {
     setState(() {
-      if (_selected.contains(node)) {
-        _selected.remove(node);
+      if (_selected.contains(commentId)) {
+        _selected.remove(commentId);
       } else {
-        _selected.add(node);
+        _selected.add(commentId);
       }
     });
   }
@@ -196,17 +295,33 @@ class _MessageCommentsPageState extends ConsumerState<_MessageCommentsPage> {
   void _replyToSelected() {
     if (_selected.isEmpty) return;
     // Reply to the first selected node
-    final _ThreadNode target = _selected.first;
-    _setReplyTarget(target);
+    final String targetId = _selected.first;
+    final nodes = _buildThreadNodes(_comments);
+    final target = _findNodeById(nodes, targetId);
+    if (target != null) {
+      _setReplyTarget(target);
+    }
   }
 
   void _showInfoForSelected() {
     if (_selected.isEmpty) return;
     final theme = Theme.of(context);
     final int count = _selected.length;
+    final nodes = _buildThreadNodes(_comments);
+    final Map<String, _ThreadNode> map = <String, _ThreadNode>{};
+    for (final n in _flatten(nodes)) {
+      map[n.comment.id] = n;
+    }
     final preview = _selected
         .take(3)
-        .map((n) => '• ${n.comment.author}: ${n.comment.body}')
+        .map((id) {
+          final n = map[id];
+          if (n == null) return '• (deleted)';
+          final author = n.comment.authorName.isNotEmpty
+              ? n.comment.authorName
+              : n.comment.authorHandle;
+          return '• $author: ${n.comment.body}';
+        })
         .join('\n');
     showModalBottomSheet(
       context: context,
@@ -253,10 +368,11 @@ class _MessageCommentsPageState extends ConsumerState<_MessageCommentsPage> {
           FilledButton(
             onPressed: () {
               Navigator.pop(ctx);
-              setState(() {
-                _threads = _filterNodes(_threads, _selected);
-                _selected.clear();
-              });
+              final ids = _selected.toList(growable: false);
+              setState(() => _selected.clear());
+              for (final id in ids) {
+                ref.read(commentRepositoryProvider).deleteComment(id);
+              }
             },
             child: const Text('Delete'),
           ),
@@ -265,23 +381,22 @@ class _MessageCommentsPageState extends ConsumerState<_MessageCommentsPage> {
     );
   }
 
-  List<_ThreadNode> _filterNodes(
-    List<_ThreadNode> nodes,
-    Set<_ThreadNode> remove,
-  ) {
-    final List<_ThreadNode> out = <_ThreadNode>[];
-    for (final n in nodes) {
-      if (remove.contains(n)) continue;
-      final children = _filterNodes(n.children, remove);
-      out.add(_ThreadNode(comment: n.comment, children: children));
-    }
-    return out;
-  }
-
   Future<void> _forwardSelected() async {
     if (_selected.isEmpty) return;
+    final nodes = _buildThreadNodes(_comments);
+    final Map<String, _ThreadNode> map = <String, _ThreadNode>{};
+    for (final n in _flatten(nodes)) {
+      map[n.comment.id] = n;
+    }
     final text = _selected
-        .map((n) => '${n.comment.author}: ${n.comment.body}')
+        .map((id) => map[id])
+        .whereType<_ThreadNode>()
+        .map((n) {
+          final author = n.comment.authorName.isNotEmpty
+              ? n.comment.authorName
+              : n.comment.authorHandle;
+          return '$author: ${n.comment.body}';
+        })
         .join('\n\n');
     await Clipboard.setData(ClipboardData(text: text));
     if (!mounted) return;
@@ -312,10 +427,11 @@ class _MessageCommentsPageState extends ConsumerState<_MessageCommentsPage> {
               leading: const Icon(Icons.select_all),
               title: const Text('Select all'),
               onTap: () {
+                final nodes = _buildThreadNodes(_comments);
                 setState(() {
                   _selected
                     ..clear()
-                    ..addAll(_flatten(_threads));
+                    ..addAll(_flatten(nodes).map((n) => n.comment.id));
                 });
                 Navigator.pop(ctx);
               },
@@ -334,23 +450,21 @@ class _MessageCommentsPageState extends ConsumerState<_MessageCommentsPage> {
     );
   }
 
-  Iterable<_ThreadNode> _flatten(List<_ThreadNode> nodes) sync* {
-    for (final n in nodes) {
-      yield n;
-      yield* _flatten(n.children);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bool selectionMode = _selected.isNotEmpty;
     final double keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
     final double bottomSafeInset = MediaQuery.paddingOf(context).bottom;
-    final bool showBottomBar = _replyTarget != null || _composerVisible;
+    final bool showBottomBar =
+        _replyTargetCommentId != null || _composerVisible;
     final double bottomBarSpacer = showBottomBar
-        ? (_replyTarget != null ? 210 : 100) + bottomSafeInset
+        ? (_replyTargetCommentId != null ? 210 : 100) + bottomSafeInset
         : bottomSafeInset;
+    final List<_ThreadNode> nodes = _buildThreadNodes(_comments);
+    final _ThreadNode? replyTarget = _replyTargetCommentId != null
+        ? _findNodeById(nodes, _replyTargetCommentId!)
+        : null;
     return Scaffold(
       resizeToAvoidBottomInset: false,
       extendBody: true,
@@ -506,8 +620,26 @@ class _MessageCommentsPageState extends ConsumerState<_MessageCommentsPage> {
             },
           ),
           const SizedBox(height: 4),
+          if (_commentsLoading)
+            const Padding(
+              padding: EdgeInsets.only(top: 24),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (_commentsError != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 24),
+              child: Center(
+                child: Text(
+                  'Failed to load replies',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
+              ),
+            )
+          else
           _ThreadCommentsView(
-            nodes: _threads,
+            nodes: nodes,
             currentUserHandle: widget.currentUserHandle,
             onReply: _setReplyTarget,
             onMore: _openCommentMoreSheet,
@@ -526,7 +658,7 @@ class _MessageCommentsPageState extends ConsumerState<_MessageCommentsPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (_replyTarget != null)
+                    if (replyTarget != null)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 2),
                         child: Row(
@@ -593,8 +725,15 @@ class _MessageCommentsPageState extends ConsumerState<_MessageCommentsPage> {
                                                       CrossAxisAlignment.start,
                                                   children: [
                                                     Text(
-                                                      _replyTarget!
-                                                          .comment.author
+                                                      (replyTarget.comment
+                                                                  .authorName
+                                                                  .isNotEmpty
+                                                              ? replyTarget
+                                                                  .comment
+                                                                  .authorName
+                                                              : replyTarget
+                                                                  .comment
+                                                                  .authorHandle)
                                                           .replaceFirst(
                                                         RegExp(r'^\\s*@'),
                                                         '',
@@ -611,7 +750,7 @@ class _MessageCommentsPageState extends ConsumerState<_MessageCommentsPage> {
                                                     ),
                                                     const SizedBox(height: 4),
                                                     Text(
-                                                      _replyTarget!.comment.body,
+                                                      replyTarget.comment.body,
                                                       maxLines: 2,
                                                       overflow:
                                                           TextOverflow.ellipsis,
@@ -644,7 +783,8 @@ class _MessageCommentsPageState extends ConsumerState<_MessageCommentsPage> {
                                                   ),
                                                   onPressed: () {
                                                     setState(() {
-                                                      _replyTarget = null;
+                                                      _replyTargetCommentId =
+                                                          null;
                                                       _composerVisible = true;
                                                     });
                                                     _composer

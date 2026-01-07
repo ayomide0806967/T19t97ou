@@ -55,12 +55,17 @@ class _ClassDiscussionThreadPageState
     final text = _composer.text.trim();
     if (text.isEmpty) return;
 
+    final now = DateTime.now();
     final _ThreadNode newNode = _ThreadNode(
       comment: _ThreadComment(
-        author: 'You',
-        timeAgo: 'now',
+        id: 'local_${now.microsecondsSinceEpoch}',
+        authorName: 'You',
+        authorHandle: _currentUserHandle,
         body: text,
-        quotedFrom: _replyTarget?.comment.author,
+        createdAt: now,
+        quotedFrom: _replyTarget?.comment.authorName.isNotEmpty == true
+            ? _replyTarget?.comment.authorName
+            : _replyTarget?.comment.authorHandle,
         quotedBody: _replyTarget?.comment.body,
       ),
     );
@@ -134,7 +139,7 @@ class _ClassDiscussionThreadPageState
                     currentUserHandle: handle,
                     onReply: _setReplyTarget,
                     selectionMode: false,
-                    selected: const <_ThreadNode>{},
+                    selected: const <String>{},
                     onToggleSelect: (_) {},
                   ),
               ],
@@ -204,7 +209,12 @@ class _ClassDiscussionThreadPageState
                                               CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              _replyTarget!.comment.author
+                                              (_replyTarget!.comment.authorName
+                                                          .isNotEmpty
+                                                      ? _replyTarget!
+                                                          .comment.authorName
+                                                      : _replyTarget!
+                                                          .comment.authorHandle)
                                                   .replaceFirst(
                                                 RegExp(r'^\\s*@'),
                                                 '',
