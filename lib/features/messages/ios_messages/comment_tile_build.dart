@@ -57,7 +57,8 @@ mixin _CommentTileBuild on _CommentTileStateBase {
         ? Colors.white.withValues(alpha: 0.10)
         : const Color(0xFFE5E7EB);
     // Avatar used inside the card for other users.
-    final String displayAuthor = comment.author
+    final String displayAuthor =
+        (comment.authorName.isNotEmpty ? comment.authorName : comment.authorHandle)
         .replaceFirst(RegExp(r'^\s*@'), '')
         .trim();
     final String initial = displayAuthor.isNotEmpty
